@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TecnmInventario.Api/TecnmInventario.Api.csproj" />
+    <Project Path="src/TecnmInventario.Infrastructure/TecnmInventario.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TecnmInventario.Api.Tests/TecnmInventario.Api.Tests.csproj" />
+  </Folder>
+</Solution>
