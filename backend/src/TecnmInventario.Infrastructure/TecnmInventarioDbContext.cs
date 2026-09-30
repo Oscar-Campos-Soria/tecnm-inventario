@@ -1289,6 +1289,8 @@ public partial class TecnmInventarioDbContext : DbContext
 
             entity.HasIndex(e => e.AssetId, "ix_incidents_active_asset").HasFilter("(is_deleted = false)");
 
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
             entity.Property(e => e.IncidentId)
                 .UseIdentityAlwaysColumn()
                 .HasColumnName("incident_id");
@@ -1321,7 +1323,8 @@ public partial class TecnmInventarioDbContext : DbContext
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
             entity.Property(e => e.Version)
                 .HasDefaultValue(1)
-                .HasColumnName("version");
+                .HasColumnName("version")
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Asset).WithMany(p => p.Incidents)
                 .HasForeignKey(d => d.AssetId)

@@ -28,3 +28,7 @@ public partial class AssetWarranty : ISoftDeletable
 public partial class Location : ISoftDeletable
 {
 }
+
+public partial class Incident : ISoftDeletable
+{
+}
