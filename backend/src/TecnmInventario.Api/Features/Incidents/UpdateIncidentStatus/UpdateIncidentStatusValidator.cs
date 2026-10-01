@@ -12,6 +12,7 @@ public class UpdateIncidentStatusValidator : AbstractValidator<UpdateIncidentSta
             .GreaterThan(0).WithMessage("Debe indicar la versión del incidente que está viendo (expectedVersion).");
 
         RuleFor(x => x.NewStatusCode)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty().WithMessage("El nuevo estado es obligatorio.")
             .Must(code => code != IncidentStatusCodes.Resuelto)
             .WithMessage("Para resolver un incidente use el endpoint de resolución (requiere la solución aplicada).")

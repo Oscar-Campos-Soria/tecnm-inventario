@@ -7,6 +7,7 @@ using TecnmInventario.Api.Features.Incidents.GetIncidentById;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
 using TecnmInventario.Api.Features.Incidents.AssignIncident;
 using TecnmInventario.Api.Features.Incidents.UpdateIncidentStatus;
+using TecnmInventario.Api.Features.Incidents.ResolveIncident;
 
 namespace TecnmInventario.Api.Controllers;
 
@@ -92,6 +93,21 @@ public class IncidentsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new UpdateIncidentStatusCommand(incidentId, expectedVersion, body.NewStatusCode, body.Reason);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed record ResolveIncidentBody(string Solution, string? Diagnosis);
+
+    [HttpPost("{incidentId:long}/resolve")]
+    [Authorize(Policy = "incidents.resolve")]
+    public async Task<ActionResult<ResolveIncidentResponse>> ResolveIncident(
+        long incidentId,
+        [FromQuery] int expectedVersion,
+        ResolveIncidentBody body,
+        CancellationToken cancellationToken)
+    {
+        var command = new ResolveIncidentCommand(incidentId, expectedVersion, body.Solution, body.Diagnosis);
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
