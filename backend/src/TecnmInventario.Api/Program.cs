@@ -70,6 +70,7 @@ builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<IDocumentAccessAuthorizer, DocumentAccessAuthorizer>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ISoftDeleteAuditor, SoftDeleteAuditor>();
+builder.Services.AddScoped<TecnmInventario.Api.Features.Assets.Shared.IAssetStatusChanger, TecnmInventario.Api.Features.Assets.Shared.AssetStatusChanger>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 
