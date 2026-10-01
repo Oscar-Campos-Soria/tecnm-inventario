@@ -5,6 +5,8 @@ using TecnmInventario.Api.Common.Pagination;
 using TecnmInventario.Api.Features.Incidents.CreateIncident;
 using TecnmInventario.Api.Features.Incidents.GetIncidentById;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
+using TecnmInventario.Api.Features.Incidents.AssignIncident;
+using TecnmInventario.Api.Features.Incidents.UpdateIncidentStatus;
 
 namespace TecnmInventario.Api.Controllers;
 
@@ -62,5 +64,35 @@ public class IncidentsController : ControllerBase
     {
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetIncidentById), new { incidentId = result.IncidentId }, result);
+    }
+
+    public sealed record AssignIncidentBody(long AssignedToUserId);
+
+    [HttpPut("{incidentId:long}/assignment")]
+    [Authorize(Policy = "incidents.resolve")]
+    public async Task<ActionResult<AssignIncidentResponse>> AssignIncident(
+        long incidentId,
+        [FromQuery] int expectedVersion,
+        AssignIncidentBody body,
+        CancellationToken cancellationToken)
+    {
+        var command = new AssignIncidentCommand(incidentId, expectedVersion, body.AssignedToUserId);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed record UpdateIncidentStatusBody(string NewStatusCode, string? Reason);
+
+    [HttpPatch("{incidentId:long}/status")]
+    [Authorize(Policy = "incidents.resolve")]
+    public async Task<ActionResult<UpdateIncidentStatusResponse>> UpdateIncidentStatus(
+        long incidentId,
+        [FromQuery] int expectedVersion,
+        UpdateIncidentStatusBody body,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateIncidentStatusCommand(incidentId, expectedVersion, body.NewStatusCode, body.Reason);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
     }
 }
