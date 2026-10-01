@@ -25,7 +25,7 @@ public class ExceptionHandlingMiddleware
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Error de validación en {Path}", context.Request.Path);
+            _logger.LogWarning("Error de validación en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.BadRequest,
@@ -38,7 +38,7 @@ public class ExceptionHandlingMiddleware
             // Regla de negocio dependiente del estado actual de los datos
             // (no un error de forma detectable por FluentValidation antes
             // de llegar al Handler) -- ej. borrar una ubicación con hijos.
-            _logger.LogWarning(ex, "Regla de negocio violada en {Path}", context.Request.Path);
+            _logger.LogWarning("Regla de negocio violada en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.BadRequest,
@@ -47,7 +47,7 @@ public class ExceptionHandlingMiddleware
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Intento de acceso no autorizado en {Path}", context.Request.Path);
+            _logger.LogWarning("Intento de acceso no autorizado en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.Unauthorized,
@@ -56,7 +56,7 @@ public class ExceptionHandlingMiddleware
         }
         catch (Common.Errors.ForbiddenAccessException ex)
         {
-            _logger.LogWarning(ex, "Acceso prohibido en {Path}", context.Request.Path);
+            _logger.LogWarning("Acceso prohibido en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.Forbidden,
@@ -65,27 +65,18 @@ public class ExceptionHandlingMiddleware
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "Recurso no encontrado en {Path}", context.Request.Path);
+            _logger.LogWarning("Recurso no encontrado en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.NotFound,
                 "Recurso no encontrado",
                 ex.Message);
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Operación inválida en {Path}", context.Request.Path);
-            await WriteProblemDetailsAsync(
-                context,
-                HttpStatusCode.Conflict,
-                "Operación inválida",
-                ex.Message);
-        }
         catch (DbUpdateConcurrencyException ex)
         {
             // El registro fue modificado o borrado por otro usuario entre que
             // el cliente lo leyó y envió su cambio (WHERE version=X afectó 0 filas).
-            _logger.LogWarning(ex, "Conflicto de concurrencia optimista en {Path}", context.Request.Path);
+            _logger.LogWarning("Conflicto de concurrencia optimista en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.Conflict,
@@ -97,7 +88,7 @@ public class ExceptionHandlingMiddleware
             // RAISE EXCEPTION sin código SQLSTATE explícito en triggers de negocio
             // (ej. validate_document_owner). EF Core envuelve el PostgresException
             // real dentro de DbUpdateException; el mensaje ya viene redactado para el usuario.
-            _logger.LogWarning(ex, "Regla de negocio de base de datos violada en {Path}", context.Request.Path);
+            _logger.LogWarning("Regla de negocio de base de datos violada en {Path}: {Reason}", context.Request.Path, ex.Message);
             await WriteProblemDetailsAsync(
                 context,
                 HttpStatusCode.BadRequest,

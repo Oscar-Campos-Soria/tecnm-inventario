@@ -8,6 +8,7 @@ using TecnmInventario.Api.Features.Assets.GetAssets;
 using TecnmInventario.Api.Features.Assets.UpdateAsset;
 using TecnmInventario.Api.Features.Assets.UpdateAssetStatus;
 using TecnmInventario.Api.Features.Procurement.Warranties.GetWarrantiesByAsset;
+using TecnmInventario.Api.Features.Incidents.GetIncidents;
 
 namespace TecnmInventario.Api.Controllers;
 
@@ -95,6 +96,22 @@ public class AssetsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetWarrantiesByAssetQuery(assetId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{assetId:long}/incidents")]
+    [Authorize(Policy = "incidents.view")]
+    public async Task<ActionResult<PagedResult<GetIncidentsResponse>>> GetIncidentsByAsset(
+        long assetId,
+        [FromQuery] PagedRequest pagination,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetIncidentsQuery(
+            pagination.PageNumber, pagination.PageSize,
+            AssetId: assetId, StatusCode: null, PriorityCode: null,
+            IncidentTypeId: null, AssignedTo: null, OnlyOpen: null, Search: null);
+
+        var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
 }
