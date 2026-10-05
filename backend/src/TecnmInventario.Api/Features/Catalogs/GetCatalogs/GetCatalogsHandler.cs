@@ -74,8 +74,7 @@ public sealed class GetCatalogsHandler : IQueryHandler<GetCatalogsQuery, GetCata
             .Select(x => new CatalogItem(x.DisposalReasonId, x.Code, x.Name))
             .ToListAsync(cancellationToken);
 
-        // El DbSet se llama SoftwarTypes (nombre generado por el scaffolding).
-        var softwareTypes = await _context.SoftwarTypes.AsNoTracking()
+        var softwareTypes = await _context.SoftwareTypes.AsNoTracking()
             .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
             .Select(x => new CatalogItem(x.SoftwareTypeId, x.Code, x.Name))
             .ToListAsync(cancellationToken);
