@@ -8,6 +8,7 @@ using TecnmInventario.Api.Features.Incidents.GetIncidents;
 using TecnmInventario.Api.Features.Incidents.AssignIncident;
 using TecnmInventario.Api.Features.Incidents.UpdateIncidentStatus;
 using TecnmInventario.Api.Features.Incidents.ResolveIncident;
+using TecnmInventario.Api.Features.Incidents.DeleteIncident;
 
 namespace TecnmInventario.Api.Controllers;
 
@@ -108,6 +109,18 @@ public class IncidentsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new ResolveIncidentCommand(incidentId, expectedVersion, body.Solution, body.Diagnosis);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("{incidentId:long}")]
+    [Authorize(Policy = "incidents.delete")]
+    public async Task<ActionResult<DeleteIncidentResponse>> DeleteIncident(
+        long incidentId,
+        [FromQuery] int expectedVersion,
+        CancellationToken cancellationToken)
+    {
+        var command = new DeleteIncidentCommand(incidentId, expectedVersion);
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
