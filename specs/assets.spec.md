@@ -1,0 +1,42 @@
+# Spec — Activos (Assets)
+
+## Propósito
+
+Ficha técnica de cada equipo físico inventariable, máquina de estados de ciclo de vida, filtros y consultas (incluye QR para escaneo en campo, pendiente en frontend).
+
+## Endpoints
+
+| Método | Ruta | Permiso | Descripción |
+| --- | --- | --- | --- |
+| `GET` | `/api/assets` | `assets.view` | Listado paginado |
+| `GET` | `/api/assets/{assetId}` | `assets.view` | Detalle por id |
+| `POST` | `/api/assets` | `assets.create` | Crea activo |
+| `PUT` | `/api/assets/{assetId}` | `assets.update` | Edita ficha (fabricante, modelo, ubicación, serie, hostname, notas) |
+| `PUT` | `/api/assets/{assetId}/status` | `assets.update` | Transición de estado (máquina de estados) |
+| `GET` | `/api/assets/{assetId}/warranties` | `assets.view` | Garantías del activo |
+
+## Reglas de negocio
+
+- **Código de inventario** (`inventory_code`) estable e independiente de la ubicación (ej. `TEC-PC-0001`).
+- **Máquina de estados** (`AssetStatusTransitions`): solo transiciones válidas entre `asset_status`.
+- **No se puede liberar un activo con incidentes abiertos** (regla aplicada en `UpdateAssetStatus`).
+- **No se elimina físicamente** (soft-delete auditado vía `ISoftDeleteAuditor`).
+- Ubicación actual desnormalizada en `current_location_id`; el histórico vive en `asset_movements`.
+- Concurrencia optimista con `version`.
+
+## Datos
+
+`asset`, `asset_type`, `asset_status`, `asset_assignment`, `asset_component`, `asset_movement`, `asset_os_history`, `asset_relation`, `asset_service`, `asset_software`, `asset_specification`, `asset_warranty`, `network_interface`, `inventory_record` (ver `DIAGRAMA_ER.md`).
+
+## Criterios de aceptación
+
+- [x] CRUD con validación (FluentValidation) y paginación
+- [x] Transiciones de estado válidas únicamente
+- [x] Bloqueo de liberación con incidentes abiertos
+- [x] Auditoría de cambios (audit_log) y soft-delete
+- [ ] Escáner QR en frontend (FASE 3)
+
+## Implementación
+
+- Feature: `backend/Features/Assets/` (GetAssets, GetAssetById, CreateAsset, UpdateAsset, UpdateAssetStatus, `Shared/AssetStatusChanger`)
+- Garantías: `backend/Features/Procurement/Warranties/`
