@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TecnmInventario.Api\TecnmInventario.Api.csproj" />
+    <ProjectReference Include="..\..\TecnmInventario.Api.csproj" />
   </ItemGroup>
 
 </Project>
