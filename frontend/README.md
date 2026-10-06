@@ -1,75 +1,37 @@
-# React + TypeScript + Vite
+# Frontend — TecNM Assets Management
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA para la gestión de activos tecnológicos del TecNM. React 19 + TypeScript + Vite 8 + Tailwind CSS 4.
 
-Currently, two official plugins are available:
+## Estructura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/app/` — configuración global: layouts (`MainLayout`, `AuthLayout`), enrutador, `App.tsx` y `main.tsx`
+- `src/modules/` — módulos por dominio (auth, assets, locations, incidents, maintenance, disposal, bulk-import, reports, dashboard, software, components, documents, history, users, roles, procurement)
+- `src/shared/` — transversal: `api/http.ts` (cliente HTTP + JWT), UI kit (`components/`), `hooks/`, `styles/` (Tailwind CSS-first), `utils/`, `assets/`
 
-## React Compiler
+Ver `FRONTEND_ARCHITECTURE.md` en la raíz del repo para la descripción completa.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Comandos
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev      # servidor de desarrollo
+npm run build    # tsc -b && vite build
+npm run lint     # eslint
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Configuración
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Copia `.env.example` a `.env`:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+VITE_API_BASE_URL=http://localhost:5112   # API .NET 10
 ```
+
+## Fases
+
+- FASE 1 (backend): base de datos y autenticación — ver `plans/01-database-and-auth-plan.md`
+- FASE 2 (backend): núcleo de activos — ver `plans/02-assets-core-plan.md`
+- FASE 3 (este proyecto): SPA — ver `plans/03-frontend-spa-plan.md`
+
+> **Nota sobre Tailwind:** la configuración es CSS-first (Tailwind v4, `@theme` en
+> `src/shared/styles/index.css`); no se utiliza `tailwind.config.js`.
