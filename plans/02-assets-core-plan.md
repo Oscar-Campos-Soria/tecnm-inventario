@@ -33,5 +33,5 @@
 
 ## Estado: 🟡 En progreso
 
-Completado: Assets (CRUD + estado), Locations, Incidents, Documents, Catalogs, Roles.
+Completado: Assets (CRUD + estado + movimientos + asignaciones), Locations, Incidents, Documents, Catalogs, Roles, Users (listado).
 Pendiente: Maintenance, Disposal, Components, Software, BulkImport, History, Reports, Dashboard.

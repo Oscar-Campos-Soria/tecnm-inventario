@@ -28,6 +28,8 @@ Ficha técnica de cada equipo físico inventariable, máquina de estados de cicl
 - **No se elimina físicamente** (soft-delete auditado vía `ISoftDeleteAuditor`).
 - Ubicación actual desnormalizada en `current_location_id`; el histórico vive en `asset_movements`.
 - Concurrencia optimista con `version`.
+- **Movimientos:** el destino no puede coincidir con la ubicación actual; cada movimiento registra origen/destino y es inmutable (no se borra para corregir).
+- **Asignaciones:** un activo solo tiene una asignación activa (`returned_at IS NULL`); debe devolverse antes de reasignar. El usuario asignado debe existir y estar activo.
 
 ## Datos
 
@@ -39,6 +41,8 @@ Ficha técnica de cada equipo físico inventariable, máquina de estados de cicl
 - [x] Transiciones de estado válidas únicamente
 - [x] Bloqueo de liberación con incidentes abiertos
 - [x] Auditoría de cambios (audit_log) y soft-delete
+- [x] Movimientos de ubicación con historial inmutable
+- [x] Asignaciones con una activa por activo, devolución auditada
 - [ ] Escáner QR en frontend (FASE 3)
 
 ## Implementación
