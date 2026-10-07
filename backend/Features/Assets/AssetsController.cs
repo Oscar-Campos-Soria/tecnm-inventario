@@ -7,6 +7,11 @@ using TecnmInventario.Api.Features.Assets.GetAssetById;
 using TecnmInventario.Api.Features.Assets.GetAssets;
 using TecnmInventario.Api.Features.Assets.UpdateAsset;
 using TecnmInventario.Api.Features.Assets.UpdateAssetStatus;
+using TecnmInventario.Api.Features.Assets.Movements.CreateAssetMovement;
+using TecnmInventario.Api.Features.Assets.Movements.GetAssetMovements;
+using TecnmInventario.Api.Features.Assets.Assignments.CreateAssetAssignment;
+using TecnmInventario.Api.Features.Assets.Assignments.GetAssetAssignments;
+using TecnmInventario.Api.Features.Assets.Assignments.EndAssetAssignment;
 using TecnmInventario.Api.Features.Procurement.Warranties.GetWarrantiesByAsset;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
 
@@ -112,6 +117,76 @@ public class AssetsController : ControllerBase
             IncidentTypeId: null, AssignedTo: null, OnlyOpen: null, Search: null);
 
         var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed record CreateAssetMovementBody(
+        long ToLocationId, long MovementReasonId, DateTime? MovedAt, string? Notes);
+
+    [HttpPost("{assetId:long}/movements")]
+    [Authorize(Policy = "assets.move")]
+    public async Task<ActionResult<CreateAssetMovementResponse>> CreateAssetMovement(
+        long assetId,
+        CreateAssetMovementBody body,
+        CancellationToken cancellationToken)
+    {
+        var command = new CreateAssetMovementCommand(
+            assetId, body.ToLocationId, body.MovementReasonId, body.MovedAt, body.Notes);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetAssetById), new { assetId = result.AssetId }, result);
+    }
+
+    [HttpGet("{assetId:long}/movements")]
+    [Authorize(Policy = "assets.view")]
+    public async Task<ActionResult<PagedResult<GetAssetMovementsResponse>>> GetAssetMovements(
+        long assetId,
+        [FromQuery] PagedRequest pagination,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetAssetMovementsQuery(assetId, pagination.PageNumber, pagination.PageSize);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed record CreateAssetAssignmentBody(
+        long AssignedTo, long AssignmentTypeId, long? LocationId, DateTime? AssignedAt, string? Notes);
+
+    [HttpPost("{assetId:long}/assignments")]
+    [Authorize(Policy = "assets.update")]
+    public async Task<ActionResult<CreateAssetAssignmentResponse>> CreateAssetAssignment(
+        long assetId,
+        CreateAssetAssignmentBody body,
+        CancellationToken cancellationToken)
+    {
+        var command = new CreateAssetAssignmentCommand(
+            assetId, body.AssignedTo, body.AssignmentTypeId,
+            body.LocationId, body.AssignedAt, body.Notes);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetAssetById), new { assetId = result.AssetId }, result);
+    }
+
+    [HttpGet("{assetId:long}/assignments")]
+    [Authorize(Policy = "assets.view")]
+    public async Task<ActionResult<IReadOnlyList<GetAssetAssignmentsResponse>>> GetAssetAssignments(
+        long assetId,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetAssetAssignmentsQuery(assetId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{assetId:long}/assignments/{assignmentId:long}/return")]
+    [Authorize(Policy = "assets.update")]
+    public async Task<ActionResult<EndAssetAssignmentResponse>> ReturnAssetAssignment(
+        long assetId,
+        long assignmentId,
+        CancellationToken cancellationToken)
+    {
+        var command = new EndAssetAssignmentCommand(assetId, assignmentId);
+        var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
 }

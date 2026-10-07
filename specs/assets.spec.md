@@ -14,6 +14,11 @@ Ficha técnica de cada equipo físico inventariable, máquina de estados de cicl
 | `PUT` | `/api/assets/{assetId}` | `assets.update` | Edita ficha (fabricante, modelo, ubicación, serie, hostname, notas) |
 | `PUT` | `/api/assets/{assetId}/status` | `assets.update` | Transición de estado (máquina de estados) |
 | `GET` | `/api/assets/{assetId}/warranties` | `assets.view` | Garantías del activo |
+| `POST` | `/api/assets/{assetId}/movements` | `assets.move` | Registra movimiento de ubicación (actualiza `current_location_id`) |
+| `GET` | `/api/assets/{assetId}/movements` | `assets.view` | Historial de movimientos (paginado) |
+| `POST` | `/api/assets/{assetId}/assignments` | `assets.update` | Asigna activo a usuario |
+| `GET` | `/api/assets/{assetId}/assignments` | `assets.view` | Historial de asignaciones |
+| `POST` | `/api/assets/{assetId}/assignments/{assignmentId}/return` | `assets.update` | Devuelve asignación activa |
 
 ## Reglas de negocio
 

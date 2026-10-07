@@ -5,9 +5,11 @@
 ## Alcance
 
 ### Activos
-- [ ] Completar máquina de estados con transiciones configurables
-- [ ] Movimientos de ubicación (`asset_movements`) con historial
-- [ ] Asignaciones a usuarios (`asset_assignments`)
+- [x] CRUD, máquina de estados y filtros base
+- [x] Movimientos de ubicación (`asset_movements`) con historial inmutable
+- [x] Asignaciones a usuarios (`asset_assignments`) con una activa por activo y devolución
+- [ ] Endpoint de búsqueda global (pendiente)
+- [ ] Escáner QR: generación de código y endpoint de resolución
 - [ ] Escáner QR: generación de código y endpoint de resolución
 
 ### Módulos satélite
