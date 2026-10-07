@@ -51,3 +51,28 @@ logs/
 # ==========================================
 .DS_Store
 Thumbs.db
+
+# ==========================================
+# Carpetas de herramientas de agentes (las genera el CLI de skills)
+# ==========================================
+/.agents/
+/.aider-desk/
+/.claude/skills/
+/.codestudio/
+/.commandcode/
+/.continue/
+/.cortex/
+/.crush/
+/.goose/
+/.hermes/
+/.inferencesh/
+/.kimchi/
+/.kode/
+/.minimax/
+/.pochi/
+/.terramind/
+/.trae/
+/.vibe/
+/.zcode/
+/skills/
+/skills-lock.json
