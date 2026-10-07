@@ -146,7 +146,7 @@ export function AssetDetailPage() {
         notes: assignmentForm.notes.trim() || undefined,
       })
       setAssignmentForm({ assignedTo: '', assignmentTypeId: '', locationId: '', notes: '' })
-      await loadAssignments()
+      await Promise.all([loadDetail(), loadAssignments()])
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'No se pudo registrar la asignación.')
     } finally {
@@ -158,7 +158,7 @@ export function AssetDetailPage() {
     setFormError('')
     try {
       await assetsApi.returnAssignment(numericId, assignmentId)
-      await loadAssignments()
+      await Promise.all([loadDetail(), loadAssignments()])
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'No se pudo devolver la asignación.')
     }
