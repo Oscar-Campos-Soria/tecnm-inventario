@@ -2,13 +2,22 @@
  * Cliente HTTP base para consumir la API (.NET 10).
  *
  * - baseURL desde VITE_API_BASE_URL (ver frontend/.env.example)
- * - inyecta el token JWT almacenado en localStorage
+ * - inyecta el token JWT de la sesión en localStorage
  * - ante un 401 limpia la sesión y redirige al login
+ * - errores: lee `detail` de ProblemDetails (.NET)
  */
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5112'
 
-const TOKEN_KEY = 'tecnm.token'
+const SESSION_KEY = 'tecnm.session'
+
+export interface AuthSession {
+  token: string
+  userId: number
+  username: string
+  roleCode: string
+  expiresAt: string
+}
 
 export class ApiError extends Error {
   public readonly status: number
@@ -20,32 +29,53 @@ export class ApiError extends Error {
   }
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+function isExpired(iso: string): boolean {
+  const time = Date.parse(iso)
+  return Number.isNaN(time) || time <= Date.now()
 }
 
-export function setToken(token: string | null): void {
-  if (token === null) {
-    localStorage.removeItem(TOKEN_KEY)
+export function getSession(): AuthSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const session = JSON.parse(raw) as AuthSession
+    return isExpired(session.expiresAt) ? null : session
+  } catch {
+    return null
+  }
+}
+
+export function setSession(session: AuthSession | null): void {
+  if (session === null) {
+    localStorage.removeItem(SESSION_KEY)
   } else {
-    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  }
+}
+
+async function extractProblemDetail(response: Response): Promise<string> {
+  try {
+    const problem = (await response.json()) as { detail?: string; title?: string }
+    return problem.detail ?? problem.title ?? `Error ${response.status}`
+  } catch {
+    return `Error ${response.status}`
   }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken()
+  const session = getSession()
 
   const response = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
       ...init?.headers,
     },
   })
 
   if (response.status === 401) {
-    setToken(null)
+    setSession(null)
     if (!window.location.pathname.startsWith('/login')) {
       window.location.href = '/login'
     }
@@ -53,8 +83,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '')
-    throw new ApiError(detail || `Error ${response.status}`, response.status)
+    throw new ApiError(await extractProblemDetail(response), response.status)
   }
 
   if (response.status === 204) {

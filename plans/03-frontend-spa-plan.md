@@ -5,14 +5,14 @@
 ## Alcance
 
 ### App global
-- [ ] `MainLayout` (navegación, menú por permisos) y `AuthLayout` (login)
-- [ ] Router con rutas protegidas por permiso
-- [ ] `shared/api/http.ts`: cliente HTTP con interceptor JWT y manejo de 401
-- [ ] `useAuth` + almacenamiento del token
+- [x] `MainLayout` (navegación por módulos, chip de usuario, cierre de sesión) y `AuthLayout` (login)
+- [x] Router con ruta protegida (`RequireAuth`) y redirect a /login
+- [x] `shared/api/http.ts`: cliente HTTP con sesión JWT y manejo de 401
+- [x] `useAuth` + sesión en localStorage con validación de expiración
 
 ### Módulos
-- [ ] `auth` — login
-- [ ] `dashboard` — métricas e indicadores
+- [x] `auth` — login (ProblemDetails → error inline)
+- [x] `dashboard` — página base (métricas pendientes de endpoint FASE 2)
 - [ ] `assets` — listado, filtros, detalle, ficha, máquina de estados, escáner QR
 - [ ] `locations` — árbol de navegación Edificio → Área → Rack
 - [ ] `incidents` — levantamiento y seguimiento de fallas

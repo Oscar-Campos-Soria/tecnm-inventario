@@ -1,1 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+/*
+ * Tokens de diseño (ui-ux-pro-max --design-system, dials: variance 5, motion 3, density 8).
+ * Industrial slate + verde acento institucional, flat design, sin sombras.
+ */
+@theme {
+  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #334155;
+  --color-on-primary: #ffffff;
+  --color-secondary: #475569;
+  --color-accent: #059669;
+  --color-on-accent: #000000;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f2f3f4;
+  --color-muted-foreground: #475569;
+  --color-border: #e6e8ea;
+  --color-destructive: #dc2626;
+  --color-on-destructive: #ffffff;
+  --color-ring: #334155;
+
+  --default-border-color: var(--color-border);
+}
+
+body {
+  @apply bg-background font-sans text-foreground antialiased;
+}
+
+/* Anillo de enfoque siempre visible para navegación por teclado */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
