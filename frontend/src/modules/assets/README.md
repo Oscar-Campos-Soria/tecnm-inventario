@@ -1,13 +1,19 @@
 # Módulo assets
 
-Listado, filtros, ficha de activos, máquina de estados y escáner QR.
+Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. useassets)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
+## Implementado
+
+- `pages/AssetsPage.tsx` — tabla paginada (código, serie, hostname), enlace a ficha
+- `pages/AssetDetailPage.tsx` — ficha: datos generales, badges de tipo/estado, historial de movimientos con paginación y formulario de registro, asignaciones con formulario y devolución
+- `api.ts` — cliente del módulo sobre `shared/api/http`
 - `types.ts` — tipos de la API
+- `shared/utils/format.ts` — formateo de fechas (es-MX)
+
+## Reglas reflejadas
+
+- Una sola asignación activa por activo (el backend bloquea duplicados)
+- Movimiento con destino distinto a la ubicación actual
+- Selector de usuario con búsqueda (top 50 activos, `users.view`)
 
 Especificación: `specs/assets.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`

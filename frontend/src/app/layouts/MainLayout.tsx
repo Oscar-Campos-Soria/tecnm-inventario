@@ -15,7 +15,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Panel', icon: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'], status: 'active' },
-  { to: '/assets', label: 'Activos', icon: ['M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z', 'M12 12l8-4.5M12 12v9M12 12L4 7.5'], status: 'planned', note: 'FASE 2' },
+  { to: '/assets', label: 'Activos', icon: ['M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z', 'M12 12l8-4.5M12 12v9M12 12L4 7.5'], status: 'active' },
   { to: '/locations', label: 'Ubicaciones', icon: ['M12 21s-6-5.2-6-10a6 6 0 1112 0c0 4.8-6 10-6 10z', 'M12 11a2 2 0 100-4 2 2 0 000 4z'], status: 'planned', note: 'FASE 3' },
   { to: '/incidents', label: 'Incidentes', icon: ['M12 4L2.5 20h19L12 4z', 'M12 10v4M12 17v.3'], status: 'planned', note: 'FASE 3' },
   { to: '/maintenance', label: 'Mantenimiento', icon: ['M12 12a3 3 0 100-6 3 3 0 000 6z', 'M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1'], status: 'planned', note: 'FASE 2' },
