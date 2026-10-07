@@ -34,17 +34,42 @@ export function AssetDetailPage() {
   const [users, setUsers] = useState<UserItem[]>([])
   const [submitting, setSubmitting] = useState<'movement' | 'assignment' | null>(null)
   const [formError, setFormError] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const loadDetail = async () => {
-    const [d, c, l] = await Promise.all([
-      assetsApi.getById(numericId),
-      assetsApi.catalogs(),
-      assetsApi.locations(),
-    ])
-    setDetail(d)
-    setCatalogs(c)
-    setLocations(l)
+    setDetailLoading(true)
+    try {
+      const [d, c, l] = await Promise.all([
+        assetsApi.getById(numericId),
+        assetsApi.catalogs(),
+        assetsApi.locations(),
+      ])
+      setDetail(d)
+      setCatalogs(c)
+      setLocations(l)
+    } finally {
+      setDetailLoading(false)
+    }
   }
+
+  // Un 409 significa que otra persona modificó el activo: se
+  // recargan los datos automáticamente. Los botones quedan
+  // deshabilitados mientras la recarga termina, para no reenviar
+  // con la versión anterior.
+  function operationError(err: unknown, fallback: string): string {
+    if (err instanceof ApiError && err.status === 409) {
+      loadDetail().catch(() => {
+        // La recarga es automática; si falla, el usuario recarga a mano.
+      })
+      return 'Otra persona modificó este activo. Recargamos los datos; revísalos e intenta de nuevo.'
+    }
+    return err instanceof ApiError ? err.message : fallback
+  }
+
+  // Bloquea los formularios mientras hay una operación o una
+  // recarga de la ficha en curso (evita un falso 409 por enviar
+  // con la versión de antes de la recarga).
+  const busy = submitting !== null || detailLoading
 
   const loadMovements = async () => {
     const m = await assetsApi.getMovements(numericId, movementsPage)
@@ -106,6 +131,9 @@ export function AssetDetailPage() {
     locations.find((l) => l.locationId === detail.currentLocationId)?.name ?? '—'
   const assetTypeName = catalogName(catalogs?.assetTypes, detail.assetTypeCode)
   const assetStatusName = catalogName(catalogs?.assetStatuses, detail.assetStatusCode)
+  // Versión del activo que se muestra en pantalla: es la que se
+  // envía como expectedVersion en movimiento, asignación y devolución.
+  const currentVersion = detail.version
 
   async function handleMovementSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -116,7 +144,7 @@ export function AssetDetailPage() {
     }
     setSubmitting('movement')
     try {
-      await assetsApi.createMovement(numericId, {
+      await assetsApi.createMovement(numericId, currentVersion, {
         toLocationId: Number(movementForm.toLocationId),
         movementReasonId: Number(movementForm.movementReasonId),
         notes: movementForm.notes.trim() || undefined,
@@ -124,7 +152,7 @@ export function AssetDetailPage() {
       setMovementForm({ toLocationId: '', movementReasonId: '', notes: '' })
       await Promise.all([loadDetail(), loadMovements()])
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'No se pudo registrar el movimiento.')
+      setFormError(operationError(err, 'No se pudo registrar el movimiento.'))
     } finally {
       setSubmitting(null)
     }
@@ -139,7 +167,7 @@ export function AssetDetailPage() {
     }
     setSubmitting('assignment')
     try {
-      await assetsApi.createAssignment(numericId, {
+      await assetsApi.createAssignment(numericId, currentVersion, {
         assignedTo: Number(assignmentForm.assignedTo),
         assignmentTypeId: Number(assignmentForm.assignmentTypeId),
         locationId: assignmentForm.locationId ? Number(assignmentForm.locationId) : null,
@@ -148,7 +176,7 @@ export function AssetDetailPage() {
       setAssignmentForm({ assignedTo: '', assignmentTypeId: '', locationId: '', notes: '' })
       await Promise.all([loadDetail(), loadAssignments()])
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'No se pudo registrar la asignación.')
+      setFormError(operationError(err, 'No se pudo registrar la asignación.'))
     } finally {
       setSubmitting(null)
     }
@@ -157,10 +185,10 @@ export function AssetDetailPage() {
   async function handleReturn(assignmentId: number) {
     setFormError('')
     try {
-      await assetsApi.returnAssignment(numericId, assignmentId)
+      await assetsApi.returnAssignment(numericId, assignmentId, currentVersion)
       await Promise.all([loadDetail(), loadAssignments()])
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'No se pudo devolver la asignación.')
+      setFormError(operationError(err, 'No se pudo devolver la asignación.'))
     }
   }
 
@@ -323,7 +351,7 @@ export function AssetDetailPage() {
           <div className="sm:col-span-2">
             <button
               type="submit"
-              disabled={submitting === 'movement'}
+              disabled={busy}
               className="min-h-[44px] cursor-pointer rounded-md bg-primary px-5 font-semibold text-on-primary transition-colors duration-150 hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
             >
               {submitting === 'movement' ? 'Registrando…' : 'Registrar movimiento'}
@@ -370,7 +398,8 @@ export function AssetDetailPage() {
                   <button
                     type="button"
                     onClick={() => handleReturn(assignment.assetAssignmentId)}
-                    className="ml-auto min-h-[44px] cursor-pointer rounded-md border border-border px-3 text-sm text-foreground transition-colors duration-150 hover:bg-muted"
+                    disabled={busy}
+                    className="ml-auto min-h-[44px] cursor-pointer rounded-md border border-border px-3 text-sm text-foreground transition-colors duration-150 hover:bg-muted disabled:cursor-wait disabled:opacity-60"
                   >
                     Devolver
                   </button>
@@ -461,7 +490,7 @@ export function AssetDetailPage() {
           <div className="sm:col-span-2">
             <button
               type="submit"
-              disabled={submitting === 'assignment'}
+              disabled={busy}
               className="min-h-[44px] cursor-pointer rounded-md bg-primary px-5 font-semibold text-on-primary transition-colors duration-150 hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
             >
               {submitting === 'assignment' ? 'Asignando…' : 'Asignar'}

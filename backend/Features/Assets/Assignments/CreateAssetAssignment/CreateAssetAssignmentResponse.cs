@@ -4,4 +4,5 @@ public sealed record CreateAssetAssignmentResponse(
     long AssetAssignmentId,
     long AssetId,
     long AssignedTo,
-    DateTime AssignedAt);
+    DateTime AssignedAt,
+    int AssetVersion);

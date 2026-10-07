@@ -5,4 +5,5 @@ public sealed record CreateAssetMovementResponse(
     long AssetId,
     long? FromLocationId,
     long ToLocationId,
-    DateTime MovedAt);
+    DateTime MovedAt,
+    int AssetVersion);

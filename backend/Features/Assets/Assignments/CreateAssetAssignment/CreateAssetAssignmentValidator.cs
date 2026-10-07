@@ -26,6 +26,9 @@ public class CreateAssetAssignmentValidator : AbstractValidator<CreateAssetAssig
         RuleFor(x => x.LocationId)
             .MustAsync(LocationExists).WithMessage("La ubicación especificada no existe.")
             .When(x => x.LocationId.HasValue);
+
+        RuleFor(x => x.ExpectedVersion)
+            .GreaterThan(0).WithMessage("Debe indicar la versión del activo que está viendo (expectedVersion).");
     }
 
     private async Task<bool> AssetExists(long id, CancellationToken ct)

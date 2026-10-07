@@ -20,6 +20,9 @@ public class CreateAssetMovementValidator : AbstractValidator<CreateAssetMovemen
 
         RuleFor(x => x.MovementReasonId)
             .MustAsync(ReasonExists).WithMessage("El motivo de movimiento no existe.");
+
+        RuleFor(x => x.ExpectedVersion)
+            .GreaterThan(0).WithMessage("Debe indicar la versión del activo que está viendo (expectedVersion).");
     }
 
     private async Task<bool> AssetExists(long id, CancellationToken ct)

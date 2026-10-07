@@ -42,11 +42,6 @@ public sealed class EndAssetAssignmentHandler
             throw new KeyNotFoundException("La asignación solicitada no existe.");
         }
 
-        if (assignment.ReturnedAt is not null)
-        {
-            throw new BusinessRuleViolationException("La asignación ya fue devuelta.");
-        }
-
         var asset = await _context.Assets
             .Include(a => a.AssetStatus)
             .FirstOrDefaultAsync(
@@ -55,6 +50,25 @@ public sealed class EndAssetAssignmentHandler
         if (asset is null)
         {
             throw new KeyNotFoundException("El activo solicitado no existe.");
+        }
+
+        // Concurrencia optimista: la versión que el cliente vio debe
+        // coincidir con la actual ANTES de abrir la transacción; así un
+        // 409 no deja filas parciales ni transacción abierta. Nota: con
+        // incidentes abiertos el activo no se UPDATEa en esta operación,
+        // así que solo esta comparación explícita detecta la versión vieja
+        // (el chequeo de EF en el UPDATE nunca llegaría a correr). Va
+        // antes que la regla "ya fue devuelta" para que un reintento con
+        // versión vieja sea 409 (conflicto), no un falso 400 de negocio.
+        if (asset.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "El activo fue modificado por otro usuario mientras tanto.");
+        }
+
+        if (assignment.ReturnedAt is not null)
+        {
+            throw new BusinessRuleViolationException("La asignación ya fue devuelta.");
         }
 
         assignment.ReturnedAt = DateTime.UtcNow;
@@ -94,8 +108,18 @@ public sealed class EndAssetAssignmentHandler
 
         await transaction.CommitAsync(cancellationToken);
 
+        // El trigger touch_version subió version en la BD: releer con
+        // AsNoTracking para devolver la versión nueva (el contexto
+        // trackeado conserva la de carga).
+        var assetVersion = await _context.Assets
+            .AsNoTracking()
+            .Where(a => a.AssetId == asset.AssetId)
+            .Select(a => a.Version)
+            .FirstAsync(cancellationToken);
+
         return new EndAssetAssignmentResponse(
             assignment.AssetAssignmentId,
-            assignment.ReturnedAt.Value);
+            assignment.ReturnedAt.Value,
+            assetVersion);
     }
 }

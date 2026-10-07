@@ -31,9 +31,9 @@ export const assetsApi = {
   getById(assetId: number) {
     return http.get<AssetDetail>(`/api/assets/${assetId}`)
   },
-  createMovement(assetId: number, input: CreateMovementInput) {
-    return http.post<{ assetMovementId: number }>(
-      `/api/assets/${assetId}/movements`,
+  createMovement(assetId: number, expectedVersion: number, input: CreateMovementInput) {
+    return http.post<{ assetMovementId: number; assetVersion: number }>(
+      `/api/assets/${assetId}/movements?expectedVersion=${expectedVersion}`,
       input,
     )
   },
@@ -42,18 +42,18 @@ export const assetsApi = {
       `/api/assets/${assetId}/movements${buildQuery({ pageNumber, pageSize })}`,
     )
   },
-  createAssignment(assetId: number, input: CreateAssignmentInput) {
-    return http.post<{ assetAssignmentId: number }>(
-      `/api/assets/${assetId}/assignments`,
+  createAssignment(assetId: number, expectedVersion: number, input: CreateAssignmentInput) {
+    return http.post<{ assetAssignmentId: number; assetVersion: number }>(
+      `/api/assets/${assetId}/assignments?expectedVersion=${expectedVersion}`,
       input,
     )
   },
   getAssignments(assetId: number) {
     return http.get<AssetAssignment[]>(`/api/assets/${assetId}/assignments`)
   },
-  returnAssignment(assetId: number, assignmentId: number) {
-    return http.post<{ assetAssignmentId: number }>(
-      `/api/assets/${assetId}/assignments/${assignmentId}/return`,
+  returnAssignment(assetId: number, assignmentId: number, expectedVersion: number) {
+    return http.post<{ assetAssignmentId: number; assetVersion: number }>(
+      `/api/assets/${assetId}/assignments/${assignmentId}/return?expectedVersion=${expectedVersion}`,
       {},
     )
   },

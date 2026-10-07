@@ -68,4 +68,3 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 - 4 errores de lint preexistentes (AssetsPage.tsx, useAuth.tsx, AssetDetailPage.tsx líneas 60 y 63).
 - 3 tests omitidos pendientes de Testcontainers en Fase 4.
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia.
-- expectedVersion pendiente en movimientos y asignaciones.

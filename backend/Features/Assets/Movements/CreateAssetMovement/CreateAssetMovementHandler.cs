@@ -37,6 +37,15 @@ public sealed class CreateAssetMovementHandler
             throw new KeyNotFoundException("El activo solicitado no existe.");
         }
 
+        // Concurrencia optimista: la versión que el cliente vio debe
+        // coincidir con la actual ANTES de abrir la transacción; así un
+        // 409 no deja filas parciales ni transacción abierta.
+        if (asset.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "El activo fue modificado por otro usuario mientras tanto.");
+        }
+
         // Máquina de estados: solo DISPONIBLE o ASIGNADO pueden reubicarse.
         // Mover no cambia el estado del activo (no se usa AssetStatusTransitions).
         if (asset.AssetStatus.Code is not (AssetStatusCodes.Disponible or AssetStatusCodes.Asignado))
@@ -113,11 +122,21 @@ public sealed class CreateAssetMovementHandler
 
         await transaction.CommitAsync(cancellationToken);
 
+        // El trigger touch_version subió version en la BD: releer con
+        // AsNoTracking para devolver la versión nueva (el contexto
+        // trackeado conserva la de carga).
+        var assetVersion = await _context.Assets
+            .AsNoTracking()
+            .Where(a => a.AssetId == asset.AssetId)
+            .Select(a => a.Version)
+            .FirstAsync(cancellationToken);
+
         return new CreateAssetMovementResponse(
             movement.AssetMovementId,
             movement.AssetId,
             movement.FromLocationId,
             movement.ToLocationId,
-            movement.MovedAt);
+            movement.MovedAt,
+            assetVersion);
     }
 }

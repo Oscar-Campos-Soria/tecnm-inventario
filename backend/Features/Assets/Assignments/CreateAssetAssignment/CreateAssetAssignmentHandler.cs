@@ -41,6 +41,15 @@ public sealed class CreateAssetAssignmentHandler
             throw new KeyNotFoundException("El activo solicitado no existe.");
         }
 
+        // Concurrencia optimista: la versión que el cliente vio debe
+        // coincidir con la actual ANTES de abrir la transacción; así un
+        // 409 no deja filas parciales ni transacción abierta.
+        if (asset.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "El activo fue modificado por otro usuario mientras tanto.");
+        }
+
         // Máquina de estados: solo un activo DISPONIBLE puede asignarse.
         if (asset.AssetStatus.Code != AssetStatusCodes.Disponible)
         {
@@ -104,10 +113,20 @@ public sealed class CreateAssetAssignmentHandler
 
         await transaction.CommitAsync(cancellationToken);
 
+        // El trigger touch_version subió version en la BD: releer con
+        // AsNoTracking para devolver la versión nueva (el contexto
+        // trackeado conserva la de carga).
+        var assetVersion = await _context.Assets
+            .AsNoTracking()
+            .Where(a => a.AssetId == asset.AssetId)
+            .Select(a => a.Version)
+            .FirstAsync(cancellationToken);
+
         return new CreateAssetAssignmentResponse(
             assignment.AssetAssignmentId,
             assignment.AssetId,
             assignment.AssignedTo,
-            assignment.AssignedAt);
+            assignment.AssignedAt,
+            assetVersion);
     }
 }

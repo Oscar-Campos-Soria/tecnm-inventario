@@ -160,7 +160,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.EnMantenimiento);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, LocationB, 1, null, null), default).AsTask());
+            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, 1, LocationB, 1, null, null), default).AsTask());
 
         Assert.Contains(AssetStatusCodes.EnMantenimiento, ex.Message);
         Assert.Empty(h.Context.AssetMovements);
@@ -173,7 +173,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.ConFalla);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, LocationB, 1, null, null), default).AsTask());
+            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, 1, LocationB, 1, null, null), default).AsTask());
 
         Assert.Contains(AssetStatusCodes.ConFalla, ex.Message);
         Assert.Empty(h.Context.AssetMovements);
@@ -186,7 +186,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.DadoDeBaja);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, LocationB, 1, null, null), default).AsTask());
+            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, 1, LocationB, 1, null, null), default).AsTask());
 
         Assert.Contains(AssetStatusCodes.DadoDeBaja, ex.Message);
         Assert.Empty(h.Context.AssetMovements);
@@ -199,7 +199,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.Disponible);
 
         var result = await h.Movement.Handle(
-            new CreateAssetMovementCommand(asset.AssetId, LocationB, 1, null, null), default);
+            new CreateAssetMovementCommand(asset.AssetId, 1, LocationB, 1, null, null), default);
 
         Assert.Equal(LocationA, result.FromLocationId);
         Assert.Equal(LocationB, result.ToLocationId);
@@ -224,7 +224,7 @@ public class AssetMovementsAssignmentsTests
         var h = new Harness();
         var asset = AddAsset(h, AssetStatusCodes.Asignado);
 
-        await h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, LocationB, 1, null, null), default);
+        await h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, 1, LocationB, 1, null, null), default);
 
         Assert.Equal(LocationB, StatusOf(h, asset.AssetId).CurrentLocationId);
     }
@@ -236,7 +236,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.Disponible);
 
         await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, LocationA, 1, null, null), default).AsTask());
+            h.Movement.Handle(new CreateAssetMovementCommand(asset.AssetId, 1, LocationA, 1, null, null), default).AsTask());
     }
 
     // ---------- Asignaciones ----------
@@ -248,7 +248,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.EnMantenimiento);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, TechnicianId, 1, LocationA, null, null), default).AsTask());
+            h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, 1, TechnicianId, 1, LocationA, null, null), default).AsTask());
 
         Assert.Contains(AssetStatusCodes.Disponible, ex.Message);
         Assert.Empty(h.Context.AssetAssignments);
@@ -260,7 +260,7 @@ public class AssetMovementsAssignmentsTests
         var h = new Harness();
         var asset = AddAsset(h, AssetStatusCodes.Disponible);
 
-        await h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, TechnicianId, 1, LocationA, null, null), default);
+        await h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, 1, TechnicianId, 1, LocationA, null, null), default);
 
         var fresh = StatusOf(h, asset.AssetId);
         Assert.Equal(AssetStatusCodes.Asignado, fresh.AssetStatus.Code);
@@ -283,7 +283,7 @@ public class AssetMovementsAssignmentsTests
         AddAssignment(h, asset.AssetId);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, TechnicianId, 1, LocationA, null, null), default).AsTask());
+            h.Assign.Handle(new CreateAssetAssignmentCommand(asset.AssetId, 1, TechnicianId, 1, LocationA, null, null), default).AsTask());
 
         Assert.Contains("asignación activa", ex.Message);
         Assert.Single(h.Context.AssetAssignments);
@@ -296,7 +296,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.Asignado);
         var assignment = AddAssignment(h, asset.AssetId);
 
-        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, assignment.AssetAssignmentId), default);
+        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, 1, assignment.AssetAssignmentId), default);
 
         Assert.Equal(AssetStatusCodes.Disponible, StatusOf(h, asset.AssetId).AssetStatus.Code);
 
@@ -317,7 +317,7 @@ public class AssetMovementsAssignmentsTests
         var assignment = AddAssignment(h, asset.AssetId);
         AddIncident(h, asset.AssetId, IncidentStatusCodes.Abierto);
 
-        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, assignment.AssetAssignmentId), default);
+        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, 1, assignment.AssetAssignmentId), default);
 
         Assert.Equal(AssetStatusCodes.Asignado, StatusOf(h, asset.AssetId).AssetStatus.Code);
 
@@ -332,7 +332,7 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.ConFalla);
         var assignment = AddAssignment(h, asset.AssetId);
 
-        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, assignment.AssetAssignmentId), default);
+        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, 1, assignment.AssetAssignmentId), default);
 
         Assert.Equal(AssetStatusCodes.ConFalla, StatusOf(h, asset.AssetId).AssetStatus.Code);
     }
@@ -344,11 +344,121 @@ public class AssetMovementsAssignmentsTests
         var asset = AddAsset(h, AssetStatusCodes.Asignado);
         var assignment = AddAssignment(h, asset.AssetId);
 
-        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, assignment.AssetAssignmentId), default);
+        await h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, 1, assignment.AssetAssignmentId), default);
 
+        // Releer la versión tras la primera devolución: el reintento con
+        // versión fresca debe caer en la regla de negocio (400), no en 409.
+        var freshVersion = h.Context.Assets.AsNoTracking()
+            .Single(a => a.AssetId == asset.AssetId).Version;
         var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
-            h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, assignment.AssetAssignmentId), default).AsTask());
+            h.Return.Handle(new EndAssetAssignmentCommand(asset.AssetId, freshVersion, assignment.AssetAssignmentId), default).AsTask());
 
         Assert.Contains("ya fue devuelta", ex.Message);
+    }
+
+    // ---------- Concurrencia optimista (expectedVersion) ----------
+
+    [Fact]
+    public async Task Mover_VersionDesactualizada_Rechazado_SinFilas()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Disponible);
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+            h.Movement.Handle(
+                new CreateAssetMovementCommand(asset.AssetId, 99, LocationB, 1, null, null), default).AsTask());
+
+        Assert.Empty(h.Context.AssetMovements);
+        Assert.Empty(h.Context.AuditLogs);
+    }
+
+    [Fact]
+    public async Task Mover_VersionCorrecta_Exito_DevuelveVersionDelActivo()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Disponible);
+
+        var result = await h.Movement.Handle(
+            new CreateAssetMovementCommand(asset.AssetId, asset.Version, LocationB, 1, null, null), default);
+
+        var fresh = await h.Context.Assets
+            .AsNoTracking()
+            .SingleAsync(a => a.AssetId == asset.AssetId);
+        Assert.Equal(fresh.Version, result.AssetVersion);
+        Assert.Equal(LocationB, fresh.CurrentLocationId);
+    }
+
+    [Fact]
+    public async Task Asignar_VersionDesactualizada_Rechazado_SinFilas()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Disponible);
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+            h.Assign.Handle(
+                new CreateAssetAssignmentCommand(asset.AssetId, 99, TechnicianId, 1, LocationA, null, null), default).AsTask());
+
+        Assert.Empty(h.Context.AssetAssignments);
+        Assert.Empty(h.Context.AuditLogs);
+    }
+
+    [Fact(Skip = "IAssetStatusChanger exige transacción real de PostgreSQL y el proveedor InMemory la ignora; cubierto por la prueba real con curl (bloque 2). Pendiente: Testcontainers.PostgreSql en Fase 4")]
+    public async Task Asignar_VersionCorrecta_Exito_DevuelveVersionDelActivo()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Disponible);
+
+        var result = await h.Assign.Handle(
+            new CreateAssetAssignmentCommand(asset.AssetId, asset.Version, TechnicianId, 1, LocationA, null, null), default);
+
+        Assert.Equal(
+            (await h.Context.Assets.AsNoTracking().SingleAsync(a => a.AssetId == asset.AssetId)).Version,
+            result.AssetVersion);
+        Assert.Equal(AssetStatusCodes.Asignado, StatusOf(h, asset.AssetId).AssetStatus.Code);
+    }
+
+    [Fact]
+    public async Task Devolver_VersionDesactualizada_Rechazado_SinFilas()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Asignado);
+        var assignment = AddAssignment(h, asset.AssetId);
+        // Incidente abierto: el activo NO se UPDATEa en esta operación,
+        // así que solo la comparación explícita detecta la versión vieja.
+        AddIncident(h, asset.AssetId, IncidentStatusCodes.Abierto);
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+            h.Return.Handle(
+                new EndAssetAssignmentCommand(asset.AssetId, 99, assignment.AssetAssignmentId), default).AsTask());
+
+        var returned = await h.Context.AssetAssignments.AsNoTracking()
+            .SingleAsync(a => a.AssetAssignmentId == assignment.AssetAssignmentId);
+        Assert.Null(returned.ReturnedAt);
+        Assert.Empty(h.Context.AuditLogs);
+    }
+
+    [Fact]
+    public async Task Devolver_VersionCorrecta_Exito_DevuelveVersionDelActivo()
+    {
+        var h = new Harness();
+        var asset = AddAsset(h, AssetStatusCodes.Asignado);
+        var assignment = AddAssignment(h, asset.AssetId);
+        // Incidente abierto: la devolución conserva ASIGNADO (no pasa
+        // por AssetStatusChanger), con lo que la operación completa es
+        // ejecutable con el proveedor InMemory. El camino normal
+        // (ASIGNADO -> DISPONIBLE) se verifica contra PostgreSQL con
+        // curl en la prueba real del bloque 2.
+        AddIncident(h, asset.AssetId, IncidentStatusCodes.Abierto);
+
+        var result = await h.Return.Handle(
+            new EndAssetAssignmentCommand(asset.AssetId, asset.Version, assignment.AssetAssignmentId), default);
+
+        Assert.Equal(
+            (await h.Context.Assets.AsNoTracking().SingleAsync(a => a.AssetId == asset.AssetId)).Version,
+            result.AssetVersion);
+        Assert.Equal(AssetStatusCodes.Asignado, StatusOf(h, asset.AssetId).AssetStatus.Code);
+        var returned = await h.Context.AssetAssignments.AsNoTracking()
+            .SingleAsync(a => a.AssetAssignmentId == assignment.AssetAssignmentId);
+        Assert.NotNull(returned.ReturnedAt);
     }
 }

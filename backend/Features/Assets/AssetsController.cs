@@ -127,11 +127,12 @@ public class AssetsController : ControllerBase
     [Authorize(Policy = "assets.move")]
     public async Task<ActionResult<CreateAssetMovementResponse>> CreateAssetMovement(
         long assetId,
+        [FromQuery] int expectedVersion,
         CreateAssetMovementBody body,
         CancellationToken cancellationToken)
     {
         var command = new CreateAssetMovementCommand(
-            assetId, body.ToLocationId, body.MovementReasonId, body.MovedAt, body.Notes);
+            assetId, expectedVersion, body.ToLocationId, body.MovementReasonId, body.MovedAt, body.Notes);
 
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetAssetById), new { assetId = result.AssetId }, result);
@@ -156,11 +157,12 @@ public class AssetsController : ControllerBase
     [Authorize(Policy = "assets.update")]
     public async Task<ActionResult<CreateAssetAssignmentResponse>> CreateAssetAssignment(
         long assetId,
+        [FromQuery] int expectedVersion,
         CreateAssetAssignmentBody body,
         CancellationToken cancellationToken)
     {
         var command = new CreateAssetAssignmentCommand(
-            assetId, body.AssignedTo, body.AssignmentTypeId,
+            assetId, expectedVersion, body.AssignedTo, body.AssignmentTypeId,
             body.LocationId, body.AssignedAt, body.Notes);
 
         var result = await _mediator.Send(command, cancellationToken);
@@ -183,9 +185,10 @@ public class AssetsController : ControllerBase
     public async Task<ActionResult<EndAssetAssignmentResponse>> ReturnAssetAssignment(
         long assetId,
         long assignmentId,
+        [FromQuery] int expectedVersion,
         CancellationToken cancellationToken)
     {
-        var command = new EndAssetAssignmentCommand(assetId, assignmentId);
+        var command = new EndAssetAssignmentCommand(assetId, expectedVersion, assignmentId);
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
