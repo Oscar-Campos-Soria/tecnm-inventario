@@ -46,3 +46,19 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Diálogo nativo del UI kit (UiModal): sin estilos UA por defecto,
+   borde y fondo con los tokens del tema */
+dialog.ui-modal {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+  padding: 1.25rem;
+  width: min(28rem, calc(100% - 2rem));
+  margin: auto;
+}
+
+dialog.ui-modal::backdrop {
+  background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+}
