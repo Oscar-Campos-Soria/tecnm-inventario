@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../../../shared/api/http'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
@@ -19,6 +19,7 @@ type LoadState = 'loading' | 'not-found' | 'error' | 'ready'
 export function AssetDetailPage() {
   const { assetId } = useParams<{ assetId: string }>()
   const numericId = Number(assetId)
+  const isValidId = Number.isInteger(numericId)
 
   const [state, setState] = useState<LoadState>('loading')
   const [detail, setDetail] = useState<AssetDetail | null>(null)
@@ -80,26 +81,43 @@ export function AssetDetailPage() {
     setAssignments(await assetsApi.getAssignments(numericId))
   }
 
+  // Carga inicial: setState solo dentro de los
+  // callbacks de la promesa (patrón del listado
+  // de activos), para evitar renders en cascada
+  // desde el efecto. La recarga de la ficha
+  // (loadDetail) se invoca desde manejadores.
   useEffect(() => {
-    if (!Number.isInteger(numericId)) {
-      setState('not-found')
-      return
-    }
-    loadDetail()
-      .then(() => setState('ready'))
+    if (!isValidId) return
+    Promise.all([
+      assetsApi.getById(numericId),
+      assetsApi.catalogs(),
+      assetsApi.locations(),
+    ])
+      .then(([d, c, l]) => {
+        setDetail(d)
+        setCatalogs(c)
+        setLocations(l)
+        setState('ready')
+      })
       .catch((err) => {
         setState(err instanceof ApiError && err.status === 404 ? 'not-found' : 'error')
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numericId])
+  }, [numericId, isValidId])
 
+  // Movimientos y asignaciones: cada llamada va
+  // por su cuenta (un fallo no vacía la otra),
+  // igual que antes; setState solo en callbacks.
   useEffect(() => {
-    if (state === 'ready') {
-      loadMovements().catch(() => setMovements(null))
-      loadAssignments().catch(() => setAssignments([]))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, movementsPage])
+    if (state !== 'ready') return
+    assetsApi
+      .getMovements(numericId, movementsPage)
+      .then(setMovements)
+      .catch(() => setMovements(null))
+    assetsApi
+      .getAssignments(numericId)
+      .then(setAssignments)
+      .catch(() => setAssignments([]))
+  }, [state, movementsPage, numericId])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -108,11 +126,11 @@ export function AssetDetailPage() {
     return () => clearTimeout(timer)
   }, [userSearch])
 
-  if (state === 'loading') {
+  if (isValidId && state === 'loading') {
     return <p className="text-sm text-muted-foreground">Cargando ficha del activo…</p>
   }
 
-  if (state === 'not-found') {
+  if (!isValidId || state === 'not-found') {
     return (
       <div className="space-y-3">
         <p className="font-medium text-foreground">Activo no encontrado</p>
@@ -226,7 +244,23 @@ export function AssetDetailPage() {
           <Field label="Modelo" value={detail.modelName} />
           <Field label="Serie" value={detail.serialNumber} />
           <Field label="Hostname" value={detail.hostname} />
-          <Field label="Ubicación actual" value={currentLocationName} />
+          <div>
+            <dt className="text-xs font-medium text-muted-foreground">
+              Ubicación actual
+            </dt>
+            <dd className="mt-0.5 text-sm text-foreground">
+              {detail.currentLocationId !== null ? (
+                <Link
+                  to={`/locations/${detail.currentLocationId}`}
+                  className="text-primary underline-offset-2 hover:underline"
+                >
+                  {currentLocationName}
+                </Link>
+              ) : (
+                '—'
+              )}
+            </dd>
+          </div>
           <Field label="Versión" value={String(detail.version)} />
         </dl>
         {detail.notes && (
@@ -502,7 +536,7 @@ export function AssetDetailPage() {
   )
 }
 
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>

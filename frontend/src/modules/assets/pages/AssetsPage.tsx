@@ -9,10 +9,12 @@ export function AssetsPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setError('')
     assetsApi
       .list(page)
-      .then(setResult)
+      .then((result) => {
+        setError('')
+        setResult(result)
+      })
       .catch(() => setError('No se pudieron cargar los activos.'))
   }, [page])
 

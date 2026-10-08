@@ -1,16 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { getSession, setSession } from '../api/http'
 import type { AuthSession } from '../api/http'
+import { AuthContext } from './useAuth'
 
-interface AuthContextValue {
-  session: AuthSession | null
-  login: (usernameOrEmail: string, password: string) => Promise<AuthSession>
-  logout: () => void
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
-
+// Archivo aparte del hook useAuth (useAuth.ts):
+// react-refresh exige que un archivo con un
+// componente no exporte también hooks/funciones.
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<AuthSession | null>(() => getSession())
 
@@ -30,14 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ session, login, logout }), [session, login, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de <AuthProvider>')
-  }
-  return context
 }
 
 async function fetchLogin(usernameOrEmail: string, password: string): Promise<AuthSession> {

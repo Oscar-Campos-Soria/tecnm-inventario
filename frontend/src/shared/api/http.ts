@@ -21,11 +21,22 @@ export interface AuthSession {
 
 export class ApiError extends Error {
   public readonly status: number
+  // Errores de validación por campo. FluentValidation
+  // los devuelve en la extensión "errors" de
+  // ProblemDetails (el "detail" en ese caso es un
+  // texto genérico: "Se produjeron uno o más errores
+  // de validación.").
+  public readonly errors?: Record<string, string[]>
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    errors?: Record<string, string[]>,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.errors = errors
   }
 }
 
@@ -53,12 +64,45 @@ export function setSession(session: AuthSession | null): void {
   }
 }
 
-async function extractProblemDetail(response: Response): Promise<string> {
+interface ProblemDetails {
+  detail?: string
+  title?: string
+  errors?: Record<string, string[]>
+}
+
+// El primer mensaje de validación es el más útil
+// para mostrar en pantalla; sin esto, el usuario
+// vería el texto genérico de FluentValidation.
+function firstValidationError(
+  errors?: Record<string, string[]>,
+): string | undefined {
+  if (!errors) return undefined
+  for (const messages of Object.values(errors)) {
+    if (messages.length > 0) {
+      return messages[0]
+    }
+  }
+  return undefined
+}
+
+async function extractProblem(
+  response: Response,
+): Promise<{
+  message: string
+  errors?: Record<string, string[]>
+}> {
   try {
-    const problem = (await response.json()) as { detail?: string; title?: string }
-    return problem.detail ?? problem.title ?? `Error ${response.status}`
+    const problem = (await response.json()) as ProblemDetails
+    return {
+      message:
+        firstValidationError(problem.errors) ??
+        problem.detail ??
+        problem.title ??
+        `Error ${response.status}`,
+      errors: problem.errors,
+    }
   } catch {
-    return `Error ${response.status}`
+    return { message: `Error ${response.status}` }
   }
 }
 
@@ -83,7 +127,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new ApiError(await extractProblemDetail(response), response.status)
+    const problem = await extractProblem(response)
+    throw new ApiError(problem.message, response.status, problem.errors)
   }
 
   if (response.status === 204) {

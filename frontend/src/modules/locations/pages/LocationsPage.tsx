@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../../shared/hooks/useAuth'
+import { UiButton } from '../../../shared/components/UiButton'
+import { LocationFormModal } from '../components/LocationFormModal'
 import { fetchLocationTypes, locationsApi } from '../api'
 import type { LocationItem, LocationTypeItem } from '../types'
 
@@ -12,6 +16,18 @@ export function LocationsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  // Avisos no fatales (p. ej. fallo al recargar
+  // la lista tras guardar).
+  const [error, setError] = useState('')
+  const [createForm, setCreateForm] = useState<{
+    open: boolean
+    parentLocationId: number | null
+  }>({ open: false, parentLocationId: null })
+
+  // Las acciones de escritura solo las ve ADMIN
+  // (locations.manage está asignado a ese rol).
+  const { session } = useAuth()
+  const isAdmin = session?.roleCode === 'ADMIN'
 
   useEffect(() => {
     locationsApi
@@ -104,6 +120,28 @@ export function LocationsPage() {
     return visibleIds
   }, [locations, debouncedSearch, typeNameByCode])
 
+  // Tras guardar: recarga la lista y expande el
+  // padre del nodo guardado para que el cambio
+  // sea visible de inmediato.
+  function handleSaved(
+    _locationId: number,
+    parentLocationId: number | null,
+  ) {
+    locationsApi
+      .list()
+      .then((items) => {
+        setLocations(items)
+        if (parentLocationId !== null) {
+          setExpanded((previous) => {
+            const next = new Set(previous)
+            next.add(parentLocationId)
+            return next
+          })
+        }
+      })
+      .catch(() => setError('No se pudieron recargar las ubicaciones.'))
+  }
+
   function toggle(locationId: number) {
     setExpanded((previous) => {
       const next = new Set(previous)
@@ -163,11 +201,42 @@ export function LocationsPage() {
           ) : (
             <span className="w-[44px] shrink-0" aria-hidden="true" />
           )}
-          <span className="font-medium text-foreground">{item.name}</span>
+          <Link
+            to={`/locations/${item.locationId}`}
+            className="font-medium text-foreground underline-offset-2 hover:underline"
+          >
+            {item.name}
+          </Link>
           <span className="text-muted-foreground">{item.code}</span>
           <span className="ml-auto rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">
             {typeName}
           </span>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() =>
+                setCreateForm({
+                  open: true,
+                  parentLocationId: item.locationId,
+                })
+              }
+              aria-label={`Agregar sub-ubicación a ${item.name}`}
+              title="Agregar sub-ubicación"
+              className="min-h-[44px] min-w-[44px] shrink-0 cursor-pointer rounded-md px-0 text-secondary transition-colors duration-150 hover:bg-muted hover:text-foreground"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
         </div>
         {hasChildren && isExpanded && (
           <ul className="border-l border-border" style={{ marginLeft: `${depth * 1.5 + 1.625}rem` }}>
@@ -180,17 +249,38 @@ export function LocationsPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-display text-2xl font-semibold text-foreground">
           Ubicaciones
         </h1>
-        {state === 'ready' && (
-          <span className="text-sm text-muted-foreground">
-            {locations.length} ubicación
-            {locations.length === 1 ? '' : 'es'}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {state === 'ready' && (
+            <span className="text-sm text-muted-foreground">
+              {locations.length} ubicación
+              {locations.length === 1 ? '' : 'es'}
+            </span>
+          )}
+          {isAdmin && state === 'ready' && (
+            <UiButton
+              variant="primary"
+              onClick={() =>
+                setCreateForm({ open: true, parentLocationId: null })
+              }
+            >
+              Nueva ubicación
+            </UiButton>
+          )}
+        </div>
       </header>
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
 
       {state === 'error' && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -245,6 +335,20 @@ export function LocationsPage() {
           ) : null}
         </div>
       )}
+
+      <LocationFormModal
+        open={createForm.open}
+        mode="create"
+        onClose={() => setCreateForm((form) => ({ ...form, open: false }))}
+        parentLocationId={createForm.parentLocationId}
+        locations={locations}
+        onSaved={handleSaved}
+        onConcurrencyConflict={() =>
+          setError(
+            'Otra persona modificó las ubicaciones. Recarga la página.',
+          )
+        }
+      />
     </div>
   )
 }
