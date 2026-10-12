@@ -19,6 +19,23 @@ export interface AuthSession {
   expiresAt: string
 }
 
+export interface DownloadedFile {
+  blob: Blob
+  fileName: string
+}
+
+// Nombre de archivo del header Content-Disposition
+// ("attachment; filename=foto.jpg"); "documento" si no viene.
+function fileNameFrom(disposition: string | null): string {
+  const match = /filename\*?=(?:UTF-\d''|")?([^";]+)/i.exec(disposition ?? '')
+  if (!match?.[1]) return 'documento'
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
+  }
+}
+
 export class ApiError extends Error {
   public readonly status: number
   // Errores de validación por campo. FluentValidation
@@ -106,18 +123,7 @@ async function extractProblem(
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = getSession()
-
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
-      ...init?.headers,
-    },
-  })
-
+async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 401) {
     setSession(null)
     if (!window.location.pathname.startsWith('/login')) {
@@ -138,6 +144,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const session = getSession()
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
+      ...init?.headers,
+    },
+  })
+
+  return handleResponse<T>(response)
+}
+
 export const http = {
   get<T>(path: string): Promise<T> {
     return request<T>(path)
@@ -154,7 +175,52 @@ export const http = {
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   },
+  // PATCH (cambios de estado): mismo cuerpo JSON que PUT.
+  patch<T>(path: string, body?: unknown): Promise<T> {
+    return request<T>(path, {
+      method: 'PATCH',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  },
   delete<T>(path: string): Promise<T> {
     return request<T>(path, { method: 'DELETE' })
+  },
+  // POST multipart (evidencias): el navegador fija Content-Type
+  // con el boundary del FormData, así que no se envía desde aquí.
+  postForm<T>(path: string, formData: FormData): Promise<T> {
+    const session = getSession()
+
+    return fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      body: formData,
+      headers: session ? { Authorization: `Bearer ${session.token}` } : {},
+    }).then((response) => handleResponse<T>(response))
+  },
+  // Descarga binaria (evidencias): mismo manejo de 401/403 que el
+  // resto del cliente. El llamador revoca el blob URL tras usarlo.
+  download(path: string): Promise<DownloadedFile> {
+    const session = getSession()
+
+    return fetch(`${BASE_URL}${path}`, {
+      headers: session ? { Authorization: `Bearer ${session.token}` } : {},
+    }).then(async (response) => {
+      if (response.status === 401) {
+        setSession(null)
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login'
+        }
+        throw new ApiError('No autorizado', response.status)
+      }
+
+      if (!response.ok) {
+        const problem = await extractProblem(response)
+        throw new ApiError(problem.message, response.status, problem.errors)
+      }
+
+      return {
+        blob: await response.blob(),
+        fileName: fileNameFrom(response.headers.get('content-disposition')),
+      }
+    })
   },
 }

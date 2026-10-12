@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { can } from '../../shared/utils/permissions'
 import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../shared/hooks/useAuth'
@@ -17,7 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Panel', icon: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'], status: 'active' },
   { to: '/assets', label: 'Activos', icon: ['M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z', 'M12 12l8-4.5M12 12v9M12 12L4 7.5'], status: 'active' },
   { to: '/locations', label: 'Ubicaciones', icon: ['M12 21s-6-5.2-6-10a6 6 0 1112 0c0 4.8-6 10-6 10z', 'M12 11a2 2 0 100-4 2 2 0 000 4z'], status: 'active' },
-  { to: '/incidents', label: 'Incidentes', icon: ['M12 4L2.5 20h19L12 4z', 'M12 10v4M12 17v.3'], status: 'planned', note: 'FASE 3' },
+  { to: '/incidents', label: 'Incidentes', icon: ['M12 4L2.5 20h19L12 4z', 'M12 10v4M12 17v.3'], status: 'active' },
   { to: '/maintenance', label: 'Mantenimiento', icon: ['M12 12a3 3 0 100-6 3 3 0 000 6z', 'M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1'], status: 'planned', note: 'FASE 2' },
   { to: '/disposal', label: 'Bajas', icon: ['M4 4h16v4H4z', 'M5 8h14v12H5z', 'M10 12h4'], status: 'planned', note: 'FASE 2' },
   { to: '/bulk-import', label: 'Carga masiva', icon: ['M12 16V4M7 9l5-5 5 5M4 20h16'], status: 'planned', note: 'FASE 2' },
@@ -31,20 +32,20 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/procurement', label: 'Adquisiciones', icon: ['M9 20a1 1 0 100-2 1 1 0 000 2z', 'M17 20a1 1 0 100-2 1 1 0 000 2z', 'M4 5h2l2.5 11h10L21 8H7'], status: 'planned', note: 'FASE 2' },
 ]
 
+const BASIC_ITEMS = ['Panel', 'Activos', 'Mantenimiento']
+
 export function MainLayout({ children }: { children: ReactNode }) {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   // RBAC cliente por rol: el token solo trae roleCode (sin lista de permisos).
-  // ADMIN ve todo; los demás roles ven el conjunto básico hasta que el
-  // login devuelva permisos (backlog de FASE 2).
-  const visibleItems =
-    session?.roleCode === 'ADMIN'
-      ? NAV_ITEMS
-      : NAV_ITEMS.filter((item) =>
-          ['Panel', 'Activos', 'Incidentes', 'Mantenimiento'].includes(item.label),
-        )
+  // ADMIN ve todo; los demás roles ven solo Panel, Activos y Mantenimiento.
+  // Incidentes depende de can(session?.roleCode, 'view'); el resto se ocultan.
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.label === 'Incidentes') return can(session?.roleCode, 'view')
+    return session?.roleCode === 'ADMIN' || BASIC_ITEMS.includes(item.label)
+  })
 
   function handleLogout() {
     logout()

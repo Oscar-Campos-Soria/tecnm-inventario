@@ -9,6 +9,8 @@ import { AssetsPage } from '../../modules/assets/pages/AssetsPage'
 import { AssetDetailPage } from '../../modules/assets/pages/AssetDetailPage'
 import { LocationsPage } from '../../modules/locations/pages/LocationsPage'
 import { LocationDetailPage } from '../../modules/locations/pages/LocationDetailPage'
+import { IncidentsPage } from '../../modules/incidents/pages/IncidentsPage'
+import { IncidentDetailPage } from '../../modules/incidents/pages/IncidentDetailPage'
 
 function RequireAuth() {
   const { session } = useAuth()
@@ -43,6 +45,11 @@ export function AppRouter() {
             <Route
               path="locations/:locationId"
               element={<LocationDetailPage />}
+            />
+            <Route path="incidents" element={<IncidentsPage />} />
+            <Route
+              path="incidents/:incidentId"
+              element={<IncidentDetailPage />}
             />
             {/* Rutas de módulos se agregan dentro de RequireAuth (FASE 2-3) */}
           </Route>

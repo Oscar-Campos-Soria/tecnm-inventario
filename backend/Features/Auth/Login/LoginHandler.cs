@@ -1,5 +1,6 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 
@@ -9,11 +10,13 @@ public sealed class LoginHandler : ICommandHandler<LoginCommand, LoginResponse>
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly IJwtTokenGenerator _tokenGenerator;
+    private readonly ILogger<LoginHandler> _logger;
 
-    public LoginHandler(TecnmInventarioDbContext context, IJwtTokenGenerator tokenGenerator)
+    public LoginHandler(TecnmInventarioDbContext context, IJwtTokenGenerator tokenGenerator, ILogger<LoginHandler> logger)
     {
         _context = context;
         _tokenGenerator = tokenGenerator;
+        _logger = logger;
     }
 
     public async ValueTask<LoginResponse> Handle(LoginCommand command, CancellationToken cancellationToken)
@@ -27,6 +30,14 @@ public sealed class LoginHandler : ICommandHandler<LoginCommand, LoginResponse>
 
         if (user is null || user.Status != "activo")
         {
+            throw new UnauthorizedAccessException("Credenciales inválidas.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.PasswordHash) ||
+            !user.PasswordHash.StartsWith("$2", StringComparison.Ordinal) ||
+            user.PasswordHash.Length != 60)
+        {
+            _logger.LogWarning("Invalid password hash format for user {UserId}", user.UserId);
             throw new UnauthorizedAccessException("Credenciales inválidas.");
         }
 
