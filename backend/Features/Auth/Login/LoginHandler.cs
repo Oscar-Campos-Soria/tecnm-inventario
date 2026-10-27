@@ -1,25 +1,25 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
+using TecnmInventario.Api.Features.Auth.Shared;
 
 namespace TecnmInventario.Api.Features.Auth.Login;
 
-public sealed class LoginHandler : ICommandHandler<LoginCommand, LoginResponse>
+public sealed class LoginHandler : ICommandHandler<LoginCommand, AuthUserResponse>
 {
     private readonly TecnmInventarioDbContext _context;
-    private readonly IJwtTokenGenerator _tokenGenerator;
+    private readonly IAuthSessionIssuer _sessions;
     private readonly ILogger<LoginHandler> _logger;
 
-    public LoginHandler(TecnmInventarioDbContext context, IJwtTokenGenerator tokenGenerator, ILogger<LoginHandler> logger)
+    public LoginHandler(TecnmInventarioDbContext context, IAuthSessionIssuer sessions, ILogger<LoginHandler> logger)
     {
         _context = context;
-        _tokenGenerator = tokenGenerator;
+        _sessions = sessions;
         _logger = logger;
     }
 
-    public async ValueTask<LoginResponse> Handle(LoginCommand command, CancellationToken cancellationToken)
+    public async ValueTask<AuthUserResponse> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
         var user = await _context.AppUsers
             .Include(u => u.Role)
@@ -47,8 +47,8 @@ public sealed class LoginHandler : ICommandHandler<LoginCommand, LoginResponse>
             throw new UnauthorizedAccessException("Credenciales inválidas.");
         }
 
-        var (token, expiresAt) = _tokenGenerator.GenerateToken(user);
+        var session = await _sessions.IssueAsync(user, familyId: null, cancellationToken);
 
-        return new LoginResponse(token, expiresAt, user.UserId, user.Username, user.Role.Code);
+        return session.Profile;
     }
 }

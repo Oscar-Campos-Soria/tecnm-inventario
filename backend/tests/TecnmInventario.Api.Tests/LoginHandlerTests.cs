@@ -2,19 +2,30 @@ using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Core.Entities;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Features.Auth.Login;
+using TecnmInventario.Api.Features.Auth.Shared;
 
 namespace TecnmInventario.Api.Tests;
 
 public sealed class LoginHandlerTests
 {
-    private sealed class FakeJwtTokenGenerator : IJwtTokenGenerator
+    private sealed class FakeSessionIssuer : IAuthSessionIssuer
     {
-        public (string Token, DateTime ExpiresAt) GenerateToken(AppUser user)
-            => ("fake-token", DateTime.UtcNow.AddHours(1));
+        public int IssuedCount { get; private set; }
+
+        public Task<IssuedSession> IssueAsync(AppUser user, Guid? familyId, CancellationToken cancellationToken)
+        {
+            IssuedCount++;
+            return BuildProfileAsync(user, cancellationToken)
+                .ContinueWith(t => new IssuedSession(new RefreshToken { UserId = user.UserId }, t.Result), cancellationToken);
+        }
+
+        public Task<AuthUserResponse> BuildProfileAsync(AppUser user, CancellationToken cancellationToken)
+            => Task.FromResult(new AuthUserResponse(
+                user.UserId, user.Username, user.Email, user.FirstName, user.LastName,
+                user.Role.Code, user.Role.Name, ["assets.view"]));
     }
 
     private sealed class CapturingLogger : ILogger<LoginHandler>
@@ -85,7 +96,7 @@ public sealed class LoginHandlerTests
         SeedRoleAndUser(context, string.Empty);
 
         var logger = new CapturingLogger();
-        var handler = new LoginHandler(context, new FakeJwtTokenGenerator(), logger);
+        var handler = new LoginHandler(context, new FakeSessionIssuer(), logger);
         var command = new LoginCommand("testuser", "secret123");
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => handler.Handle(command, CancellationToken.None).AsTask());
@@ -103,7 +114,7 @@ public sealed class LoginHandlerTests
         SeedRoleAndUser(context, "SYSTEM_ACCOUNT_NO_LOGIN");
 
         var logger = new CapturingLogger();
-        var handler = new LoginHandler(context, new FakeJwtTokenGenerator(), logger);
+        var handler = new LoginHandler(context, new FakeSessionIssuer(), logger);
         var command = new LoginCommand("testuser", "secret123");
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => handler.Handle(command, CancellationToken.None).AsTask());
@@ -123,7 +134,7 @@ public sealed class LoginHandlerTests
         SeedRoleAndUser(context, validHash);
 
         var logger = new CapturingLogger();
-        var handler = new LoginHandler(context, new FakeJwtTokenGenerator(), logger);
+        var handler = new LoginHandler(context, new FakeSessionIssuer(), logger);
         var command = new LoginCommand("testuser", "wrong-password");
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => handler.Handle(command, CancellationToken.None).AsTask());
@@ -139,13 +150,15 @@ public sealed class LoginHandlerTests
         SeedRoleAndUser(context, validHash);
 
         var logger = new CapturingLogger();
-        var handler = new LoginHandler(context, new FakeJwtTokenGenerator(), logger);
+        var issuer = new FakeSessionIssuer();
+        var handler = new LoginHandler(context, issuer, logger);
         var command = new LoginCommand("testuser", "correct-password");
 
         var response = await handler.Handle(command, CancellationToken.None).AsTask();
 
         Assert.NotNull(response);
-        Assert.Equal("fake-token", response.Token);
+        Assert.Equal(1, issuer.IssuedCount);
+        Assert.Contains("assets.view", response.Permissions);
         Assert.Equal("ADMIN", response.RoleCode);
         Assert.Equal(1, response.UserId);
         Assert.Equal("testuser", response.Username);

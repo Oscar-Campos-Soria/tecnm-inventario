@@ -70,7 +70,7 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia. Usuarios zz_admin_test (id 6, ADMIN) y zz_tecnico_test (id 7, TECNICO): creados en el checkpoint 1 de Incidentes y desactivados (status inactivo). test_responsable y test_usuario (RESPONSABLE_AREA y USUARIO_GENERAL) se crean con scripts/seed-test-users.sql (hash por variable psql).
 - Auditoría de locations: solo audita DELETE; faltan INSERT y UPDATE en audit_log.
 - GET /api/locations exige `locations.manage` (solo ADMIN) pero el selector de ubicación de movimientos y asignaciones también lo usa: con rol TECNICO no cargaría. Solución prevista: permiso `locations.view` en los GET.
-- Falta endpoint de permisos del usuario para la UI (hoy el token solo trae `roleCode`; la UI filtra por rol, no por permiso).
+- Sesión: falta job de limpieza de `refresh_tokens` vencidos/revocados, rate limiting en `/api/auth/login` y UI para desvincular cuentas externas. Login federado sin probar contra app registrations reales.
 - Sección de activos en el detalle de ubicación, pendiente del filtro por ubicación en la búsqueda avanzada de activos (GET /api/assets no filtra hoy).
 - Incidentes (frontend): USUARIO_GENERAL tiene `incidents.create` pero no `incidents.view`; la UI le oculta el menú y la lista del módulo (puede reportar desde la ficha del activo). Pendiente: "Mis incidentes" (sus propios reportes) para ese rol.
 - Selector de activo en "Reportar incidente" limitado a 100 resultados (`GET /api/assets` no tiene búsqueda ni filtros); depende de la búsqueda avanzada de activos.
