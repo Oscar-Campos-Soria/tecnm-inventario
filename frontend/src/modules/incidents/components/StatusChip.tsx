@@ -4,8 +4,8 @@ interface StatusChipProps {
 }
 
 // Chip de estado del incidente. Colores del design system
-// (slate industrial + verde institucional): rojo = falla
-// activa (ABIERTO), verde = resuelto, slate = en proceso
+// (blanco y azul institucional): rojo = falla
+// activa (ABIERTO), verde = resuelto, azul tenue = en proceso
 // (diagnóstico/reparación) o cerrado.
 export function StatusChip({ statusCode, statusName }: StatusChipProps) {
   const chipClass = (() => {
@@ -13,7 +13,7 @@ export function StatusChip({ statusCode, statusName }: StatusChipProps) {
       case 'ABIERTO':
         return 'bg-destructive/10 text-destructive'
       case 'RESUELTO':
-        return 'bg-accent/10 text-accent'
+        return 'bg-success/10 text-success'
       case 'CERRADO':
         return 'bg-muted text-muted-foreground'
       default:

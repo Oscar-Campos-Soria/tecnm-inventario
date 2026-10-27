@@ -224,7 +224,7 @@ function assetStatusClass(statusCode: string): string {
     case 'CON_FALLA':
       return 'bg-destructive/10 text-destructive'
     case 'DISPONIBLE':
-      return 'bg-accent/10 text-accent'
+      return 'bg-success/10 text-success'
     case 'EN_MANTENIMIENTO':
     case 'ASIGNADO':
       return 'bg-muted text-secondary'

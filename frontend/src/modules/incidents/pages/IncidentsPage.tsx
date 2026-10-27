@@ -16,7 +16,7 @@ import type {
 
 export function IncidentsPage() {
   const { session } = useAuth()
-  const viewGranted = can(session?.roleCode, 'view')
+  const viewGranted = can(session, 'view')
 
   const [result, setResult] = useState<PagedResult<IncidentSummary> | null>(null)
   const [catalogs, setCatalogs] = useState<IncidentCatalogs | null>(null)

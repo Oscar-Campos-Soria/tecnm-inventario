@@ -26,8 +26,8 @@ export function LocationsPage() {
 
   // Las acciones de escritura solo las ve ADMIN
   // (locations.manage está asignado a ese rol).
-  const { session } = useAuth()
-  const isAdmin = session?.roleCode === 'ADMIN'
+  const { hasPermission } = useAuth()
+  const canManage = hasPermission('locations.manage')
 
   useEffect(() => {
     locationsApi
@@ -211,7 +211,7 @@ export function LocationsPage() {
           <span className="ml-auto rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">
             {typeName}
           </span>
-          {isAdmin && (
+          {canManage && (
             <button
               type="button"
               onClick={() =>
@@ -260,7 +260,7 @@ export function LocationsPage() {
               {locations.length === 1 ? '' : 'es'}
             </span>
           )}
-          {isAdmin && state === 'ready' && (
+          {canManage && state === 'ready' && (
             <UiButton
               variant="primary"
               onClick={() =>

@@ -19,12 +19,12 @@ export function LocationDetailPage() {
   const { locationId } = useParams<{ locationId: string }>()
   const numericId = Number(locationId)
   const isValidId = Number.isInteger(numericId)
-  const { session } = useAuth()
+  const { hasPermission } = useAuth()
   const navigate = useNavigate()
 
   // Las acciones de escritura solo las ve ADMIN
   // (locations.manage está asignado a ADMIN).
-  const isAdmin = session?.roleCode === 'ADMIN'
+  const canManage = hasPermission('locations.manage')
 
   const [state, setState] = useState<LoadState>('loading')
   const [detail, setDetail] = useState<LocationDetail | null>(null)
@@ -239,7 +239,7 @@ export function LocationDetailPage() {
             {typeName}
           </span>
           <span className="text-sm text-muted-foreground">{detail.code}</span>
-          {isAdmin && (
+          {canManage && (
             <span className="flex gap-2">
               <UiButton
                 variant="secondary"

@@ -10,7 +10,7 @@ export function DashboardPage() {
           Panel general
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Bienvenido, {session?.username ?? 'usuario'}
+          Hola, {session?.firstName ?? session?.username ?? 'usuario'}
         </p>
       </header>
 

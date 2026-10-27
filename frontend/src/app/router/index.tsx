@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider } from '../../shared/hooks/AuthProvider'
 import { useAuth } from '../../shared/hooks/useAuth'
 import { AuthLayout } from '../layouts/AuthLayout'
@@ -13,10 +13,23 @@ import { IncidentsPage } from '../../modules/incidents/pages/IncidentsPage'
 import { IncidentDetailPage } from '../../modules/incidents/pages/IncidentDetailPage'
 
 function RequireAuth() {
-  const { session } = useAuth()
-  if (!session) {
-    return <Navigate to="/login" replace />
+  const { session, isLoading } = useAuth()
+  const location = useLocation()
+
+  // La cookie HttpOnly no se lee desde JS: hasta que GET /api/auth/me
+  // responda no se sabe si hay sesión, así que no se redirige aún.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background" role="status">
+        <p className="text-sm text-muted-foreground">Cargando sesión…</p>
+      </div>
+    )
   }
+
+  if (!session) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+  }
+
   return (
     <MainLayout>
       <Outlet />

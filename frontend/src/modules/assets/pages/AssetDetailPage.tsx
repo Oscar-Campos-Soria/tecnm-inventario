@@ -223,7 +223,7 @@ export function AssetDetailPage() {
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">
             {assetTypeName}
           </span>
-          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+          <span className="rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
             {assetStatusName}
           </span>
         </div>
@@ -420,7 +420,7 @@ export function AssetDetailPage() {
                   {assignment.returnedAt && ` → ${formatDate(assignment.returnedAt)}`}
                 </span>
                 {assignment.isActive ? (
-                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                     Activa
                   </span>
                 ) : (
