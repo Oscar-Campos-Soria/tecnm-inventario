@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Procurement.Suppliers.CreateSupplier;
@@ -14,15 +15,15 @@ public class CreateSupplierValidator : AbstractValidator<CreateSupplierCommand>
 
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("El nombre del proveedor es obligatorio.")
-            .MaximumLength(180)
+            .MaximumLength(DbFieldLengths.Suppliers.Name)
             .MustAsync(BeUniqueName).WithMessage("Ya existe un proveedor con ese nombre.");
 
-        RuleFor(x => x.TaxId).MaximumLength(30);
-        RuleFor(x => x.ContactName).MaximumLength(150);
-        RuleFor(x => x.Phone).MaximumLength(50);
+        RuleFor(x => x.TaxId).MaximumLength(DbFieldLengths.Suppliers.TaxId);
+        RuleFor(x => x.ContactName).MaximumLength(DbFieldLengths.Suppliers.ContactName);
+        RuleFor(x => x.Phone).MaximumLength(DbFieldLengths.Suppliers.Phone);
 
         RuleFor(x => x.Email)
-            .MaximumLength(254)
+            .MaximumLength(DbFieldLengths.Suppliers.Email)
             .EmailAddress().WithMessage("El correo electrónico no tiene un formato válido.")
             .When(x => !string.IsNullOrWhiteSpace(x.Email));
     }

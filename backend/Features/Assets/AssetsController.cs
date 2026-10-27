@@ -60,7 +60,7 @@ public class AssetsController : ControllerBase
     }
 
     public sealed record UpdateAssetBody(
-        long? ManufacturerId, long? ModelId, long? CurrentLocationId,
+        long? ManufacturerId, long? ModelId,
         string? SerialNumber, string? Hostname, string? Notes);
 
     [HttpPut("{assetId:long}")]
@@ -73,7 +73,7 @@ public class AssetsController : ControllerBase
     {
         var command = new UpdateAssetCommand(
             assetId, expectedVersion, body.ManufacturerId, body.ModelId,
-            body.CurrentLocationId, body.SerialNumber, body.Hostname, body.Notes);
+            body.SerialNumber, body.Hostname, body.Notes);
 
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
