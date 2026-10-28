@@ -1,4 +1,6 @@
 using Mediator;
+using TecnmInventario.Api.Common.Audit;
+using TecnmInventario.Api.Common.Behaviors;
 using TecnmInventario.Api.Common.Storage;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Entities;
@@ -11,17 +13,23 @@ public sealed class UploadDocumentHandler : ICommandHandler<UploadDocumentComman
     private readonly IFileStorageService _fileStorage;
     private readonly IDocumentAccessAuthorizer _accessAuthorizer;
     private readonly Common.Security.ICurrentUserService _currentUser;
+    private readonly ITransactionHooks _hooks;
+    private readonly IAuditLogService _auditLog;
 
     public UploadDocumentHandler(
         TecnmInventarioDbContext context,
         IFileStorageService fileStorage,
         IDocumentAccessAuthorizer accessAuthorizer,
-        Common.Security.ICurrentUserService currentUser)
+        Common.Security.ICurrentUserService currentUser,
+        ITransactionHooks hooks,
+        IAuditLogService auditLog)
     {
         _context = context;
         _fileStorage = fileStorage;
         _accessAuthorizer = accessAuthorizer;
         _currentUser = currentUser;
+        _hooks = hooks;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<UploadDocumentResponse> Handle(
@@ -34,6 +42,12 @@ public sealed class UploadDocumentHandler : ICommandHandler<UploadDocumentComman
         {
             storageKey = await _fileStorage.SaveAsync(stream, command.File.FileName, cancellationToken);
         }
+
+        // El archivo físico ya existe fuera de la base de datos: si la
+        // transacción del comando no se confirma (fallo del SaveChanges o de
+        // audit_log), se borra para no dejar huérfanos. El hook solo se
+        // ejecuta cuando TransactionBehavior es el dueño de la transacción.
+        _hooks.OnRollback(() => _fileStorage.DeleteAsync(storageKey, CancellationToken.None));
 
         var now = DateTime.UtcNow;
         var document = new Document
@@ -60,9 +74,31 @@ public sealed class UploadDocumentHandler : ICommandHandler<UploadDocumentComman
         }
         catch
         {
-            await _fileStorage.DeleteAsync(storageKey, cancellationToken);
+            // Red de seguridad si el handler se ejecuta sin el behavior (por
+            // ejemplo, invocado directamente): DeleteAsync es idempotente.
+            await _fileStorage.DeleteAsync(storageKey, CancellationToken.None);
             throw;
         }
+
+        // StorageKey es una clave relativa (Guid + extensión), no una ruta
+        // absoluta del servidor: se incluye en el snapshot sin exponer rutas.
+        await _auditLog.LogAsync(
+            tableName: "documents",
+            recordId: document.DocumentId,
+            action: "INSERT",
+            oldData: null,
+            newData: new
+            {
+                document.OwnerType,
+                document.OwnerId,
+                document.FileName,
+                document.StorageKey,
+                document.MimeType,
+                document.SizeBytes,
+                document.Description,
+                document.Version
+            },
+            cancellationToken);
 
         return new UploadDocumentResponse(
             document.DocumentId, document.OwnerType, document.OwnerId,

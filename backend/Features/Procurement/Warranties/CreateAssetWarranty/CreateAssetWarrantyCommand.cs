@@ -9,4 +9,4 @@ public sealed record CreateAssetWarrantyCommand(
     DateOnly? StartsOn,
     DateOnly? EndsOn,
     string? Coverage,
-    string? Terms) : ICommand<CreateAssetWarrantyResponse>;
+    string? Terms) : ICommand<CreateAssetWarrantyResponse>, Common.Behaviors.ITransactionalCommand;

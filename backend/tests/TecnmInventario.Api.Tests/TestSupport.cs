@@ -132,3 +132,28 @@ internal sealed class RecordingAuditLogService : IAuditLogService
         return Task.CompletedTask;
     }
 }
+
+internal sealed class RecordingLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+{
+    public List<(Microsoft.Extensions.Logging.LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+    public void Log<TState>(
+        Microsoft.Extensions.Logging.LogLevel logLevel,
+        Microsoft.Extensions.Logging.EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
+    {
+        Entries.Add((logLevel, formatter(state, exception), exception));
+    }
+}
+
+internal sealed class FakeDocumentAccessAuthorizer : TecnmInventario.Api.Features.Documents.IDocumentAccessAuthorizer
+{
+    public Task EnsureAuthorizedAsync(string ownerType, CancellationToken cancellationToken)
+        => Task.CompletedTask;
+}
