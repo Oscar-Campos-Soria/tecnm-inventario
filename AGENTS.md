@@ -75,7 +75,9 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 
 ## Deuda técnica
 
-- 4 tests omitidos pendientes de Testcontainers en Fase 4.
+- Tests de integración con PostgreSQL real vía Testcontainers (`Category=Integration`); la suite rápida
+  sigue en InMemory (`--filter "Category!=Integration"`). Sin Docker se omiten salvo
+  `REQUIRE_DOCKER_TESTS=1`, que los convierte en fallo.
 - Login: una cuenta con hash no bcrypt (system) devuelve 401; pendiente decidir si se pasa a inactivo.
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia. Usuarios zz_admin_test (id 6, ADMIN) y zz_tecnico_test (id 7, TECNICO): creados en el checkpoint 1 de Incidentes y desactivados (status inactivo). test_responsable y test_usuario (RESPONSABLE_AREA y USUARIO_GENERAL) se crean con scripts/seed-test-users.sql (hash por variable psql).
 - Auditoría de locations: solo audita DELETE; faltan INSERT y UPDATE en audit_log.
@@ -85,3 +87,8 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 - Incidentes (frontend): USUARIO_GENERAL tiene `incidents.create` pero no `incidents.view`; la UI le oculta el menú y la lista del módulo (puede reportar desde la ficha del activo). Pendiente: "Mis incidentes" (sus propios reportes) para ese rol.
 - Selector de activo en "Reportar incidente" limitado a 100 resultados (`GET /api/assets` no tiene búsqueda ni filtros); depende de la búsqueda avanzada de activos.
 - GET /api/users devuelve como máximo 50 resultados (GetUsersHandler.cs:30) y no filtra por rol; el selector de técnicos filtra ADMIN/TECNICO en el cliente. Pendiente: parámetro de rol en el backend al completar Users.
+
+## Tests de integración (PostgreSQL real vía Testcontainers)
+- Correr solo integración: `dotnet test backend/TecnmInventario.slnx --filter "Category=Integration"`
+- Sin Docker se omiten con mensaje explícito; con `REQUIRE_DOCKER_TESTS=1` fallan (usar en CI).
+- No tocan la BD de desarrollo: cada corrida levanta su propio contenedor con puerto aleatorio.

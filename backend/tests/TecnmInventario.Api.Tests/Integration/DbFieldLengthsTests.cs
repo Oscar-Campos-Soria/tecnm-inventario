@@ -1,15 +1,16 @@
 using Npgsql;
 using TecnmInventario.Api.Common.Domain;
-using Xunit.Sdk;
 
-namespace TecnmInventario.Api.Tests;
+namespace TecnmInventario.Api.Tests.Integration;
 
 /// <summary>
 /// Comprueba que las constantes de longitud usadas por los validadores
-/// coincidan con las columnas reales del esquema inventario. Si no hay BD
-/// disponible, el test se omite (no falla) para no romper CI sin PostgreSQL.
+/// coincidan con las columnas reales del esquema inventario. Usa la base
+/// PostgreSQL efímera del fixture: ya no depende de database/.env ni de la
+/// base de desarrollo.
 /// </summary>
-public class DbFieldLengthsTests
+[Trait("Category", "Integration")]
+public sealed class DbFieldLengthsTests : PostgresTestBase
 {
     private static readonly Dictionary<(string Table, string Column), int> Expected = new()
     {
@@ -35,24 +36,16 @@ public class DbFieldLengthsTests
         [("asset_warranties", "warranty_number")] = DbFieldLengths.Warranties.WarrantyNumber
     };
 
-    [Fact]
+    public DbFieldLengthsTests(PostgresContainerFixture fixture)
+        : base(fixture)
+    {
+    }
+
+    [DockerFact]
     public async Task Constantes_de_longitud_coinciden_con_information_schema()
     {
-        var connectionString = ResolveConnectionString();
-        if (connectionString is null)
-        {
-            throw SkipException.ForSkip("No hay cadena de conexión ni database/.env disponible.");
-        }
-
-        await using var connection = new NpgsqlConnection(connectionString);
-        try
-        {
-            await connection.OpenAsync();
-        }
-        catch (Exception ex)
-        {
-            throw SkipException.ForSkip($"PostgreSQL no disponible: {ex.GetType().Name}.");
-        }
+        await using var db = await CreateDatabaseAsync();
+        await using var connection = await db.OpenConnectionAsync();
 
         var actual = new Dictionary<(string Table, string Column), int>();
         await using (var command = new NpgsqlCommand(
@@ -75,70 +68,5 @@ public class DbFieldLengthsTests
             .ToList();
 
         Assert.True(mismatches.Count == 0, string.Join(Environment.NewLine, mismatches));
-    }
-
-    private static string? ResolveConnectionString()
-    {
-        var fromEnvironment = Environment.GetEnvironmentVariable("ConnectionStrings__Default");
-        if (!string.IsNullOrWhiteSpace(fromEnvironment))
-        {
-            return fromEnvironment;
-        }
-
-        var root = FindRepoRoot();
-        if (root is null)
-        {
-            return null;
-        }
-
-        var envPath = Path.Combine(root, "database", ".env");
-        if (!File.Exists(envPath))
-        {
-            return null;
-        }
-
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var line in File.ReadAllLines(envPath))
-        {
-            var trimmed = line.Trim();
-            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
-            {
-                continue;
-            }
-
-            var separator = trimmed.IndexOf('=');
-            if (separator <= 0)
-            {
-                continue;
-            }
-
-            values[trimmed[..separator].Trim()] = trimmed[(separator + 1)..].Trim().Trim('"');
-        }
-
-        if (!values.TryGetValue("POSTGRES_USER", out var user) ||
-            !values.TryGetValue("POSTGRES_PASSWORD", out var password) ||
-            !values.TryGetValue("POSTGRES_DB", out var database))
-        {
-            return null;
-        }
-
-        return $"Host=localhost;Port=5433;Database={database};Username={user};Password={password};Timeout=3";
-    }
-
-    private static string? FindRepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (Directory.Exists(Path.Combine(directory.FullName, "database")) &&
-                File.Exists(Path.Combine(directory.FullName, "database", ".env")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        return null;
     }
 }
