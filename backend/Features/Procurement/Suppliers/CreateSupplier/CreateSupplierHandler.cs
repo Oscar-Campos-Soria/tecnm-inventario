@@ -1,4 +1,5 @@
 using Mediator;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Entities;
@@ -9,11 +10,16 @@ public sealed class CreateSupplierHandler : ICommandHandler<CreateSupplierComman
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public CreateSupplierHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public CreateSupplierHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<CreateSupplierResponse> Handle(
@@ -39,6 +45,24 @@ public sealed class CreateSupplierHandler : ICommandHandler<CreateSupplierComman
 
         _context.Suppliers.Add(supplier);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            tableName: "suppliers",
+            recordId: supplier.SupplierId,
+            action: "INSERT",
+            oldData: null,
+            newData: new
+            {
+                supplier.Name,
+                supplier.TaxId,
+                supplier.ContactName,
+                supplier.Email,
+                supplier.Phone,
+                supplier.Address,
+                supplier.Notes,
+                supplier.Version
+            },
+            cancellationToken);
 
         return new CreateSupplierResponse(supplier.SupplierId, supplier.Name, supplier.Version);
     }

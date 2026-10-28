@@ -12,4 +12,4 @@ public sealed record UpdateAssetCommand(
     long? ModelId,
     string? SerialNumber,
     string? Hostname,
-    string? Notes) : ICommand<UpdateAssetResponse>;
+    string? Notes) : ICommand<UpdateAssetResponse>, Common.Behaviors.ITransactionalCommand;

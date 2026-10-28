@@ -6,4 +6,4 @@ public sealed record CreateLocationCommand(
     string Code,
     string Name,
     long LocationTypeId,
-    long? ParentLocationId) : ICommand<CreateLocationResponse>;
+    long? ParentLocationId) : ICommand<CreateLocationResponse>, Common.Behaviors.ITransactionalCommand;

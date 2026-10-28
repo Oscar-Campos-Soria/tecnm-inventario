@@ -1,5 +1,6 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 
@@ -9,11 +10,16 @@ public sealed class UpdateLocationHandler : ICommandHandler<UpdateLocationComman
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public UpdateLocationHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public UpdateLocationHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<UpdateLocationResponse> Handle(
@@ -27,15 +33,52 @@ public sealed class UpdateLocationHandler : ICommandHandler<UpdateLocationComman
             throw new KeyNotFoundException("La ubicación solicitada no existe.");
         }
 
+        var name = command.Name.Trim();
+
+        // Un PUT idéntico no genera UPDATE, ni sube Version, ni se audita.
+        var current = (location.Name, location.LocationTypeId, location.ParentLocationId);
+        var requested = (name, command.LocationTypeId, command.ParentLocationId);
+        if (current == requested)
+        {
+            return new UpdateLocationResponse(location.LocationId, location.Version);
+        }
+
+        // Snapshot "antes" antes de mutar.
+        var before = new
+        {
+            location.Code,
+            location.Name,
+            location.LocationTypeId,
+            location.ParentLocationId,
+            location.Version
+        };
+
         _context.Entry(location).Property(l => l.Version).OriginalValue = command.ExpectedVersion;
 
-        location.Name = command.Name.Trim();
+        location.Name = name;
         location.LocationTypeId = command.LocationTypeId;
         location.ParentLocationId = command.ParentLocationId;
         location.UpdatedBy = _currentUser.UserId;
 
         await _context.SaveChangesAsync(cancellationToken);
         await _context.Entry(location).ReloadAsync(cancellationToken);
+
+        var after = new
+        {
+            location.Code,
+            location.Name,
+            location.LocationTypeId,
+            location.ParentLocationId,
+            location.Version
+        };
+
+        await _auditLog.LogAsync(
+            tableName: "locations",
+            recordId: location.LocationId,
+            action: "UPDATE",
+            oldData: before,
+            newData: after,
+            cancellationToken);
 
         return new UpdateLocationResponse(location.LocationId, location.Version);
     }

@@ -1,5 +1,6 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Common.Errors;
 using TecnmInventario.Api.Common.Security;
@@ -11,11 +12,16 @@ public sealed class UpdateAssetHandler : ICommandHandler<UpdateAssetCommand, Upd
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public UpdateAssetHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public UpdateAssetHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<UpdateAssetResponse> Handle(
@@ -40,22 +46,76 @@ public sealed class UpdateAssetHandler : ICommandHandler<UpdateAssetCommand, Upd
                 "El activo está dado de baja. Ese estado es terminal y el activo ya no puede editarse.");
         }
 
+        var serialNumber = Normalize(command.SerialNumber);
+        var hostname = Normalize(command.Hostname);
+
+        // Un PUT idéntico no debe generar UPDATE, ni subir Version, ni dejar
+        // fila en audit_log. Se compara el estado normalizado antes de mutar.
+        var current = (
+            asset.ManufacturerId,
+            asset.ModelId,
+            Normalize(asset.SerialNumber),
+            Normalize(asset.Hostname),
+            asset.Notes);
+        var requested = (
+            command.ManufacturerId,
+            command.ModelId,
+            serialNumber,
+            hostname,
+            command.Notes);
+
+        if (current == requested)
+        {
+            return new UpdateAssetResponse(asset.AssetId, asset.Version);
+        }
+
+        // Snapshot "antes" ANTES de mutar la entidad.
+        var before = new
+        {
+            asset.ManufacturerId,
+            asset.ModelId,
+            asset.SerialNumber,
+            asset.Hostname,
+            asset.Notes,
+            asset.Version
+        };
+
         _context.Entry(asset).Property(a => a.Version).OriginalValue = command.ExpectedVersion;
 
-        // TODO(lote-2): abrir transacción explícita y registrar el cambio en
-        // audit_log. El snapshot "antes" debe capturarse antes de mutar la
-        // entidad (en este punto, justo después del control de estado).
         // La ubicación NO se edita aquí: solo cambia con asset_movements.
         asset.ManufacturerId = command.ManufacturerId;
         asset.ModelId = command.ModelId;
-        asset.SerialNumber = string.IsNullOrWhiteSpace(command.SerialNumber) ? null : command.SerialNumber.Trim();
-        asset.Hostname = string.IsNullOrWhiteSpace(command.Hostname) ? null : command.Hostname.Trim();
+        asset.SerialNumber = serialNumber;
+        asset.Hostname = hostname;
         asset.Notes = command.Notes;
         asset.UpdatedBy = _currentUser.UserId;
 
         await _context.SaveChangesAsync(cancellationToken);
         await _context.Entry(asset).ReloadAsync(cancellationToken);
 
+        // Después del ReloadAsync para que el snapshot lleve la Version real
+        // que dejó el trigger touch_version.
+        var after = new
+        {
+            asset.ManufacturerId,
+            asset.ModelId,
+            asset.SerialNumber,
+            asset.Hostname,
+            asset.Notes,
+            asset.Version
+        };
+
+        await _auditLog.LogAsync(
+            tableName: "assets",
+            recordId: asset.AssetId,
+            action: "UPDATE",
+            oldData: before,
+            newData: after,
+            cancellationToken);
+
         return new UpdateAssetResponse(asset.AssetId, asset.Version);
     }
+
+    private static string? Normalize(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

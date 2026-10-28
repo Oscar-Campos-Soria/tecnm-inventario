@@ -26,7 +26,7 @@ public class UpdateAssetHandlerTests
             });
         context.SaveChanges();
 
-        return (context, new UpdateAssetHandler(context, new FakeCurrentUser()));
+        return (context, new UpdateAssetHandler(context, new FakeCurrentUser(), new RecordingAuditLogService()));
     }
 
     private static Asset AddAsset(

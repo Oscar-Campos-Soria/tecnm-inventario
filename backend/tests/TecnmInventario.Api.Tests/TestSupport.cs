@@ -9,14 +9,34 @@ namespace TecnmInventario.Api.Tests;
 
 internal static class TestDb
 {
-    public static TecnmInventarioDbContext Create()
+    public static TecnmInventarioDbContext Create(params IInterceptor[] interceptors)
     {
-        var options = new DbContextOptionsBuilder<TecnmInventarioDbContext>()
+        var builder = new DbContextOptionsBuilder<TecnmInventarioDbContext>()
             .UseInMemoryDatabase($"tecnm-lote1-{Guid.NewGuid()}")
-            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
 
-        return new TecnmInventarioDbContext(options);
+        if (interceptors.Length > 0)
+        {
+            builder.AddInterceptors(interceptors);
+        }
+
+        return new TecnmInventarioDbContext(builder.Options);
+    }
+}
+
+internal sealed class SaveChangesCounter : SaveChangesInterceptor
+{
+    public int Count { get; private set; }
+
+    public void Reset() => Count = 0;
+
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+        DbContextEventData eventData,
+        InterceptionResult<int> result,
+        CancellationToken cancellationToken = default)
+    {
+        Count++;
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 }
 

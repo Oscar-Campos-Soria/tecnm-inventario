@@ -9,4 +9,4 @@ public sealed record UpdateLocationCommand(
     int ExpectedVersion,
     string Name,
     long LocationTypeId,
-    long? ParentLocationId) : ICommand<UpdateLocationResponse>;
+    long? ParentLocationId) : ICommand<UpdateLocationResponse>, Common.Behaviors.ITransactionalCommand;
