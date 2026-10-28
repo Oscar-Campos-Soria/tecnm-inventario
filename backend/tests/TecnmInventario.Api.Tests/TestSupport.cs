@@ -61,11 +61,14 @@ internal sealed class FakeTransactionScope : ITransactionScope
 
     public int RollbackCount { get; private set; }
 
+    public Action? OnCommit { get; set; }
+
     public bool Disposed { get; private set; }
 
     public Task CommitAsync(CancellationToken cancellationToken)
     {
         CommitCount++;
+        OnCommit?.Invoke();
         return _commitFails
             ? Task.FromException(new InvalidOperationException("El commit falló (simulado)."))
             : Task.CompletedTask;
@@ -90,6 +93,8 @@ internal sealed class FakeTransactionScopeFactory : ITransactionScopeFactory
 
     public bool CommitFails { get; set; }
 
+    public Action? OnCommit { get; set; }
+
     public int BeginCount { get; private set; }
 
     public FakeTransactionScope? Scope { get; private set; }
@@ -97,7 +102,7 @@ internal sealed class FakeTransactionScopeFactory : ITransactionScopeFactory
     public Task<ITransactionScope> BeginAsync(CancellationToken cancellationToken)
     {
         BeginCount++;
-        Scope = new FakeTransactionScope(CommitFails);
+        Scope = new FakeTransactionScope(CommitFails) { OnCommit = OnCommit };
         return Task.FromResult<ITransactionScope>(Scope);
     }
 }
@@ -156,4 +161,21 @@ internal sealed class FakeDocumentAccessAuthorizer : TecnmInventario.Api.Feature
 {
     public Task EnsureAuthorizedAsync(string ownerType, CancellationToken cancellationToken)
         => Task.CompletedTask;
+}
+
+internal sealed class RecordingRolePermissionService
+    : TecnmInventario.Api.Common.Authorization.IRolePermissionService
+{
+    public List<string> InvalidatedCodes { get; } = new();
+
+    public Action<string>? OnInvalidate { get; set; }
+
+    public Task<bool> HasPermissionAsync(string roleCode, string permissionCode, CancellationToken cancellationToken)
+        => Task.FromResult(true);
+
+    public void InvalidateCache(string roleCode)
+    {
+        InvalidatedCodes.Add(roleCode);
+        OnInvalidate?.Invoke(roleCode);
+    }
 }
