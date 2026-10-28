@@ -33,6 +33,14 @@ public sealed class UpdateSupplierHandler : ICommandHandler<UpdateSupplierComman
             throw new KeyNotFoundException("El proveedor solicitado no existe.");
         }
 
+        // Concurrencia optimista antes del atajo de "sin cambios": una versión
+        // vieja siempre es 409, aunque los datos enviados sean idénticos.
+        if (supplier.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "El proveedor fue modificado por otro usuario mientras tanto.");
+        }
+
         var name = command.Name.Trim();
         var taxId = NullIfBlank(command.TaxId);
         var contactName = NullIfBlank(command.ContactName);

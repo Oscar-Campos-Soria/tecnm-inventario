@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Core.Entities;
 using TecnmInventario.Api.Features.Assets.CreateAsset;
@@ -75,6 +76,20 @@ public class AuditB1Tests
         Assert.Null(asset.UpdatedBy);
         Assert.Equal(1, response.Version);
         Assert.Equal(1, asset.Version);
+    }
+
+    [Fact]
+    public async Task UpdateAsset_version_vieja_con_datos_identicos_devuelve_conflicto()
+    {
+        var (context, handler, audit, counter, _) = CreateAssetHarness();
+        using var __ = context;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => handler.Handle(
+            new UpdateAssetCommand(10, 99, null, null, null, "host-original", null),
+            CancellationToken.None).AsTask());
+
+        Assert.Empty(audit.Entries);
+        Assert.Equal(0, counter.Count);
     }
 
     [Fact]
@@ -179,6 +194,20 @@ public class AuditB1Tests
     }
 
     [Fact]
+    public async Task UpdateLocation_version_vieja_con_datos_identicos_devuelve_conflicto()
+    {
+        var (context, handler, audit, counter, _) = CreateLocationHarness();
+        using var __ = context;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => handler.Handle(
+            new UpdateLocationCommand(20, 99, "Laboratorio de auditoría", 2, null),
+            CancellationToken.None).AsTask());
+
+        Assert.Empty(audit.Entries);
+        Assert.Equal(0, counter.Count);
+    }
+
+    [Fact]
     public async Task UpdateLocation_con_cambios_audita_UPDATE()
     {
         var (context, handler, audit, _, location) = CreateLocationHarness();
@@ -264,6 +293,22 @@ public class AuditB1Tests
         Assert.Equal(0, counter.Count);
         Assert.Null(supplier.UpdatedBy);
         Assert.Equal(1, response.Version);
+    }
+
+    [Fact]
+    public async Task UpdateSupplier_version_vieja_con_datos_identicos_devuelve_conflicto()
+    {
+        var (context, handler, audit, counter, _) = CreateSupplierHarness();
+        using var __ = context;
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => handler.Handle(
+            new UpdateSupplierCommand(
+                30, 99, "Proveedor de auditoría", null, null, "proveedor@example.com",
+                null, null, null),
+            CancellationToken.None).AsTask());
+
+        Assert.Empty(audit.Entries);
+        Assert.Equal(0, counter.Count);
     }
 
     [Fact]

@@ -40,6 +40,16 @@ public sealed class UpdateAssetHandler : ICommandHandler<UpdateAssetCommand, Upd
             throw new KeyNotFoundException("El activo solicitado no existe.");
         }
 
+        // Concurrencia optimista: la versión que vio el cliente debe coincidir
+        // con la actual, incluso si los datos enviados son idénticos a los
+        // almacenados. Se reutiliza el mecanismo ya mapeado a 409 en el
+        // middleware (DbUpdateConcurrencyException), igual que en movimientos.
+        if (asset.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "El activo fue modificado por otro usuario mientras tanto.");
+        }
+
         if (asset.AssetStatus.Code == AssetStatusCodes.DadoDeBaja)
         {
             throw new BusinessRuleViolationException(

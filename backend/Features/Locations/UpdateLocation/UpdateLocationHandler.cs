@@ -33,6 +33,14 @@ public sealed class UpdateLocationHandler : ICommandHandler<UpdateLocationComman
             throw new KeyNotFoundException("La ubicación solicitada no existe.");
         }
 
+        // Concurrencia optimista antes del atajo de "sin cambios": una versión
+        // vieja siempre es 409, aunque los datos enviados sean idénticos.
+        if (location.Version != command.ExpectedVersion)
+        {
+            throw new DbUpdateConcurrencyException(
+                "La ubicación fue modificada por otro usuario mientras tanto.");
+        }
+
         var name = command.Name.Trim();
 
         // Un PUT idéntico no genera UPDATE, ni sube Version, ni se audita.
