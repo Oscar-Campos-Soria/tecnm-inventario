@@ -36,6 +36,16 @@ movimientos, incidentes, mantenimiento, baja formal, auditoría). Idioma de trab
 11. Tras cada cambio de backend: borrar bin/obj, `dotnet restore`, `dotnet build`, reiniciar la API
     (`pkill -f TecnmInventario.Api` y `dotnet run`; puerto 5112). Frontend: `npm run build` y `npm run lint`.
 12. Verifica con evidencia (curl/psql, estado final del activo y filas de audit_log), no con resúmenes.
+13. **Toda escritura de negocio nueva implementa `ITransactionalCommand` y llama
+    `IAuditLogService.LogAsync` con snapshot antes/después; `action` solo INSERT/UPDATE/DELETE.**
+    El `TransactionBehavior` abre y confirma/revierte la transacción; el handler no la abre.
+14. **Los hooks de `ITransactionHooks` solo funcionan cuando `TransactionBehavior` es el dueño de la
+    transacción: un handler que abre su propia transacción NO puede usar hooks** (no se ejecutarán).
+15. **Un UPDATE sin cambios reales (con `ExpectedVersion` correcta) no escribe en `audit_log`;
+    con `ExpectedVersion` vieja devuelve 409**, aunque los datos enviados sean idénticos.
+16. **Los snapshots de auditoría son proyecciones explícitas; nunca incluyen secretos**
+    (`password_hash`, tokens, claves de licencia).
+17. **Build y test siempre con `backend/TecnmInventario.slnx`.**
 
 ## Máquina de estados del activo
 DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, CON_FALLA, DADO_DE_BAJA (terminal).
@@ -65,7 +75,9 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 
 ## Deuda técnica
 
-- 4 tests omitidos pendientes de Testcontainers en Fase 4.
+- Tests de integración con PostgreSQL real vía Testcontainers (`Category=Integration`); la suite rápida
+  sigue en InMemory (`--filter "Category!=Integration"`). Sin Docker se omiten salvo
+  `REQUIRE_DOCKER_TESTS=1`, que los convierte en fallo.
 - Login: una cuenta con hash no bcrypt (system) devuelve 401; pendiente decidir si se pasa a inactivo.
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia. Usuarios zz_admin_test (id 6, ADMIN) y zz_tecnico_test (id 7, TECNICO): creados en el checkpoint 1 de Incidentes y desactivados (status inactivo). test_responsable y test_usuario (RESPONSABLE_AREA y USUARIO_GENERAL) se crean con scripts/seed-test-users.sql (hash por variable psql).
 - Auditoría de locations: solo audita DELETE; faltan INSERT y UPDATE en audit_log.

@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Auth.Register;
@@ -14,11 +15,12 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
 
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("El usuario es obligatorio.")
-            .MaximumLength(100)
+            .MaximumLength(DbFieldLengths.Users.Username)
             .MustAsync(BeUniqueUsername).WithMessage("Ese nombre de usuario ya está en uso.");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("El correo es obligatorio.")
+            .MaximumLength(DbFieldLengths.Users.Email)
             .EmailAddress().WithMessage("El correo no tiene un formato válido.")
             .MustAsync(BeUniqueEmail).WithMessage("Ese correo ya está registrado.");
 
@@ -26,8 +28,13 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
             .NotEmpty().WithMessage("La contraseña es obligatoria.")
             .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres.");
 
-        RuleFor(x => x.FirstName).NotEmpty().WithMessage("El nombre es obligatorio.");
-        RuleFor(x => x.LastName).NotEmpty().WithMessage("El apellido es obligatorio.");
+        RuleFor(x => x.FirstName)
+            .NotEmpty().WithMessage("El nombre es obligatorio.")
+            .MaximumLength(DbFieldLengths.Users.FirstName);
+
+        RuleFor(x => x.LastName)
+            .NotEmpty().WithMessage("El apellido es obligatorio.")
+            .MaximumLength(DbFieldLengths.Users.LastName);
 
         RuleFor(x => x.RoleCode)
             .NotEmpty().WithMessage("El rol es obligatorio.")

@@ -8,6 +8,12 @@ namespace TecnmInventario.Api.Common.Middleware;
 
 public class ExceptionHandlingMiddleware
 {
+    private const string UniqueViolation = "23505";
+    private const string ForeignKeyViolation = "23503";
+    private const string CheckViolation = "23514";
+    private const string StringDataRightTruncation = "22001";
+    private const string RaiseException = "P0001";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
@@ -83,17 +89,48 @@ public class ExceptionHandlingMiddleware
                 "Conflicto de concurrencia",
                 "El recurso fue modificado por otro usuario mientras tanto. Vuelve a cargarlo e intenta de nuevo.");
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "P0001" } pgEx)
+        catch (DbUpdateException ex) when (FindPostgresException(ex) is { } pgEx)
         {
-            // RAISE EXCEPTION sin código SQLSTATE explícito en triggers de negocio
-            // (ej. validate_document_owner). EF Core envuelve el PostgresException
-            // real dentro de DbUpdateException; el mensaje ya viene redactado para el usuario.
-            _logger.LogWarning("Regla de negocio de base de datos violada en {Path}: {Reason}", context.Request.Path, ex.Message);
-            await WriteProblemDetailsAsync(
-                context,
-                HttpStatusCode.BadRequest,
-                "Error de validación",
-                pgEx.MessageText);
+            // EF Core envuelve el PostgresException real dentro de DbUpdateException.
+            // Al cliente solo se le da un mensaje funcional: nunca el nombre del
+            // constraint, el SQL ni el detalle técnico.
+            _logger.LogWarning(
+                ex,
+                "Error de integridad en {Path}. SqlState={SqlState} Constraint={Constraint} Detail={Detail}",
+                context.Request.Path,
+                pgEx.SqlState,
+                pgEx.ConstraintName,
+                pgEx.Detail);
+
+            var (status, title, detail) = pgEx.SqlState switch
+            {
+                UniqueViolation => (
+                    HttpStatusCode.Conflict,
+                    "Conflicto",
+                    "Ya existe un registro con esos datos."),
+                ForeignKeyViolation => (
+                    HttpStatusCode.BadRequest,
+                    "Datos no válidos",
+                    "La operación hace referencia a un registro que no existe o que está en uso."),
+                CheckViolation => (
+                    HttpStatusCode.BadRequest,
+                    "Datos no válidos",
+                    "Los datos no cumplen una regla de integridad de la base de datos."),
+                StringDataRightTruncation => (
+                    HttpStatusCode.BadRequest,
+                    "Datos no válidos",
+                    "Uno de los valores excede la longitud permitida."),
+                RaiseException => (
+                    HttpStatusCode.BadRequest,
+                    "Error de validación",
+                    pgEx.MessageText),
+                _ => (
+                    HttpStatusCode.InternalServerError,
+                    "Error interno del servidor",
+                    "Ocurrió un error inesperado. Contacte al administrador si el problema persiste.")
+            };
+
+            await WriteProblemDetailsAsync(context, status, title, detail);
         }
         catch (Exception ex)
         {
@@ -104,6 +141,21 @@ public class ExceptionHandlingMiddleware
                 "Error interno del servidor",
                 "Ocurrió un error inesperado. Contacte al administrador si el problema persiste.");
         }
+    }
+
+    // Npgsql puede anidar el PostgresException en más de un nivel de
+    // InnerException según el proveedor; se busca en toda la cadena.
+    private static PostgresException? FindPostgresException(Exception exception)
+    {
+        for (var current = exception.InnerException; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException postgresException)
+            {
+                return postgresException;
+            }
+        }
+
+        return null;
     }
 
     private static async Task WriteProblemDetailsAsync(

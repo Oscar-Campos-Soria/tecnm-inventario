@@ -31,7 +31,7 @@ builder.Services.AddMediator(options =>
     options.ServiceLifetime = ServiceLifetime.Scoped;
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddBusinessPipeline();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
