@@ -2,14 +2,14 @@
 
 Sistema web profesional para la **gestión, control, seguimiento e inventario de activos tecnológicos** del Tecnológico Nacional de México.
 
-Monorrepo modular: API REST (.NET 10) + SPA (React + TypeScript + Vite) + specs y planes de desarrollo en la raíz.
+Monorrepo modular: API REST (.NET 10) + SPA (Vue 3 + TypeScript + Vite) + specs y planes de desarrollo en la raíz.
 
 ## Stack
 
 | Capa | Tecnología |
 | --- | --- |
 | Backend | C#, .NET 10, ASP.NET Core Web API, EF Core (PostgreSQL), MediatR, FluentValidation |
-| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4 |
+| Frontend | Vue 3, TypeScript, Vite 8, Tailwind CSS 4, vue-router |
 | Base de datos | PostgreSQL 18 (Docker) |
 | Autenticación | JWT (Bearer) + RBAC por permisos (`modulo.accion`) |
 
@@ -37,7 +37,7 @@ npm run dev
 
 ```text
 ├── backend/        # API REST — Arquitectura Vertical Slice (Core / Data / Features / Common)
-├── frontend/       # SPA React — modular (app / modules / shared)
+├── frontend/       # SPA Vue 3 — modular (app / modules / shared), rutas por módulo
 ├── database/       # docker-compose de PostgreSQL (infraestructura de BD)
 ├── scripts/        # Scripts SQL de seed e inicialización
 ├── specs/          # Especificaciones funcionales por módulo

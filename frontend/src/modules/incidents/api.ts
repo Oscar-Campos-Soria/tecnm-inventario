@@ -8,7 +8,6 @@ import type {
   DeleteIncidentResult,
   IncidentCatalogs,
   IncidentDetail,
-  IncidentDocument,
   IncidentFilters,
   IncidentSummary,
   PagedResult,
@@ -82,16 +81,5 @@ export const incidentsApi = {
       .then((users) =>
         users.filter((user) => user.roleCode === 'ADMIN' || user.roleCode === 'TECNICO'),
       )
-  },
-}
-
-export const incidentDocumentsApi = {
-  list(incidentId: number) {
-    return http.get<IncidentDocument[]>(
-      `/api/documents${buildQuery({ ownerType: 'INCIDENT', ownerId: incidentId })}`,
-    )
-  },
-  download(documentId: number) {
-    return http.download(`/api/documents/${documentId}/download`)
   },
 }

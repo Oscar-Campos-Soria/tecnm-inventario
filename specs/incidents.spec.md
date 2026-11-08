@@ -90,7 +90,10 @@ módulo (deuda registrada en AGENTS.md: "mis incidentes").
 | `DELETE` | `/api/documents/{documentId}?expectedVersion=N` | Eliminación lógica |
 
 Permiso: basta `incidents.create` **o** `incidents.resolve`
-(`DocumentAuthorizationMap`).
+(`DocumentAuthorizationMap`). Además, quien no tiene `incidents.resolve`
+ni `incidents.view` (p. ej. `USUARIO_GENERAL`) solo accede a la evidencia de
+incidentes **que él reportó** (ajeno → 404) y solo elimina lo que él subió
+(`DocumentAccessAuthorizer`).
 
 ## Datos
 

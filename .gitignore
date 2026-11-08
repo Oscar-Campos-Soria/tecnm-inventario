@@ -76,3 +76,10 @@ Thumbs.db
 /.zcode/
 /skills/
 /skills-lock.json
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
+
+# graphify (grafo de conocimiento local; herramienta de agente, no se versiona)
+graphify-out/

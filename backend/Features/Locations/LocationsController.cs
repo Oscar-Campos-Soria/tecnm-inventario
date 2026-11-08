@@ -11,7 +11,9 @@ namespace TecnmInventario.Api.Features.Locations;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "locations.manage")]
+// Leer: locations.view (todos los roles, selectores de ubicación).
+// Escribir: locations.manage (ADMIN). Va por método: un [Authorize] de clase
+// se sumaría (AND) al del método en vez de reemplazarlo.
 public class LocationsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -22,6 +24,7 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "locations.view")]
     public async Task<ActionResult<IReadOnlyList<GetLocationsResponse>>> GetLocations(
         CancellationToken cancellationToken)
     {
@@ -30,6 +33,7 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet("{locationId:long}")]
+    [Authorize(Policy = "locations.view")]
     public async Task<ActionResult<GetLocationByIdResponse>> GetLocationById(
         long locationId,
         CancellationToken cancellationToken)
@@ -39,6 +43,7 @@ public class LocationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "locations.manage")]
     public async Task<ActionResult<CreateLocationResponse>> CreateLocation(
         CreateLocationCommand command,
         CancellationToken cancellationToken)
@@ -50,6 +55,7 @@ public class LocationsController : ControllerBase
     public sealed record UpdateLocationBody(string Name, long LocationTypeId, long? ParentLocationId);
 
     [HttpPut("{locationId:long}")]
+    [Authorize(Policy = "locations.manage")]
     public async Task<ActionResult<UpdateLocationResponse>> UpdateLocation(
         long locationId,
         [FromQuery] int expectedVersion,
@@ -64,6 +70,7 @@ public class LocationsController : ControllerBase
     }
 
     [HttpDelete("{locationId:long}")]
+    [Authorize(Policy = "locations.manage")]
     public async Task<ActionResult<DeleteLocationResponse>> DeleteLocation(
         long locationId,
         [FromQuery] int expectedVersion,

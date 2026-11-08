@@ -27,7 +27,8 @@ public sealed class UploadDocumentHandler : ICommandHandler<UploadDocumentComman
     public async ValueTask<UploadDocumentResponse> Handle(
         UploadDocumentCommand command, CancellationToken cancellationToken)
     {
-        await _accessAuthorizer.EnsureAuthorizedAsync(command.OwnerType, cancellationToken);
+        await _accessAuthorizer.EnsureAuthorizedAsync(
+            command.OwnerType, command.OwnerId, DocumentOperation.Upload, null, cancellationToken);
 
         string storageKey;
         await using (var stream = command.File.OpenReadStream())

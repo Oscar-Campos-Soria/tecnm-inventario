@@ -1,6 +1,6 @@
 # Arquitectura Frontend — TecNM Assets Management
 
-SPA construida con **React 19 + TypeScript + Vite 8 + Tailwind CSS 4**, organizada en tres capas: `app` (global), `modules` (dominio) y `shared` (reutilizable).
+SPA construida con **Vue 3 + TypeScript + Vite 8 + Tailwind CSS 4** (`<script setup lang="ts">`, Composition API), organizada en tres capas: `app` (global), `modules` (dominio) y `shared` (reutilizable). Rutas modulares descentralizadas y una especificación por slice.
 
 ## Estructura de carpetas
 
@@ -8,68 +8,64 @@ SPA construida con **React 19 + TypeScript + Vite 8 + Tailwind CSS 4**, organiza
 frontend/
 ├── scripts/                     # Validaciones / scripts de build
 ├── src/
-│   ├── app/                     # Configuración global
+│   ├── app/                     # Configuración global (no contiene negocio)
 │   │   ├── layouts/
-│   │   │   ├── MainLayout.tsx   # Shell con navegación (autenticado)
-│   │   │   └── AuthLayout.tsx   # Shell minimalista (login)
-│   │   ├── router/index.tsx     # Enrutador de la SPA
-│   │   ├── App.tsx
-│   │   └── main.tsx             # Entry point
-│   ├── modules/                 # Módulos por dominio (aislados)
-│   │   ├── auth/                # Login y permisos RBAC
-│   │   ├── assets/              # Vistas de activos, escáner QR, detalles
-│   │   ├── locations/           # Árbol de navegación de ubicaciones
-│   │   ├── incidents/           # Levantamiento y seguimiento de fallas
-│   │   ├── maintenance/         # Calendario e intervenciones
-│   │   ├── disposal/            # Generación y firma de actas de baja
-│   │   ├── bulk-import/         # Asistente de carga masiva de Excel
-│   │   ├── reports/             # Generador de reportes
-│   │   ├── dashboard/           # Métricas e indicadores visuales
-│   │   ├── software/            # Licencias y programas
-│   │   ├── components/          # Hardware interno
-│   │   ├── documents/           # Evidencias y archivos
-│   │   ├── history/             # Auditoría y timeline
-│   │   ├── users/               # Usuarios
-│   │   ├── roles/               # Roles y permisos
-│   │   └── procurement/         # Proveedores, garantías, adquisiciones
-│   └── shared/                  # Transversal
-│       ├── api/http.ts          # Cliente HTTP (fetch wrapper + interceptor de JWT)
-│       ├── assets/              # Logos, SVG, imágenes
-│       ├── components/          # UI kit reutilizable (UiButton, UiTable, UiModal…)
-│       ├── hooks/               # Custom hooks (useAuth, useTheme…)
-│       ├── styles/              # Tailwind (CSS-first) y global.css
-│       └── utils/               # Formateadores y helpers
-├── .env.example
-├── .gitignore
+│   │   │   ├── MainLayout.vue   # Shell con menú (autenticado); el menú sale de meta.nav de cada módulo
+│   │   │   └── AuthLayout.vue   # Shell minimalista (login)
+│   │   ├── router/
+│   │   │   ├── index.ts         # Junta modules/*/routes.ts (import.meta.glob) + guard de sesión
+│   │   │   └── route-meta.ts    # Tipos de meta: public, layout, nav
+│   │   ├── App.vue              # Elige layout según route.meta.layout
+│   │   └── main.ts              # Entry point (monta tras la primera navegación)
+│   ├── modules/<modulo>/        # Un slice por dominio (aislado)
+│   │   ├── routes.ts            # Rutas del módulo (+ entrada de menú en meta.nav)
+│   │   ├── pages/               # Vistas (*.vue)
+│   │   ├── components/          # Componentes del módulo
+│   │   ├── api.ts               # Llamadas al backend vía shared/api/http.ts
+│   │   ├── types.ts             # Tipos de la API
+│   │   └── README.md            # Especificación del slice (rutas, permisos, endpoints, reglas)
+│   └── shared/                  # Transversal, sin conocer el dominio
+│       ├── api/                 # http.ts (fetch + cookies + CSRF + refresh), auth.ts, documents.ts
+│       ├── components/          # UI kit: UiButton, UiModal, UiField, NavIcon, BrandMark, DocumentList
+│       ├── hooks/               # Composables: useAuth (sesión compartida)
+│       ├── styles/              # Tailwind (CSS-first, @theme)
+│       └── utils/               # format, permissions, redirect
 ├── index.html
 ├── package.json
 ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
 └── vite.config.ts
 ```
 
+Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `incidents`, `tickets`. El resto (`maintenance`, `disposal`, `bulk-import`, `reports`, `software`, `components`, `documents`, `history`, `users`, `roles`, `procurement`) solo tiene su README y aparece deshabilitado en el menú (lista `PLANNED` de `MainLayout.vue`).
+
 ## Principios
 
-1. **`modules/` es soberano:** cada módulo contiene sus páginas, componentes específicos, tipos y llamadas a API. No importa de otro módulo; lo compartido vive en `shared/`.
-2. **`shared/` no conoce el dominio:** solo UI kit, cliente HTTP, hooks genéricos y utilidades.
-3. **`app/` orquesta:** layouts, router y bootstrap. No contiene lógica de negocio.
+1. **`modules/` es soberano:** cada módulo contiene sus páginas, componentes, tipos, llamadas a API y rutas. No importa de otro módulo ni de `app/`; lo compartido vive en `shared/`. Para enlazar a otro módulo se usa una ruta (`RouterLink to="/tickets?nuevo=1&assetId=5"`), no un import.
+2. **Rutas descentralizadas:** cada módulo exporta `routes.ts` (default `RouteRecordRaw[]`). `app/router` las recoge con `import.meta.glob('../../modules/*/routes.ts')`; un módulo nuevo no requiere tocar `app/`. Las páginas se cargan con `() => import(...)` (un chunk por página).
+3. **Menú desde las rutas:** la ruta principal de un módulo declara `meta.nav` (`label`, `icon`, `order`, `permission`); `MainLayout` arma el menú con `router.getRoutes()` y filtra por permisos efectivos de `/api/auth/me` (solo UX; la API valida).
+4. **Spec por slice:** `modules/<modulo>/README.md` describe rutas, permisos, endpoints y reglas del slice. La especificación funcional completa sigue en `specs/<modulo>.spec.md`.
+5. **`shared/` no conoce el dominio:** UI kit, cliente HTTP, composables genéricos y utilidades. `documents.ts` / `DocumentList.vue` viven aquí porque Documentos es transversal en el backend (`Features/Documents`, cualquier `ownerType`).
+6. **`app/` orquesta:** layouts, router y bootstrap.
+
+## Sesión y router
+
+- Sesión en cookies HttpOnly; el JS nunca ve el token. `useAuth()` (`shared/hooks/useAuth.ts`) guarda en memoria el perfil con permisos de `GET /api/auth/me`; estado único a nivel de módulo (sin Pinia).
+- Guard global (`router.beforeEach`): espera `loadSession()`; ruta sin `meta.public` y sin sesión → `/login?redirect=<ruta>`. Con sesión, `/login` redirige a `redirect` (solo rutas internas, `shared/utils/redirect.ts`).
+- `http.ts`: CSRF (`X-CSRF-Token`) en métodos que escriben, refresh único ante 401 y, si la sesión se pierde, `/login?redirect=` conservando la ruta.
 
 ## Estilo y configuración
 
-- **Tailwind CSS v4** con configuración **CSS-first** (`@import "tailwindcss"` y `@theme` en `src/shared/styles/index.css`). No se utiliza `tailwind.config.js` (obsoleto en v4).
-- ESLint + typescript-eslint (config estricto: `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`).
-
-## API
-
-- `shared/api/http.ts`: cliente base sobre `fetch` con:
-  - `baseURL` desde `import.meta.env.VITE_API_BASE_URL`
-  - inyección automática del header `Authorization: Bearer <token>`
-  - manejo centralizado de `401` (redirección a login)
+- **Tailwind CSS v4** CSS-first (`@import "tailwindcss"` y `@theme` en `src/shared/styles/index.css`). Sin `tailwind.config.js`.
+- Tokens blanco/azul institucional; `--color-priority-high` (`#c2410c`) para prioridad Alta de tickets. Lexend (display) + Source Sans 3 (texto).
+- En componentes del UI kit, `class` del llamador se **suma** a la del componente (Vue): no pasar utilidades que choquen (p. ej. `px-5` sobre `UiButton`); para tamaños hay props (`BrandMark size`).
+- ESLint: `@eslint/js` + `typescript-eslint` + `eslint-plugin-vue` (`flat/recommended`). TypeScript estricto; `vue-tsc -b` revisa tipos dentro de `.vue`.
 
 ## Convenciones
 
-- Componentes de UI kit: prefijo `Ui` (`UiButton`, `UiTable`, `UiModal`, `UiInput`, `UiSelect`).
-- Hooks: prefijo `use` (`useAuth`, `useAssets`).
-- Tipos de API en `modules/<modulo>/types.ts`; nada de `any` en llamadas.
+- Componentes `.vue` en PascalCase; UI kit con prefijo `Ui`.
+- Composables con prefijo `use` en `shared/hooks/`.
+- Tipos de API en `modules/<modulo>/types.ts`; nada de `any`. `PagedResult`, `CatalogItem`, `UserItem` se duplican por módulo (aislamiento).
+- Concurrencia: las mutaciones envían `expectedVersion`; un 409 recarga la vista y avisa "otra persona modificó…".
 - Variables de entorno: solo las expuestas con prefijo `VITE_`.
 
 ## Comandos
@@ -77,7 +73,7 @@ frontend/
 ```bash
 cd frontend
 npm install
-npm run dev       # servidor de desarrollo (Vite)
-npm run build     # tsc -b && vite build
+npm run dev       # servidor de desarrollo (Vite, proxy /api -> :5112)
+npm run build     # vue-tsc -b && vite build
 npm run lint      # eslint
 ```

@@ -15,6 +15,8 @@ public static class DocumentAuthorizationMap
             [DocumentOwnerTypes.Maintenance] = new[] { "maintenance.manage" },
             [DocumentOwnerTypes.AssetDisposal] = new[] { "assets.delete" },
             [DocumentOwnerTypes.Acquisition] = new[] { "procurement.manage" },
+            // Además del permiso, DocumentAccessAuthorizer exige ser el solicitante (o tickets.manage).
+            [DocumentOwnerTypes.Ticket] = new[] { "tickets.create", "tickets.manage" },
         };
 
     public static IReadOnlyList<string> GetRequiredPermissions(string ownerType)

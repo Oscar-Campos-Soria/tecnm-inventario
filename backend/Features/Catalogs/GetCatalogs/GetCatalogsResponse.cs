@@ -15,4 +15,5 @@ public sealed record GetCatalogsResponse(
     IReadOnlyList<CatalogItem> ComponentTypes,
     IReadOnlyList<CatalogItem> DisposalReasons,
     IReadOnlyList<CatalogItem> SoftwareTypes,
-    IReadOnlyList<CatalogItem> LicenseTypes);
+    IReadOnlyList<CatalogItem> LicenseTypes,
+    IReadOnlyList<CatalogItem> TicketCategories);

@@ -32,7 +32,8 @@ public sealed class DeleteDocumentHandler : ICommandHandler<DeleteDocumentComman
             throw new KeyNotFoundException("El documento solicitado no existe.");
         }
 
-        await _accessAuthorizer.EnsureAuthorizedAsync(document.OwnerType, cancellationToken);
+        await _accessAuthorizer.EnsureAuthorizedAsync(
+            document.OwnerType, document.OwnerId, DocumentOperation.Delete, document.CreatedBy, cancellationToken);
 
         // Snapshot ANTES de borrar: la auditoría debe conservar exactamente
         // qué se eliminó (quién lo subió, cuándo, con qué se relacionaba).

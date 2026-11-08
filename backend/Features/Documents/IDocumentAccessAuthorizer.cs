@@ -1,12 +1,26 @@
 namespace TecnmInventario.Api.Features.Documents;
 
+public enum DocumentOperation
+{
+    Read,
+    Upload,
+    Delete
+}
+
 /// <summary>
-/// Verifica si el usuario actual tiene permiso para operar sobre documentos
-/// de un OwnerType dado, según DocumentAuthorizationMap. Compartido por
-/// todos los Handlers de Documents (Upload/Get/Download/Delete) para no
-/// duplicar la lógica de "basta un permiso de la lista".
+/// Verifica si el usuario actual puede operar sobre los documentos de un dueño
+/// (OwnerType + OwnerId). Primero el permiso del rol (DocumentAuthorizationMap)
+/// y después, para los dueños con solicitante (TICKET, INCIDENT), que el
+/// registro sea suyo cuando no tiene permisos de soporte. Compartido por
+/// Upload/Get/Download/Delete.
 /// </summary>
 public interface IDocumentAccessAuthorizer
 {
-    Task EnsureAuthorizedAsync(string ownerType, CancellationToken cancellationToken);
+    /// <param name="documentCreatedBy">Quién subió el documento (solo para Delete).</param>
+    Task EnsureAuthorizedAsync(
+        string ownerType,
+        long ownerId,
+        DocumentOperation operation,
+        long? documentCreatedBy,
+        CancellationToken cancellationToken);
 }

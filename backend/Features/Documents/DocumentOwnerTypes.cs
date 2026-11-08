@@ -10,9 +10,10 @@ public static class DocumentOwnerTypes
     public const string Maintenance = "MAINTENANCE";
     public const string AssetDisposal = "ASSET_DISPOSAL";
     public const string Acquisition = "ACQUISITION";
+    public const string Ticket = "TICKET";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
-        Incident, Maintenance, AssetDisposal, Acquisition
+        Incident, Maintenance, AssetDisposal, Acquisition, Ticket
     };
 }

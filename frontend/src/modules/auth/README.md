@@ -1,17 +1,24 @@
 # Módulo auth
 
-Login JWT y acceso según permisos RBAC.
+Inicio de sesión local y federado (Microsoft Entra / Google) con sesión en cookies HttpOnly.
 
-## Implementado (FASE 3, slice inicial)
+## Rutas (`routes.ts`)
 
-- `pages/Login.tsx` — formulario con etiquetas visibles, error inline (`role="alert"`), estado de envío, foco automático
-- `shared/hooks/AuthProvider.tsx` — `AuthProvider` (sesión en localStorage, valida `expiresAt`)
-- `shared/hooks/useAuth.ts` — hook `useAuth()` (contexto de sesión; archivo aparte del provider por react-refresh)
-- Ruta `/login` en `AuthLayout`; rutas protegidas por `RequireAuth` en `app/router`
+| Ruta | Página | Meta |
+| --- | --- | --- |
+| `/login` | `pages/LoginPage.vue` | `public`, `layout: 'auth'` |
+
+`?redirect=/ruta` regresa a donde iba el usuario; `?error=<código>` muestra el error del login federado (`sin_cuenta`, `dominio_no_permitido`, `cuenta_inactiva`, `federado_fallido`).
+
+## Implementado
+
+- `pages/LoginPage.vue` — botones de proveedores (`GET /api/auth/providers`), formulario usuario/contraseña, error inline (`role="alert"`).
+- `components/ProviderLogo.vue` — logos de Microsoft y Google.
+- Sesión: `shared/hooks/useAuth.ts` (`login`, `logout`, `hasPermission`, perfil de `GET /api/auth/me`); guard de rutas en `app/router`.
 
 ## Pendiente
 
-- Menú filtrado por permisos reales (hoy filtra por `roleCode`; el token no incluye lista de permisos)
-- Recuperación de acceso / cambio de contraseña
+- Recuperación de acceso / cambio de contraseña.
+- UI para desvincular cuentas externas.
 
 Especificación: `specs/auth.spec.md`

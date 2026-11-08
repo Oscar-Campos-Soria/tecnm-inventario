@@ -6,7 +6,7 @@
  *   (vite.config.ts); por eso BASE_URL es '' por defecto
  * - header X-CSRF-Token (copia de la cookie tecnm_csrf) en métodos que escriben
  * - ante un 401 renueva la sesión una sola vez (POST /api/auth/refresh) y
- *   reintenta; si no se puede, avisa a AuthProvider y redirige al login
+ *   reintenta; si no se puede, avisa a useAuth y redirige al login
  * - errores: lee `detail` de ProblemDetails (.NET)
  */
 
@@ -76,8 +76,8 @@ function readCookie(name: string): string | null {
   return entry ? decodeURIComponent(entry.slice(prefix.length)) : null
 }
 
-// AuthProvider registra aquí cómo limpiar su estado cuando la sesión
-// se pierde (refresh fallido), sin que este módulo dependa de React.
+// useAuth registra aquí cómo limpiar su estado cuando la sesión
+// se pierde (refresh fallido), sin que este módulo dependa de Vue.
 let onSessionLost: (() => void) | null = null
 
 export function setSessionLostHandler(handler: (() => void) | null): void {
@@ -87,7 +87,9 @@ export function setSessionLostHandler(handler: (() => void) | null): void {
 function sessionLost(): void {
   onSessionLost?.()
   if (!window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login'
+    // Conserva a dónde iba para volver ahí después de iniciar sesión.
+    const from = window.location.pathname + window.location.search
+    window.location.href = `/login?redirect=${encodeURIComponent(from)}`
   }
 }
 

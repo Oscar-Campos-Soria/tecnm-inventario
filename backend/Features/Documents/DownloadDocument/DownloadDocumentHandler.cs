@@ -32,7 +32,8 @@ public sealed class DownloadDocumentHandler : IQueryHandler<DownloadDocumentQuer
             throw new KeyNotFoundException("El documento solicitado no existe.");
         }
 
-        await _accessAuthorizer.EnsureAuthorizedAsync(document.OwnerType, cancellationToken);
+        await _accessAuthorizer.EnsureAuthorizedAsync(
+            document.OwnerType, document.OwnerId, DocumentOperation.Read, document.CreatedBy, cancellationToken);
 
         var stream = await _fileStorage.OpenReadAsync(document.StorageKey, cancellationToken);
 

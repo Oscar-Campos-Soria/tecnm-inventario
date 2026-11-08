@@ -1,13 +1,17 @@
 # Módulo incidents
 
-Levantamiento y seguimiento de fallas con asignación y resolución.
+Consulta de fallas reportadas sobre activos: lista con filtros y detalle con evidencias.
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. useincidents)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+## Rutas (`routes.ts`)
+
+| Ruta | Página | Menú |
+| --- | --- | --- |
+| `/incidents` | `pages/IncidentsPage.vue` — filtros (título, estado, prioridad, tipo, técnico, solo abiertos) y paginación | "Incidentes", orden 40, `incidents.view` |
+| `/incidents/:incidentId` | `pages/IncidentDetailPage.vue` — activo afectado y su estado, detalles, seguimiento, evidencias (`shared/components/DocumentList.vue`, `ownerType=INCIDENT`) | — |
+
+## Notas
+
+- Los incidentes se crean desde un ticket (módulo tickets, "Crear incidente"); este módulo aún no tiene acciones de técnico (asignar, cambiar estado, resolver).
+- `USUARIO_GENERAL` no tiene `incidents.view`; da seguimiento a sus problemas desde Tickets.
 
 Especificación: `specs/incidents.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`

@@ -11,7 +11,7 @@ SET search_path TO inventario, public;
 CREATE TABLE IF NOT EXISTS documents (
   document_id   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   owner_type    varchar(30) NOT NULL
-                CHECK (owner_type IN ('INCIDENT','MAINTENANCE','ASSET_DISPOSAL','ACQUISITION')),
+                CHECK (owner_type IN ('INCIDENT','MAINTENANCE','ASSET_DISPOSAL','ACQUISITION','TICKET')),
   owner_id      bigint NOT NULL,
   file_name     varchar(255) NOT NULL,
   storage_key   text NOT NULL,
@@ -55,6 +55,9 @@ BEGIN
       SELECT EXISTS(SELECT 1 FROM inventario.asset_disposals WHERE asset_disposal_id = NEW.owner_id) INTO owner_exists;
     WHEN 'ACQUISITION' THEN
       SELECT EXISTS(SELECT 1 FROM inventario.acquisitions WHERE acquisition_id = NEW.owner_id) INTO owner_exists;
+    WHEN 'TICKET' THEN
+      -- Tabla creada por add-tickets.sql; se resuelve al ejecutar, no al crear la función.
+      SELECT EXISTS(SELECT 1 FROM inventario.tickets WHERE ticket_id = NEW.owner_id) INTO owner_exists;
     ELSE
       owner_exists := false;
   END CASE;

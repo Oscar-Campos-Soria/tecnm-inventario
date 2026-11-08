@@ -158,6 +158,10 @@ builder.Services.AddScoped<ISoftDeleteAuditor, SoftDeleteAuditor>();
 builder.Services.AddScoped<TecnmInventario.Api.Features.Assets.Shared.IAssetStatusChanger, TecnmInventario.Api.Features.Assets.Shared.AssetStatusChanger>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
+builder.Services.Configure<TecnmInventario.Api.Features.Tickets.Shared.TicketOptions>(
+    builder.Configuration.GetSection(TecnmInventario.Api.Features.Tickets.Shared.TicketOptions.SectionName));
+builder.Services.AddHostedService<TecnmInventario.Api.Features.Tickets.Shared.TicketAutoCloseService>();
+
 
 
 

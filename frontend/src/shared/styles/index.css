@@ -25,6 +25,8 @@
   --color-muted-foreground: #4a5b76;
   --color-border: #d6e0ed;
   --color-destructive: #c62828;
+  /* Prioridad Alta de tickets: naranja rojizo, un escalón debajo del rojo de Crítica. */
+  --color-priority-high: #c2410c;
   --color-on-destructive: #ffffff;
   --color-ring: #1f5fd1;
 

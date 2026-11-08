@@ -1,5 +1,3 @@
-import type { AuthSession } from '../api/http'
-
 /**
  * Acciones de incidentes (solo UX; el servidor manda).
  * Se resuelven con los permisos efectivos de GET /api/auth/me,
@@ -8,6 +6,7 @@ import type { AuthSession } from '../api/http'
  */
 export type IncidentAction = 'view' | 'create' | 'resolve' | 'delete'
 
-export function can(session: AuthSession | null, action: IncidentAction): boolean {
+// Solo lee permissions: acepta la sesión de solo lectura que expone useAuth.
+export function can(session: { readonly permissions: readonly string[] } | null, action: IncidentAction): boolean {
   return session?.permissions.includes(`incidents.${action}`) ?? false
 }

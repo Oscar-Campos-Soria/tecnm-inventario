@@ -150,24 +150,3 @@ export interface DeleteIncidentResult {
   incidentId: number
   deleted: boolean
 }
-
-// Evidencias (Features/Documents con ownerType INCIDENT).
-export interface IncidentDocument {
-  documentId: number
-  fileName: string
-  mimeType: string
-  sizeBytes: number
-  description: string | null
-  createdAt: string
-  createdBy: number | null
-  version: number
-}
-
-export interface UploadDocumentResult {
-  documentId: number
-  ownerType: string
-  ownerId: number
-  fileName: string
-  mimeType: string
-  sizeBytes: number
-}

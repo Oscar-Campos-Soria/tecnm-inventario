@@ -21,7 +21,8 @@ public sealed class GetDocumentsByOwnerHandler
     public async ValueTask<IReadOnlyList<GetDocumentsByOwnerResponse>> Handle(
         GetDocumentsByOwnerQuery query, CancellationToken cancellationToken)
     {
-        await _accessAuthorizer.EnsureAuthorizedAsync(query.OwnerType, cancellationToken);
+        await _accessAuthorizer.EnsureAuthorizedAsync(
+            query.OwnerType, query.OwnerId, DocumentOperation.Read, null, cancellationToken);
 
         return await _context.Documents
             .Where(d => !d.IsDeleted

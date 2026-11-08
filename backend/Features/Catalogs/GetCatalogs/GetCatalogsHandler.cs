@@ -84,9 +84,15 @@ public sealed class GetCatalogsHandler : IQueryHandler<GetCatalogsQuery, GetCata
             .Select(x => new CatalogItem(x.LicenseTypeId, x.Code, x.Name))
             .ToListAsync(cancellationToken);
 
+        // Orden de alta (seed), no alfabético: "Otro" queda al final.
+        var ticketCategories = await _context.TicketCategories.AsNoTracking()
+            .Where(x => !x.IsDeleted).OrderBy(x => x.TicketCategoryId)
+            .Select(x => new CatalogItem(x.TicketCategoryId, x.Code, x.Name))
+            .ToListAsync(cancellationToken);
+
         return new GetCatalogsResponse(
             assetTypes, assetStatuses, locationTypes, incidentTypes, incidentPriorities,
             incidentStatuses, maintenanceTypes, movementReasons, assignmentTypes,
-            componentTypes, disposalReasons, softwareTypes, licenseTypes);
+            componentTypes, disposalReasons, softwareTypes, licenseTypes, ticketCategories);
     }
 }

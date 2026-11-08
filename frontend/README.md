@@ -1,12 +1,12 @@
 # Frontend — TecNM Assets Management
 
-SPA para la gestión de activos tecnológicos del TecNM. React 19 + TypeScript + Vite 8 + Tailwind CSS 4.
+SPA para la gestión de activos tecnológicos del TecNM. Vue 3 + TypeScript + Vite 8 + Tailwind CSS 4 + vue-router.
 
 ## Estructura
 
-- `src/app/` — configuración global: layouts (`MainLayout`, `AuthLayout`), enrutador, `App.tsx` y `main.tsx`
+- `src/app/` — configuración global: layouts (`MainLayout.vue`, `AuthLayout.vue`), enrutador (junta `modules/*/routes.ts`), `App.vue` y `main.ts`
 - `src/modules/` — módulos por dominio (auth, assets, locations, incidents, maintenance, disposal, bulk-import, reports, dashboard, software, components, documents, history, users, roles, procurement)
-- `src/shared/` — transversal: `api/http.ts` (cliente HTTP + JWT), UI kit (`components/`), `hooks/`, `styles/` (Tailwind CSS-first), `utils/`, `assets/`
+- `src/shared/` — transversal: `api/` (cliente HTTP con cookies + CSRF, auth, documentos), UI kit (`components/`), `hooks/` (composables como `useAuth`), `styles/` (Tailwind CSS-first), `utils/`
 
 Ver `FRONTEND_ARCHITECTURE.md` en la raíz del repo para la descripción completa.
 
@@ -15,7 +15,7 @@ Ver `FRONTEND_ARCHITECTURE.md` en la raíz del repo para la descripción complet
 ```bash
 npm install
 npm run dev      # servidor de desarrollo
-npm run build    # tsc -b && vite build
+npm run build    # vue-tsc -b && vite build
 npm run lint     # eslint
 ```
 
@@ -24,7 +24,7 @@ npm run lint     # eslint
 Copia `.env.example` a `.env`:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:5112   # API .NET 10
+VITE_API_BASE_URL=   # vacío: /api va por el proxy de Vite a http://localhost:5112
 ```
 
 ## Fases

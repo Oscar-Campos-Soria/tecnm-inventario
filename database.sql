@@ -875,5 +875,94 @@ CREATE TABLE IF NOT EXISTS user_external_logins (
 );
 
 -- ============================================================
+-- 19. TICKETS / MESA DE AYUDA (scripts/add-tickets.sql)
+-- Permisos y adjuntos (documents.owner_type='TICKET') viven en el script.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 1. CATÁLOGO DE CATEGORÍAS (mismas columnas que incident_types)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ticket_categories (
+  ticket_category_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code varchar(40) NOT NULL UNIQUE, name varchar(120) NOT NULL, description text,
+  created_at timestamptz NOT NULL DEFAULT now(), created_by bigint REFERENCES app_users(user_id),
+  updated_at timestamptz NOT NULL DEFAULT now(), updated_by bigint REFERENCES app_users(user_id),
+  is_deleted boolean NOT NULL DEFAULT false, deleted_at timestamptz, deleted_by bigint REFERENCES app_users(user_id),
+  version integer NOT NULL DEFAULT 1
+);
+
+INSERT INTO ticket_categories (code, name, description) VALUES
+  ('FALLA_EQUIPO',     'Falla de equipo',      'El equipo no enciende, se traba, hace ruido, pantalla dañada…'),
+  ('SOFTWARE',         'Software',             'Instalación, actualización o error de un programa'),
+  ('CUENTAS_ACCESO',   'Cuentas y accesos',    'Contraseñas, correo institucional, permisos de sistemas'),
+  ('RED_INTERNET',     'Red e internet',       'Sin conexión, WiFi lento, cableado'),
+  ('SOLICITUD_EQUIPO', 'Solicitud de equipo',  'Préstamo o asignación de proyector, laptop, periféricos'),
+  ('OTRO',             'Otro',                 'Cualquier otra solicitud de soporte')
+ON CONFLICT (code) DO NOTHING;
+
+-- ------------------------------------------------------------
+-- 2. TICKETS
+-- Sin soft-delete: un ticket no se borra, se cancela.
+-- Reutiliza incident_priorities (BAJA/MEDIA/ALTA/CRITICA).
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS tickets (
+  ticket_id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  requester_id          bigint NOT NULL REFERENCES app_users(user_id),
+  assigned_to           bigint REFERENCES app_users(user_id),
+  ticket_category_id    bigint NOT NULL REFERENCES ticket_categories(ticket_category_id),
+  incident_priority_id  bigint NOT NULL REFERENCES incident_priorities(incident_priority_id),
+  status                varchar(20) NOT NULL DEFAULT 'ABIERTO'
+                          CHECK (status IN ('ABIERTO','EN_ATENCION','ESPERANDO_USUARIO',
+                                            'RESUELTO','CERRADO','CANCELADO')),
+  asset_id              bigint REFERENCES assets(asset_id),
+  location_id           bigint REFERENCES locations(location_id),
+  incident_id           bigint REFERENCES incidents(incident_id),
+  title                 varchar(200) NOT NULL,
+  description           text,
+  resolution            text,
+  resolved_at           timestamptz,
+  closed_at             timestamptz,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  created_by            bigint REFERENCES app_users(user_id),
+  updated_at            timestamptz NOT NULL DEFAULT now(),
+  updated_by            bigint REFERENCES app_users(user_id),
+  version               integer NOT NULL DEFAULT 1
+);
+COMMENT ON TABLE tickets IS
+'Mesa de ayuda: conversación con el usuario. No cambia el estado del activo; las fallas técnicas se registran en incidents y se vinculan por incident_id.';
+
+CREATE INDEX IF NOT EXISTS ix_tickets_requester ON tickets(requester_id);
+CREATE INDEX IF NOT EXISTS ix_tickets_status ON tickets(status);
+-- Cierre automático: busca RESUELTO por fecha de resolución.
+CREATE INDEX IF NOT EXISTS ix_tickets_resolved ON tickets(resolved_at) WHERE status = 'RESUELTO';
+
+-- ------------------------------------------------------------
+-- 3. COMENTARIOS (inmutables: sin version ni soft-delete)
+-- is_internal = nota del técnico, nunca visible para el solicitante.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ticket_comments (
+  ticket_comment_id  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  ticket_id          bigint NOT NULL REFERENCES tickets(ticket_id),
+  author_id          bigint NOT NULL REFERENCES app_users(user_id),
+  body               text NOT NULL,
+  is_internal        boolean NOT NULL DEFAULT false,
+  created_at         timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_ticket_comments_ticket ON ticket_comments(ticket_id);
+
+-- ------------------------------------------------------------
+-- 4. VERSIONADO (touch_version, igual que el resto de tablas)
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_ticket_categories_version ON ticket_categories;
+CREATE TRIGGER trg_ticket_categories_version
+BEFORE UPDATE ON ticket_categories
+FOR EACH ROW EXECUTE FUNCTION touch_version();
+
+DROP TRIGGER IF EXISTS trg_tickets_version ON tickets;
+CREATE TRIGGER trg_tickets_version
+BEFORE UPDATE ON tickets
+FOR EACH ROW EXECUTE FUNCTION touch_version();
+
+-- ============================================================
 -- FIN DEL ESQUEMA
 -- ============================================================

@@ -18,7 +18,8 @@ export interface AssetDetail {
   assetId: number
   inventoryCode: string
   assetTypeCode: string
-  assetStatusCode: string
+  // GetAssetByIdResponse lo llama StatusCode (antes el cliente esperaba assetStatusCode y salía vacío).
+  statusCode: string
   manufacturerName: string | null
   modelName: string | null
   currentLocationId: number | null

@@ -24,6 +24,20 @@ export function formatDateTime(iso: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? '—' : dateTimeFormat.format(date)
 }
 
+const relativeFormat = new Intl.RelativeTimeFormat('es-MX', { numeric: 'auto' })
+
+// "hace 2 días", "hace 3 horas": antigüedad de un ticket en la bandeja.
+export function formatRelative(iso: string | null | undefined, now = Date.now()): string {
+  if (!iso) return '—'
+  const time = new Date(iso).getTime()
+  if (Number.isNaN(time)) return '—'
+  const minutes = Math.round((time - now) / 60000)
+  if (Math.abs(minutes) < 60) return relativeFormat.format(minutes, 'minute')
+  const hours = Math.round(minutes / 60)
+  if (Math.abs(hours) < 24) return relativeFormat.format(hours, 'hour')
+  return relativeFormat.format(Math.round(hours / 24), 'day')
+}
+
 // Tamaño de archivo para evidencias (límite del backend: 5 MB).
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '—'

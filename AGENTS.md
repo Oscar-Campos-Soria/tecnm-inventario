@@ -8,7 +8,8 @@ movimientos, incidentes, mantenimiento, baja formal, auditoría). Idioma de trab
 - Backend: C#, .NET 10, ASP.NET Core Web API, EF Core Database-First, Mediator (martinothamar), FluentValidation.
 - BD: PostgreSQL 18 en Docker (contenedor tecnm_inventario_db, puerto 5433, base tecnm_inventario,
   usuario tecnm_dev, esquema `inventario`). Credenciales en database/.env (no imprimir ni commitear).
-- Frontend: React 19, TypeScript, Vite, Tailwind v4, react-router-dom. Gestor de paquetes: **npm**.
+- Frontend: Vue 3 (`<script setup lang="ts">`), TypeScript, Vite, Tailwind v4, vue-router. Gestor de paquetes: **npm**.
+  Rutas descentralizadas (`modules/<modulo>/routes.ts`, menú en `meta.nav`) y spec por slice (`modules/<modulo>/README.md`).
 - Seguridad: JWT (solo el rol va en el token) + permisos por rol resueltos en servidor.
 
 ## Estructura real del repo
@@ -57,7 +58,7 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 - Backend plano en backend/: Common/, Core/{Contracts,Entities}, Data/, Features/<Modulo>/, Properties/, tests/, tools/, Program.cs.
 - Cada controller vive dentro de su feature (Features/<Modulo>/<Modulo>Controller.cs); no existe carpeta Controllers/ global.
 - Cada caso de uso: Features/<Modulo>/<CasoDeUso>/{Command|Query, Validator, Handler, Response}. No usar Services genéricos.
-- Frontend: frontend/src/app (layouts, router, App, main), frontend/src/modules/<modulo>/ (pages, components, hooks, api, types),
+- Frontend: frontend/src/app (layouts, router, App.vue, main.ts), frontend/src/modules/<modulo>/ (routes.ts, pages, components, api, types, README.md),
   frontend/src/shared (api, assets, components, hooks, styles, utils). Tailwind v4 sin tailwind.config.js.
 - Raíz del repo: backend/, frontend/, database/ (docker-compose), scripts/ (SQL), specs/, plans/, database.sql,
   DIAGRAMA_ER.md, BACKEND_ARCHITECTURE.md, FRONTEND_ARCHITECTURE.md, README.md, AGENTS.md, .obsidian/.
@@ -69,9 +70,9 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 - Login: una cuenta con hash no bcrypt (system) devuelve 401; pendiente decidir si se pasa a inactivo.
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia. Usuarios zz_admin_test (id 6, ADMIN) y zz_tecnico_test (id 7, TECNICO): creados en el checkpoint 1 de Incidentes y desactivados (status inactivo). test_responsable y test_usuario (RESPONSABLE_AREA y USUARIO_GENERAL) se crean con scripts/seed-test-users.sql (hash por variable psql).
 - Auditoría de locations: solo audita DELETE; faltan INSERT y UPDATE en audit_log.
-- GET /api/locations exige `locations.manage` (solo ADMIN) pero el selector de ubicación de movimientos y asignaciones también lo usa: con rol TECNICO no cargaría. Solución prevista: permiso `locations.view` en los GET.
 - Sesión: falta job de limpieza de `refresh_tokens` vencidos/revocados, rate limiting en `/api/auth/login` y UI para desvincular cuentas externas. Login federado sin probar contra app registrations reales.
 - Sección de activos en el detalle de ubicación, pendiente del filtro por ubicación en la búsqueda avanzada de activos (GET /api/assets no filtra hoy).
-- Incidentes (frontend): USUARIO_GENERAL tiene `incidents.create` pero no `incidents.view`; la UI le oculta el menú y la lista del módulo (puede reportar desde la ficha del activo). Pendiente: "Mis incidentes" (sus propios reportes) para ese rol.
+- Incidentes (frontend): solo consulta; sin acciones de técnico (asignar, estado, resolver) en pantalla. USUARIO_GENERAL no tiene `incidents.view`: da seguimiento desde Tickets.
 - Selector de activo en "Reportar incidente" limitado a 100 resultados (`GET /api/assets` no tiene búsqueda ni filtros); depende de la búsqueda avanzada de activos.
+- Tickets (mesa de ayuda): backend y frontend listos (specs/tickets.spec.md, frontend/src/modules/tickets). Pendiente: contador de "sin asignar" en el menú y ubicación del ticket en el formulario. Usuario zz_tk_admin (id 8, ADMIN) creado para la verificación en navegador y desactivado; activo TEC-PRUEBA-TK-01 (id 1, queda CON_FALLA por el incidente de prueba) y tickets 5-13 son datos de prueba. Usuarios zz_tk_tecnico, zz_tk_usuario_a, zz_tk_usuario_b (ids 5-7) creados para la verificación y desactivados; tickets 1-4 son datos de prueba (el 4 se cerró con resolved_at adelantado a mano para probar el cierre automático).
 - GET /api/users devuelve como máximo 50 resultados (GetUsersHandler.cs:30) y no filtra por rol; el selector de técnicos filtra ADMIN/TECNICO en el cliente. Pendiente: parámetro de rol en el backend al completar Users.
