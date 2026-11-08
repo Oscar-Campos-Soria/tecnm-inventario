@@ -667,6 +667,8 @@ CREATE TABLE IF NOT EXISTS inventory_sessions (
   ended_at                 timestamptz,
   status                   varchar(20) NOT NULL DEFAULT 'abierta'
                              CHECK (status IN ('abierta','cerrada','cancelada')),
+  -- scripts/add-inventory-counts.sql
+  location_id              bigint REFERENCES locations(location_id),
   created_at               timestamptz NOT NULL DEFAULT now(),
   created_by               bigint REFERENCES app_users(user_id),
   updated_at               timestamptz NOT NULL DEFAULT now(),
@@ -681,6 +683,14 @@ CREATE TABLE IF NOT EXISTS inventory_records (
   found                     boolean NOT NULL DEFAULT false,
   location_found_id          bigint REFERENCES locations(location_id),
   notes                      text,
+  -- scripts/add-inventory-counts.sql
+  expected_location_id       bigint REFERENCES locations(location_id),
+  checked_at                 timestamptz,
+  checked_by                 bigint REFERENCES app_users(user_id),
+  adjustment                 varchar(20) CHECK (adjustment IS NULL OR adjustment IN ('MOVIMIENTO','INCIDENTE','SIN_CAMBIO')),
+  adjusted_at                timestamptz,
+  adjusted_by                bigint REFERENCES app_users(user_id),
+  incident_id                bigint REFERENCES incidents(incident_id),
   created_at                 timestamptz NOT NULL DEFAULT now(),
   created_by                 bigint REFERENCES app_users(user_id),
   updated_at                 timestamptz NOT NULL DEFAULT now(),

@@ -22,6 +22,29 @@ public partial class TecnmInventarioDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
+        // Columnas agregadas por scripts/add-inventory-counts.sql (fuera del scaffold).
+        modelBuilder.Entity<InventorySession>(entity =>
+        {
+            entity.Property(e => e.LocationId).HasColumnName("location_id");
+            entity.HasOne(e => e.Location).WithMany()
+                .HasForeignKey(e => e.LocationId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
+        modelBuilder.Entity<InventoryRecord>(entity =>
+        {
+            entity.Property(e => e.ExpectedLocationId).HasColumnName("expected_location_id");
+            entity.Property(e => e.CheckedAt).HasColumnName("checked_at");
+            entity.Property(e => e.CheckedBy).HasColumnName("checked_by");
+            entity.Property(e => e.Adjustment).HasMaxLength(20).HasColumnName("adjustment");
+            entity.Property(e => e.AdjustedAt).HasColumnName("adjusted_at");
+            entity.Property(e => e.AdjustedBy).HasColumnName("adjusted_by");
+            entity.Property(e => e.IncidentId).HasColumnName("incident_id");
+            entity.HasOne(e => e.ExpectedLocation).WithMany()
+                .HasForeignKey(e => e.ExpectedLocationId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
         // Columnas agregadas por scripts/add-maintenance-fields.sql (fuera del scaffold).
         modelBuilder.Entity<MaintenanceRecord>(entity =>
         {
