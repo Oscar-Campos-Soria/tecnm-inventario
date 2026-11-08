@@ -112,9 +112,10 @@ export interface AssignTechnicianInput {
   assignedToUserId: number
 }
 
+// Respuestas alineadas con los records del backend (Features/Incidents/*Response.cs).
 export interface AssignTechnicianResult {
   incidentId: number
-  assignedToUserId: number
+  assignedToId: number
   assignedToUsername: string
   version: number
 }
@@ -126,7 +127,7 @@ export interface ChangeStatusInput {
 
 export interface ChangeStatusResult {
   incidentId: number
-  newStatusCode: string
+  incidentStatusCode: string
   assetStatusCode: string
   version: number
 }
@@ -138,11 +139,12 @@ export interface ResolveIncidentInput {
 
 export interface ResolveIncidentResult {
   incidentId: number
-  newStatusCode: string
+  incidentStatusCode: string
   assetStatusCode: string
-  released: boolean
-  otherOpenIncidents: number
-  resolvedAt: string
+  // true si el activo volvió a DISPONIBLE/ASIGNADO (no quedan otros incidentes abiertos).
+  assetReleased: boolean
+  openIncidentsRemaining: number
+  resolvedAt: string | null
   version: number
 }
 

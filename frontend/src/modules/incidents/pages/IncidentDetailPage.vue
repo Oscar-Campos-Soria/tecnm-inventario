@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import DocumentList from '../../../shared/components/DocumentList.vue'
+import IncidentActions from '../components/IncidentActions.vue'
 import UiField from '../../../shared/components/UiField.vue'
 import { formatDateTime } from '../../../shared/utils/format'
 import { incidentsApi } from '../api'
@@ -43,6 +44,23 @@ const isValidId = computed(() => Number.isInteger(numericId.value))
 
 const state = ref<LoadState>('loading')
 const detail = ref<IncidentDetail | null>(null)
+const notice = ref('')
+const pageError = ref('')
+
+// Recarga tras una acción del técnico; con 409 avisa que otra persona lo cambió.
+function reload(message?: string) {
+  pageError.value = ''
+  notice.value = message ?? ''
+  incidentsApi
+    .getById(numericId.value)
+    .then((incident) => (detail.value = incident))
+    .catch(() => (pageError.value = 'No se pudo recargar el incidente. Recarga la página.'))
+}
+
+function onConflict() {
+  reload()
+  pageError.value = 'Otra persona modificó este incidente. Recargamos los datos; revísalos e intenta de nuevo.'
+}
 
 watch(
   numericId,
@@ -96,6 +114,9 @@ const assetNote = computed(() => {
       </div>
     </header>
 
+    <p v-if="notice" role="status" class="rounded-md bg-success/10 px-3 py-2 text-sm text-success">{{ notice }}</p>
+    <p v-if="pageError" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ pageError }}</p>
+
     <section aria-labelledby="activo-afectado" class="rounded-lg border border-border bg-card p-5">
       <h2 id="activo-afectado" class="mb-3 font-display text-base font-semibold text-foreground">Activo afectado</h2>
       <div class="flex flex-wrap items-center gap-3">
@@ -131,6 +152,8 @@ const assetNote = computed(() => {
         <UiField label="Solución" :value="detail.solution" multiline />
       </dl>
     </section>
+
+    <IncidentActions :incident="detail" @changed="reload" @conflict="onConflict" />
 
     <DocumentList owner-type="INCIDENT" :owner-id="detail.incidentId" />
   </div>
