@@ -99,6 +99,26 @@ export interface GetCatalogsResponse {
   licenseTypes: CatalogItem[]
 }
 
+// Baja formal (backend/Features/Disposals).
+export interface AssetDisposalInfo {
+  assetDisposalId: number
+  assetId: number
+  reasonCode: string
+  reasonName: string
+  folio: string
+  dictamen: string | null
+  disposedAt: string
+  createdByUsername: string | null
+}
+
+export interface CreateDisposalInput {
+  assetId: number
+  disposalReasonId: number
+  folio: string
+  dictamen?: string
+  disposedAt?: string
+}
+
 export interface CreateMovementInput {
   toLocationId: number
   movementReasonId: number

@@ -1,13 +1,16 @@
 # Módulo disposal
 
-Generación y firma de actas de baja formal de activos.
+Lista de activos dados de baja. La baja se registra desde la ficha del activo
+(módulo assets, sección "Baja formal").
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. usedisposal)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+## Rutas (`routes.ts`)
+
+| Ruta | Página | Menú |
+| --- | --- | --- |
+| `/disposals` | `pages/DisposalsPage.vue` — folio, activo, motivo, fecha y quién registró; búsqueda por folio/código y filtro por motivo | "Bajas", orden 50, `assets.delete` |
+
+## Endpoints
+
+`GET /api/disposals` (`assets.view`), `GET /api/catalogs` (`disposalReasons`).
 
 Especificación: `specs/disposal.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`

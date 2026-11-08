@@ -3,7 +3,7 @@ import { http } from './http'
 // Adjuntos de backend/Features/Documents (transversal: incidentes, tickets…).
 // El servidor decide quién ve qué (permiso + dueño del registro).
 
-export type DocumentOwnerType = 'INCIDENT' | 'TICKET'
+export type DocumentOwnerType = 'INCIDENT' | 'TICKET' | 'ASSET_DISPOSAL'
 
 export interface StoredDocument {
   documentId: number

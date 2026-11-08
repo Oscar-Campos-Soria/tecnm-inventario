@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import UiField from '../../../shared/components/UiField.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
+import AssetDisposalSection from '../components/AssetDisposalSection.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
 import { assetsApi, catalogName } from '../api'
@@ -131,6 +132,20 @@ watch(
 )
 onBeforeUnmount(() => clearTimeout(userTimer))
 
+// Dado de baja es terminal: sin movimientos, asignaciones ni tickets nuevos.
+const isDisposed = computed(() => detail.value?.statusCode === 'DADO_DE_BAJA')
+
+const STATUS_CHIP: Record<string, string> = {
+  DISPONIBLE: 'bg-success/10 text-success',
+  CON_FALLA: 'bg-destructive/10 text-destructive',
+  DADO_DE_BAJA: 'bg-foreground/10 text-foreground',
+}
+const statusChipClass = computed(() => STATUS_CHIP[detail.value?.statusCode ?? ''] ?? 'bg-muted text-secondary')
+
+function onDisposalConflict() {
+  formError.value = operationError(new ApiError('', 409), '')
+}
+
 const currentLocationName = computed(
   () => locations.value.find((l) => l.locationId === detail.value?.currentLocationId)?.name ?? '—',
 )
@@ -218,10 +233,10 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="font-display text-2xl font-semibold text-foreground">{{ detail.inventoryCode }}</h1>
         <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ assetTypeName }}</span>
-        <span class="rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">{{ assetStatusName }}</span>
+        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', statusChipClass]">{{ assetStatusName }}</span>
         <!-- Ticket de soporte con este equipo ya elegido (módulo tickets). -->
         <RouterLink
-          v-if="hasPermission('tickets.create')"
+          v-if="hasPermission('tickets.create') && !isDisposed"
           :to="{ path: '/tickets', query: { nuevo: '1', assetId: String(detail.assetId) } }"
           class="ml-auto inline-flex min-h-[44px] items-center rounded-md border border-border bg-card px-4 text-sm text-foreground transition-colors duration-150 hover:bg-muted"
         >
@@ -292,8 +307,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         <UiButton :disabled="movementsPage >= movements.totalPages" @click="movementsPage++">Siguiente</UiButton>
       </nav>
 
-      <h3 class="mb-2 text-sm font-semibold text-foreground">Registrar movimiento</h3>
-      <form class="grid gap-3 sm:grid-cols-2" novalidate @submit.prevent="handleMovementSubmit">
+      <h3 v-if="!isDisposed" class="mb-2 text-sm font-semibold text-foreground">Registrar movimiento</h3>
+      <form v-if="!isDisposed" class="grid gap-3 sm:grid-cols-2" novalidate @submit.prevent="handleMovementSubmit">
         <div>
           <label for="to-location" class="mb-1 block text-sm font-medium text-foreground">Ubicación de destino</label>
           <select id="to-location" v-model="movementForm.toLocationId" :class="selectClass">
@@ -354,8 +369,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         </li>
       </ul>
 
-      <h3 class="mb-2 text-sm font-semibold text-foreground">Asignar activo</h3>
-      <form class="grid gap-3 sm:grid-cols-2" novalidate @submit.prevent="handleAssignmentSubmit">
+      <h3 v-if="!isDisposed" class="mb-2 text-sm font-semibold text-foreground">Asignar activo</h3>
+      <form v-if="!isDisposed" class="grid gap-3 sm:grid-cols-2" novalidate @submit.prevent="handleAssignmentSubmit">
         <div>
           <label for="assigned-to" class="mb-1 block text-sm font-medium text-foreground">Usuario</label>
           <input
@@ -402,5 +417,7 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         </div>
       </form>
     </section>
+
+    <AssetDisposalSection :asset="detail" :catalogs="catalogs" @changed="loadDetail" @conflict="onDisposalConflict" />
   </div>
 </template>

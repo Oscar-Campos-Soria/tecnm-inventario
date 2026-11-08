@@ -1,6 +1,8 @@
 import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
+  AssetDisposalInfo,
+  CreateDisposalInput,
   AssetDetail,
   AssetMovement,
   AssetSummary,
@@ -65,6 +67,15 @@ export const assetsApi = {
   },
   catalogs() {
     return http.get<GetCatalogsResponse>('/api/catalogs')
+  },
+  // Baja formal: única vía a DADO_DE_BAJA (el cambio manual de estado no la acepta).
+  disposal(assetId: number) {
+    return http
+      .get<PagedResult<AssetDisposalInfo>>(`/api/disposals${buildQuery({ assetId, pageSize: 1 })}`)
+      .then((page) => page.items[0] ?? null)
+  },
+  dispose(expectedVersion: number, input: CreateDisposalInput) {
+    return http.post<{ assetDisposalId: number }>(`/api/disposals?expectedVersion=${expectedVersion}`, input)
   },
 }
 

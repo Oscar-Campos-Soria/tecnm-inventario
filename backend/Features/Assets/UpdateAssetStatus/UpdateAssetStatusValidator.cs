@@ -7,10 +7,12 @@ namespace TecnmInventario.Api.Features.Assets.UpdateAssetStatus;
 
 public class UpdateAssetStatusValidator : AbstractValidator<UpdateAssetStatusCommand>
 {
+    // DADO_DE_BAJA no se alcanza por aquí: exige la baja formal (POST /api/disposals,
+    // con folio, motivo y precondiciones) para que no haya bajas sin acta.
     private static readonly HashSet<string> ValidCodes = new()
     {
         AssetStatusCodes.Disponible, AssetStatusCodes.Asignado, AssetStatusCodes.EnMantenimiento,
-        AssetStatusCodes.ConFalla, AssetStatusCodes.DadoDeBaja
+        AssetStatusCodes.ConFalla
     };
 
     private readonly TecnmInventarioDbContext _context;
@@ -20,7 +22,9 @@ public class UpdateAssetStatusValidator : AbstractValidator<UpdateAssetStatusCom
         _context = context;
 
         RuleFor(x => x.NewStatusCode)
-            .Must(code => ValidCodes.Contains(code))
+            .Must(code => code != AssetStatusCodes.DadoDeBaja)
+            .WithMessage("Para dar de baja un activo use la baja formal (folio, motivo y acta).")
+            .Must(code => code == AssetStatusCodes.DadoDeBaja || ValidCodes.Contains(code))
             .WithMessage($"Estado inválido. Valores permitidos: {string.Join(", ", ValidCodes)}.");
 
         RuleFor(x => x.Reason)

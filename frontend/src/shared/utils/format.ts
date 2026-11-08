@@ -12,10 +12,23 @@ const dateTimeFormat = new Intl.DateTimeFormat('es-MX', {
   minute: '2-digit',
 })
 
+// "2026-11-08" (fecha sin hora, DateOnly del backend) se interpreta como día
+// local: new Date() la tomaría como medianoche UTC y en México saldría el día anterior.
+function parseDate(iso: string): Date {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return dateOnly ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])) : new Date(iso)
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
-  const date = new Date(iso)
+  const date = parseDate(iso)
   return Number.isNaN(date.getTime()) ? '—' : dateFormat.format(date)
+}
+
+/** Hoy en formato YYYY-MM-DD (hora local), para inputs type="date". */
+export function todayIso(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 export function formatDateTime(iso: string | null | undefined): string {

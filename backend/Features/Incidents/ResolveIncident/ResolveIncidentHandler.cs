@@ -106,6 +106,24 @@ public sealed class ResolveIncidentHandler : ICommandHandler<ResolveIncidentComm
             finalAssetStatus = change.NewStatusCode;
             released = true;
         }
+        else if (otherOpenIncidents > 0 && assetStatusCode == AssetStatusCodes.EnMantenimiento)
+        {
+            // Quedan fallas abiertas pero ninguna en reparación: el activo no está
+            // "en mantenimiento", sigue con falla.
+            var otherInRepair = await _context.Incidents.AnyAsync(
+                i => i.AssetId == incident.AssetId
+                     && i.IncidentId != incident.IncidentId
+                     && i.IncidentStatus.Code == IncidentStatusCodes.EnReparacion,
+                cancellationToken);
+
+            if (!otherInRepair)
+            {
+                var change = await _assetStatusChanger.ChangeAsync(
+                    asset, AssetStatusCodes.ConFalla,
+                    $"Incidente #{incident.IncidentId} resuelto; quedan fallas sin reparar", cancellationToken);
+                finalAssetStatus = change.NewStatusCode;
+            }
+        }
 
         await _auditLog.LogAsync(
             tableName: "incidents",
