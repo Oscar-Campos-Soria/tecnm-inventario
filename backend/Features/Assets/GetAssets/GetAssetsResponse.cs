@@ -5,4 +5,9 @@ public sealed record GetAssetsResponse(
     string InventoryCode,
     string? SerialNumber,
     string? Hostname,
-    int Version);
+    int Version,
+    string AssetTypeName,
+    string StatusCode,
+    string StatusName,
+    long? LocationId,
+    string? LocationName);

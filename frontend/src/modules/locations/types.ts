@@ -17,6 +17,22 @@ export interface LocationDetail {
   version: number
 }
 
+export interface PagedResult<T> {
+  items: T[]
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+export interface LocationAssetItem {
+  assetId: number
+  inventoryCode: string
+  assetTypeName: string
+  statusName: string
+  locationName: string | null
+}
+
 export interface LocationTypeItem {
   id: number
   code: string

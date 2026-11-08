@@ -8,6 +8,7 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { fetchLocationTypes, locationsApi } from '../api'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue'
 import LocationFormModal from '../components/LocationFormModal.vue'
+import LocationAssets from '../components/LocationAssets.vue'
 import type { LocationDetail, LocationItem, LocationTypeItem } from '../types'
 
 type LoadState = 'loading' | 'not-found' | 'error' | 'ready'
@@ -194,6 +195,8 @@ async function handleDelete() {
         <UiField label="Versión" :value="String(detail.version)" />
       </dl>
     </section>
+
+    <LocationAssets v-if="hasPermission('assets.view')" :location-id="detail.locationId" />
 
     <LocationFormModal
       :open="formOpen"

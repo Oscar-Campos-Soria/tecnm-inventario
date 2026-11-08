@@ -3,8 +3,9 @@ import { ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import AssetPicker from './AssetPicker.vue'
 import { ticketsApi } from '../api'
-import type { AssetOption, TicketCatalogs, TicketDetail } from '../types'
+import type { TicketCatalogs, TicketDetail } from '../types'
 
 // Falla de hardware detectada desde un ticket: se levanta el incidente
 // técnico (cambia el estado del activo) y se liga al ticket. Son dos pasos
@@ -17,7 +18,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; linked: []; conflict: [] }>()
 
-const assetFieldId = useId()
 const typeFieldId = useId()
 const titleFieldId = useId()
 const descriptionFieldId = useId()
@@ -26,7 +26,6 @@ const assetId = ref('')
 const typeId = ref('')
 const title = ref('')
 const description = ref('')
-const assets = ref<AssetOption[]>([])
 const error = ref('')
 const saving = ref(false)
 
@@ -40,9 +39,6 @@ watch(
     description.value = props.ticket.description ?? ''
     error.value = ''
     saving.value = false
-    if (props.ticket.assetId === null) {
-      ticketsApi.assets().then((list) => (assets.value = list)).catch(() => (assets.value = []))
-    }
   },
   { immediate: true },
 )
@@ -95,11 +91,7 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
           <span class="mb-1 block text-sm font-medium text-foreground">Equipo</span>
           <p class="text-sm text-foreground">{{ ticket.assetInventoryCode }}</p>
         </template>
-        <label v-else :for="assetFieldId" class="mb-1 block text-sm font-medium text-foreground">Equipo</label>
-        <select v-if="ticket.assetId === null" :id="assetFieldId" v-model="assetId" :class="[fieldClass, 'cursor-pointer px-2.5']">
-          <option value="">Selecciona el equipo</option>
-          <option v-for="asset in assets" :key="asset.assetId" :value="String(asset.assetId)">{{ asset.inventoryCode }}</option>
-        </select>
+        <AssetPicker v-else v-model="assetId" empty-label="Selecciona el equipo" :optional="false" />
       </div>
 
       <div>

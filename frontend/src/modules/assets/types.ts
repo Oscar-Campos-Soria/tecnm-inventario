@@ -12,6 +12,20 @@ export interface AssetSummary {
   serialNumber: string | null
   hostname: string | null
   version: number
+  assetTypeName: string
+  statusCode: string
+  statusName: string
+  locationId: number | null
+  locationName: string | null
+}
+
+// Filtros de GET /api/assets (ubicación incluye sus sub-ubicaciones).
+export interface AssetFilters {
+  search?: string
+  status?: string
+  assetTypeId?: number
+  locationId?: number
+  includeDisposed?: boolean
 }
 
 export interface AssetDetail {

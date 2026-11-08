@@ -36,7 +36,5 @@ incidente es el registro técnico del activo (se liga, no se mezcla).
 ## Pendiente
 
 - Contador de "sin asignar" en el menú (hoy solo en la pestaña).
-- Selector de equipo limitado a 100 (sin búsqueda en `GET /api/assets`).
-- Ubicación del ticket (el backend la acepta; `GET /api/locations` exige `locations.manage`).
 
 Especificación: `specs/tickets.spec.md`

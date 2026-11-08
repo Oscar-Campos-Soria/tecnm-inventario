@@ -6,7 +6,7 @@ Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
 
 | Ruta | Página | Menú |
 | --- | --- | --- |
-| `/assets` | `pages/AssetsPage.vue` — tabla paginada (código, serie, hostname) | "Activos", orden 20, `assets.view` |
+| `/assets` | `pages/AssetsPage.vue` — tabla paginada (código, tipo, estado, ubicación, serie, hostname) con búsqueda (código/serie/hostname) y filtros por estado, tipo, ubicación (incluye sub-ubicaciones) y "incluir dados de baja" | "Activos", orden 20, `assets.view` |
 | `/assets/:assetId` | `pages/AssetDetailPage.vue` — datos generales, tipo/estado, movimientos (paginados + registro), asignaciones (registro + devolución) | — |
 
 ## Reglas reflejadas

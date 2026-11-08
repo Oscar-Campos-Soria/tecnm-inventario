@@ -3,6 +3,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import { ALLOWED_MIME_TYPES, MAX_DOCUMENT_BYTES, documentsApi } from '../../../shared/api/documents'
 import NavIcon from '../../../shared/components/NavIcon.vue'
+import AssetPicker from './AssetPicker.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
@@ -25,7 +26,6 @@ const emit = defineEmits<{ close: []; created: [ticketId: number, photoFailed: b
 const { hasPermission } = useAuth()
 const titleId = useId()
 const descriptionId = useId()
-const assetFieldId = useId()
 const locationFieldId = useId()
 
 const categoryId = ref<number | null>(null)
@@ -33,7 +33,8 @@ const priority = ref<PriorityCode>('MEDIA')
 const title = ref('')
 const description = ref('')
 const assetId = ref('')
-const assets = ref<AssetOption[]>([])
+// Equipo preseleccionado ("Reportar problema"), para mostrarlo en el buscador.
+const presetAsset = ref<AssetOption | null>(null)
 const locationId = ref('')
 const locations = ref<LocationOption[]>([])
 const photo = ref<File | null>(null)
@@ -56,8 +57,12 @@ watch(
     photo.value = null
     error.value = ''
     submitting.value = false
-    if (canPickAsset.value) {
-      ticketsApi.assets().then((list) => (assets.value = list)).catch(() => (assets.value = []))
+    presetAsset.value = null
+    if (canPickAsset.value && props.presetAssetId !== null) {
+      ticketsApi
+        .asset(props.presetAssetId)
+        .then((a) => (presetAsset.value = { assetId: a.assetId, inventoryCode: a.inventoryCode, hostname: a.hostname }))
+        .catch(() => (presetAsset.value = null))
     }
     if (canPickLocation.value) {
       ticketsApi.locations().then((list) => (locations.value = list)).catch(() => (locations.value = []))
@@ -197,17 +202,14 @@ const inputClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
         </div>
       </fieldset>
 
-      <div v-if="canPickAsset">
-        <label :for="assetFieldId" class="mb-1 block text-sm font-medium text-foreground">
-          Equipo <span class="font-normal text-muted-foreground">(opcional)</span>
-        </label>
-        <select :id="assetFieldId" v-model="assetId" class="min-h-[44px] w-full cursor-pointer rounded-md border border-border bg-background px-2.5 text-foreground">
-          <option value="">No es de un equipo en particular</option>
-          <option v-for="asset in assets" :key="asset.assetId" :value="String(asset.assetId)">
-            {{ asset.inventoryCode }}<template v-if="asset.hostname"> ({{ asset.hostname }})</template>
-          </option>
-        </select>
-      </div>
+      <!-- :key fuerza un buscador nuevo cuando llega el equipo preseleccionado. -->
+      <AssetPicker
+        v-if="canPickAsset"
+        :key="presetAsset?.assetId ?? 0"
+        v-model="assetId"
+        :initial="presetAsset"
+        empty-label="No es de un equipo en particular"
+      />
 
       <div v-if="canPickLocation">
         <label :for="locationFieldId" class="mb-1 block text-sm font-medium text-foreground">

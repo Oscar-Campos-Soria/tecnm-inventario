@@ -3,9 +3,11 @@ import type {
   CreateLocationInput,
   CreateLocationResponse,
   DeleteLocationResponse,
+  LocationAssetItem,
   LocationDetail,
   LocationItem,
   LocationTypeItem,
+  PagedResult,
   UpdateLocationInput,
   UpdateLocationResponse,
 } from './types'
@@ -34,6 +36,11 @@ export const locationsApi = {
     return http.put<UpdateLocationResponse>(
       `/api/locations/${locationId}?expectedVersion=${expectedVersion}`,
       input,
+    )
+  },
+  assets(locationId: number, pageNumber = 1) {
+    return http.get<PagedResult<LocationAssetItem>>(
+      `/api/assets?locationId=${locationId}&pageNumber=${pageNumber}&pageSize=10`,
     )
   },
   remove(locationId: number, expectedVersion: number) {

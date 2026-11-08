@@ -2,6 +2,7 @@ import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
   AssetDisposalInfo,
+  AssetFilters,
   AssetIncidentOption,
   CreateDisposalInput,
   CreateMaintenanceInput,
@@ -18,7 +19,7 @@ import type {
   UserItem,
 } from './types'
 
-function buildQuery(params: Record<string, string | number | undefined>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) search.set(key, String(value))
@@ -28,9 +29,9 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const assetsApi = {
-  list(pageNumber = 1, pageSize = 20) {
+  list(pageNumber = 1, pageSize = 20, filters: AssetFilters = {}) {
     return http.get<PagedResult<AssetSummary>>(
-      `/api/assets${buildQuery({ pageNumber, pageSize })}`,
+      `/api/assets${buildQuery({ pageNumber, pageSize, ...filters })}`,
     )
   },
   getById(assetId: number) {

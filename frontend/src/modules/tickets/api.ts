@@ -63,9 +63,14 @@ export const ticketsApi = {
       .get<UserItem[]>('/api/users')
       .then((users) => users.filter((user) => user.roleCode === 'ADMIN' || user.roleCode === 'TECNICO'))
   },
-  // shortcut: GET /api/assets no busca ni filtra; se listan los primeros 100. Cambiar al llegar la búsqueda avanzada de activos.
-  assets() {
-    return http.get<PagedResult<AssetOption>>('/api/assets?pageNumber=1&pageSize=100').then((page) => page.items)
+  // Búsqueda de equipo por código, serie o hostname (sin dados de baja); 20 resultados.
+  assets(search = '') {
+    return http
+      .get<PagedResult<AssetOption>>(`/api/assets${buildQuery({ pageNumber: 1, pageSize: 20, search: search || undefined })}`)
+      .then((page) => page.items)
+  },
+  asset(assetId: number) {
+    return http.get<{ assetId: number; inventoryCode: string; hostname: string | null }>(`/api/assets/${assetId}`)
   },
   // Lista plana ordenada por código (GET /api/locations, permiso locations.view).
   locations() {

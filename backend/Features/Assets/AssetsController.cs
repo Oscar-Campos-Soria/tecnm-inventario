@@ -28,13 +28,19 @@ public class AssetsController : ControllerBase
         _mediator = mediator;
     }
 
+    public sealed record AssetFilters(
+        string? Search, string? Status, long? AssetTypeId, long? LocationId, bool IncludeDisposed = false);
+
     [HttpGet]
     [Authorize(Policy = "assets.view")]
     public async Task<ActionResult<PagedResult<GetAssetsResponse>>> GetAssets(
         [FromQuery] PagedRequest pagination,
+        [FromQuery] AssetFilters filters,
         CancellationToken cancellationToken)
     {
-        var query = new GetAssetsQuery(pagination.PageNumber, pagination.PageSize);
+        var query = new GetAssetsQuery(
+            pagination.PageNumber, pagination.PageSize,
+            filters.Search, filters.Status, filters.AssetTypeId, filters.LocationId, filters.IncludeDisposed);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
