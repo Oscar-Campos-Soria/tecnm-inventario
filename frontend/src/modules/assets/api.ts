@@ -2,7 +2,10 @@ import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
   AssetDisposalInfo,
+  AssetIncidentOption,
   CreateDisposalInput,
+  CreateMaintenanceInput,
+  MaintenanceItem,
   AssetDetail,
   AssetMovement,
   AssetSummary,
@@ -67,6 +70,21 @@ export const assetsApi = {
   },
   catalogs() {
     return http.get<GetCatalogsResponse>('/api/catalogs')
+  },
+  maintenance(assetId: number, pageNumber = 1) {
+    return http.get<PagedResult<MaintenanceItem>>(`/api/maintenance${buildQuery({ assetId, pageNumber, pageSize: 10 })}`)
+  },
+  addMaintenance(input: CreateMaintenanceInput) {
+    return http.post<{ maintenanceRecordId: number }>('/api/maintenance', input)
+  },
+  removeMaintenance(recordId: number, expectedVersion: number) {
+    return http.delete(`/api/maintenance/${recordId}?expectedVersion=${expectedVersion}`)
+  },
+  // Para ligar un correctivo a su incidente (requiere incidents.view).
+  incidents(assetId: number) {
+    return http
+      .get<PagedResult<AssetIncidentOption>>(`/api/assets/${assetId}/incidents${buildQuery({ pageSize: 50 })}`)
+      .then((page) => page.items)
   },
   // Baja formal: única vía a DADO_DE_BAJA (el cambio manual de estado no la acepta).
   disposal(assetId: number) {

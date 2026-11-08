@@ -29,6 +29,10 @@ public partial class Location : ISoftDeletable
 {
 }
 
+public partial class MaintenanceRecord : ISoftDeletable
+{
+}
+
 public partial class Incident : ISoftDeletable
 {
 }

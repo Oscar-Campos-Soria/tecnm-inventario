@@ -570,6 +570,9 @@ CREATE TABLE IF NOT EXISTS maintenance_records (
   next_maintenance_at      timestamptz,
   description              text,
   parts_used               text,
+  -- scripts/add-maintenance-fields.sql
+  incident_id              bigint REFERENCES incidents(incident_id),
+  cost                     numeric(12,2) CHECK (cost IS NULL OR cost >= 0),
   created_at               timestamptz NOT NULL DEFAULT now(),
   created_by               bigint REFERENCES app_users(user_id),
   updated_at               timestamptz NOT NULL DEFAULT now(),

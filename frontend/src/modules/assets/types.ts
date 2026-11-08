@@ -99,6 +99,40 @@ export interface GetCatalogsResponse {
   licenseTypes: CatalogItem[]
 }
 
+// Bitácora de mantenimiento (backend/Features/Maintenance).
+export interface MaintenanceItem {
+  maintenanceRecordId: number
+  assetId: number
+  assetInventoryCode: string
+  typeCode: string
+  typeName: string
+  performedByName: string | null
+  performedAt: string | null
+  nextMaintenanceAt: string | null
+  description: string | null
+  partsUsed: string | null
+  cost: number | null
+  incidentId: number | null
+  version: number
+}
+
+export interface CreateMaintenanceInput {
+  assetId: number
+  maintenanceTypeId: number
+  performedAt: string
+  nextMaintenanceAt?: string
+  description: string
+  partsUsed?: string
+  cost?: number
+  incidentId?: number
+}
+
+export interface AssetIncidentOption {
+  incidentId: number
+  title: string
+  statusName: string
+}
+
 // Baja formal (backend/Features/Disposals).
 export interface AssetDisposalInfo {
   assetDisposalId: number

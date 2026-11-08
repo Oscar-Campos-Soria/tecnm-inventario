@@ -22,6 +22,17 @@ public partial class TecnmInventarioDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
+        // Columnas agregadas por scripts/add-maintenance-fields.sql (fuera del scaffold).
+        modelBuilder.Entity<MaintenanceRecord>(entity =>
+        {
+            entity.Property(e => e.IncidentId).HasColumnName("incident_id");
+            entity.Property(e => e.Cost).HasPrecision(12, 2).HasColumnName("cost");
+
+            entity.HasOne(e => e.Incident).WithMany()
+                .HasForeignKey(e => e.IncidentId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
         modelBuilder.Entity<TicketCategory>(entity =>
         {
             entity.HasKey(e => e.TicketCategoryId);

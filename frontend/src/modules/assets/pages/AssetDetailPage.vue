@@ -5,6 +5,7 @@ import { ApiError } from '../../../shared/api/http'
 import UiField from '../../../shared/components/UiField.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import AssetDisposalSection from '../components/AssetDisposalSection.vue'
+import AssetMaintenanceSection from '../components/AssetMaintenanceSection.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
 import { assetsApi, catalogName } from '../api'
@@ -417,6 +418,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         </div>
       </form>
     </section>
+
+    <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" />
 
     <AssetDisposalSection :asset="detail" :catalogs="catalogs" @changed="loadDetail" @conflict="onDisposalConflict" />
   </div>

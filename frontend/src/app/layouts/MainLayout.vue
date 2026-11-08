@@ -18,7 +18,6 @@ interface PlannedItem {
 // Módulos aún sin pantallas: se muestran deshabilitados. Al implementarse,
 // el módulo declara meta.nav en su routes.ts y se quita de aquí.
 const PLANNED: PlannedItem[] = [
-  { to: '/maintenance', permission: 'maintenance.manage', label: 'Mantenimiento', icon: ['M12 12a3 3 0 100-6 3 3 0 000 6z', 'M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1'], note: 'FASE 2' },
   { to: '/bulk-import', label: 'Carga masiva', icon: ['M12 16V4M7 9l5-5 5 5M4 20h16'], note: 'FASE 2' },
   { to: '/reports', permission: 'reports.view', label: 'Reportes', icon: ['M7 3h7l5 5v13H7z', 'M14 3v5h5M10 13h5M10 17h5'], note: 'FASE 2' },
   { to: '/software', permission: 'software.manage', label: 'Software', icon: ['M7 7h10v10H7z', 'M10 10h4v4h-4z', 'M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4'], note: 'FASE 2' },
