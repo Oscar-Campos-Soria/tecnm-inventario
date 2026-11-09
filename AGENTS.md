@@ -77,7 +77,7 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 
 ## Deuda técnica
 
-- Despliegue (specs/deployment.spec.md): `database/docker-compose.prod.yml`, nginx HTTPS en 6010 (pantallas) y 6011 (proxy a la API); api y db sin puertos. Probado en local; `database/.env.prod` y `database/certs/` de prueba (localhost) no se versionan. Pendiente: CLI `tecnm`.
+- Despliegue (specs/deployment.spec.md): `database/docker-compose.prod.yml`, nginx HTTPS en 6010 (pantallas) y 6011 (proxy a la API); api y db sin puertos. CLI `tecnm` en backend/tools/TecnmCli (instalar, actualizar, respaldos, administrador, certificado con CA propia, sandbox). Probado en local; `database/.env.prod`, `database/certs/` y `database/backups/` de prueba (localhost, admin zz_cli_admin) no se versionan. `database.sql` ya se puede re-ejecutar (los triggers dinámicos ignoran vistas).
 - Tests de integración con PostgreSQL real vía Testcontainers (`Category=Integration`); la suite rápida
   sigue en InMemory (`--filter "Category!=Integration"`). Sin Docker se omiten salvo
   `REQUIRE_DOCKER_TESTS=1`, que los convierte en fallo.

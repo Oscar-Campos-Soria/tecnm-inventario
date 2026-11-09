@@ -758,6 +758,10 @@ BEGIN
   FOR t IN
     SELECT c.table_name
     FROM information_schema.columns c
+    -- Solo tablas: las vistas también exponen la columna y no aceptan triggers de fila
+    -- (al re-ejecutar el script, v_asset_summary ya existe).
+    JOIN information_schema.tables tb
+      ON tb.table_schema = c.table_schema AND tb.table_name = c.table_name AND tb.table_type = 'BASE TABLE'
     WHERE c.table_schema = 'inventario' AND c.column_name = 'version'
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_version ON %I', t, t);
@@ -779,6 +783,10 @@ BEGIN
   FOR t IN
     SELECT c.table_name
     FROM information_schema.columns c
+    -- Solo tablas: las vistas también exponen la columna y no aceptan triggers de fila
+    -- (al re-ejecutar el script, v_asset_summary ya existe).
+    JOIN information_schema.tables tb
+      ON tb.table_schema = c.table_schema AND tb.table_name = c.table_name AND tb.table_type = 'BASE TABLE'
     WHERE c.table_schema = 'inventario' AND c.column_name = 'is_deleted'
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_soft_delete ON %I', t, t);

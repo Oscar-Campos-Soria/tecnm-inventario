@@ -86,3 +86,4 @@ graphify-out/
 
 # Certificados del despliegue (los genera el CLI tecnm)
 database/certs/
+database/backups/

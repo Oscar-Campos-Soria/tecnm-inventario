@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\TecnmInventario.Api.csproj" />
+    <ProjectReference Include="..\..\tools\TecnmCli\TecnmCli.csproj" />
   </ItemGroup>
 
   <!--

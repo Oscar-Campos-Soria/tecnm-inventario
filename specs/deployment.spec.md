@@ -42,4 +42,40 @@ Archivos: `database/docker-compose.prod.yml`, `database/.env.prod` (no se versio
 - [x] PDF generado en Linux (fuentes) con `Content-Disposition` expuesto
 - [x] 12 logins con `X-Forwarded-For` falsos: 429 al 10.º (la cabecera del cliente se ignora)
 - [x] `api:8080` y `db:5432` sin publicar; `db` sin salida a internet; `/app` de solo lectura
-- [ ] CLI `tecnm` (instalar, respaldos, certificado con CA propia, sandbox con `npm run dev`)
+- [x] CLI `tecnm`: instalación desde cero, respaldo, restauración, actualización, certificado y sandbox (ver abajo)
+
+## CLI `tecnm` (`backend/tools/TecnmCli`)
+
+Menú en consola para el administrador del servidor; sin argumentos abre el menú, y
+`tecnm respaldar | estado | iniciar | detener` sirve para tareas programadas.
+
+Compilar en el servidor sin instalar .NET (solo Docker), desde la raíz del repo:
+
+```bash
+docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:10.0   dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -r linux-x64   --self-contained -p:PublishSingleFile=true -o backend/tools/TecnmCli/dist
+backend/tools/TecnmCli/dist/tecnm
+```
+
+En Windows: `dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -o backend/tools/TecnmCli/dist`.
+El CLI busca la raíz del repo subiendo desde su carpeta (o `TECNM_ROOT`).
+
+| Opción | Qué hace |
+| --- | --- |
+| 9 Instalar | Crea `database/.env.prod` con secretos aleatorios (no los muestra), emite la CA propia y el certificado para el host, levanta los contenedores, aplica `database.sql` + scripts del README (sin los de desarrollo) y crea el primer administrador |
+| 5 Actualizar | Respaldo, `docker compose build`, `up -d`, scripts otra vez (idempotentes) y espera `/api/health`. Hacer `git pull` antes |
+| 6 Respaldar | `pg_dump -Fc` + `tar` de documentos en `database/backups/` (no se versiona); conserva 14 |
+| 7 Restaurar | Elige respaldo, pide escribir `RESTAURAR`, saca respaldo de seguridad, `pg_restore --single-transaction` y documentos |
+| 8 Administrador | Crea o reactiva un ADMIN; contraseña oculta (12+), BCrypt, valores por variables de psql. Escribe directo en la BD: no queda en `audit_log` |
+| C Certificado | Regenera el del servidor con la misma CA; instrucciones para instalar `ca.crt` (Windows, Android, iPhone) o usar uno de sistemas |
+| P Programar | Respaldo diario 02:00: Programador de tareas (Windows) o crontab (Linux) |
+| S Sandbox | En el equipo de desarrollo: BD de `database/docker-compose.yml`, `dotnet run` (5112) y vite (5173); Enter los detiene |
+
+Se niega a operar si `.env.prod` falta o tiene secretos débiles (contraseña < 24, JWT < 64).
+La CA no publica lista de revocación (igual que mkcert): los navegadores la aceptan; `curl` en
+Windows necesita `--ssl-no-revoke`. `ca.key` no sale del servidor.
+
+Verificado (local, 2026-11-09): instalación desde volúmenes vacíos, login con el admin creado
+validando solo contra `ca.crt`, respaldo → cambio → restauración (vuelve al estado del respaldo),
+cancelación sin `RESTAURAR`, actualización sobre BD existente, regenerar certificado (CA intacta),
+reactivar admin inactivo, contraseñas cortas/distintas rechazadas, sandbox arranca y cierra sus
+procesos, binario linux-x64 compilado en el contenedor del SDK.
