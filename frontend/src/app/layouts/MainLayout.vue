@@ -20,7 +20,6 @@ interface PlannedItem {
 const PLANNED: PlannedItem[] = [
   { to: '/bulk-import', label: 'Carga masiva', icon: ['M12 16V4M7 9l5-5 5 5M4 20h16'], note: 'FASE 2' },
   { to: '/reports', permission: 'reports.view', label: 'Reportes', icon: ['M7 3h7l5 5v13H7z', 'M14 3v5h5M10 13h5M10 17h5'], note: 'FASE 2' },
-  { to: '/components', permission: 'components.manage', label: 'Componentes', icon: ['M12 3l9 5-9 5-9-5 9-5z', 'M3 13l9 5 9-5'], note: 'FASE 2' },
   { to: '/documents', label: 'Documentos', icon: ['M3 6h6l2 2h10v11H3z'], note: 'FASE 3' },
 ]
 

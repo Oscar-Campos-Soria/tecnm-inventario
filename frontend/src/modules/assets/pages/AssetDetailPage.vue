@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import UiField from '../../../shared/components/UiField.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
+import AssetComponentsSection from '../components/AssetComponentsSection.vue'
 import AssetDisposalSection from '../components/AssetDisposalSection.vue'
 import AssetMaintenanceSection from '../components/AssetMaintenanceSection.vue'
 import AssetSoftwareSection from '../components/AssetSoftwareSection.vue'
@@ -423,6 +424,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
     </section>
 
     <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" />
+
+    <AssetComponentsSection :asset-id="detail.assetId" :disposed="isDisposed" :component-types="catalogs?.componentTypes ?? []" />
 
     <AssetSoftwareSection :asset-id="detail.assetId" :disposed="isDisposed" />
 

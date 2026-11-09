@@ -208,6 +208,20 @@ export interface SupplierOption {
   name: string
 }
 
+// Componentes internos del activo (components.manage).
+export interface AssetComponentItem {
+  assetComponentId: number
+  componentTypeId: number
+  componentTypeCode: string
+  componentTypeName: string
+  description: string | null
+  serialNumber: string | null
+  installedAt: string
+  // null = sigue instalado.
+  removedAt: string | null
+  version: number
+}
+
 // Software instalado en el activo (software.manage).
 export interface AssetSoftwareItem {
   assetSoftwareId: number

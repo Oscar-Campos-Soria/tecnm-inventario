@@ -1,6 +1,7 @@
 import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
+  AssetComponentItem,
   AssetSoftwareItem,
   SoftwareOption,
   AssetDisposalInfo,
@@ -118,6 +119,22 @@ export const assetsApi = {
   },
   suppliers() {
     return http.get<PagedResult<SupplierOption>>('/api/suppliers?pageSize=100').then((page) => page.items)
+  },
+  // Componentes internos (components.manage: ADMIN y TECNICO).
+  components(assetId: number, includeRemoved: boolean) {
+    return http.get<AssetComponentItem[]>(`/api/assets/${assetId}/components${buildQuery({ includeRemoved })}`)
+  },
+  addComponent(assetId: number, input: { componentTypeId: number; description: string | null; serialNumber: string | null; installedAt: string | null }) {
+    return http.post<{ assetComponentId: number }>(`/api/assets/${assetId}/components`, input)
+  },
+  replaceComponent(assetId: number, c: AssetComponentItem, input: { description: string | null; serialNumber: string | null; replacedAt: string | null }) {
+    return http.post(`/api/assets/${assetId}/components/${c.assetComponentId}/replace?expectedVersion=${c.version}`, input)
+  },
+  removeComponent(assetId: number, c: AssetComponentItem) {
+    return http.post(`/api/assets/${assetId}/components/${c.assetComponentId}/remove?expectedVersion=${c.version}`, {})
+  },
+  deleteComponent(assetId: number, c: AssetComponentItem) {
+    return http.delete(`/api/assets/${assetId}/components/${c.assetComponentId}?expectedVersion=${c.version}`)
   },
   // Software instalado (software.manage: ADMIN y TECNICO).
   software(assetId: number, includeHistory: boolean) {
