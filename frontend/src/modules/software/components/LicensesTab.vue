@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
@@ -16,7 +17,8 @@ const canPickSupplier = computed(() => hasPermission('procurement.manage'))
 const result = ref<PagedResult<LicenseSummary> | null>(null)
 const page = ref(1)
 const search = ref('')
-const onlyExpiring = ref(false)
+// /software?vencen=1 (enlace del panel) abre con el filtro de vencimiento.
+const onlyExpiring = ref(useRoute().query.vencen === '1')
 const error = ref('')
 const detailId = ref<number | null>(null)
 

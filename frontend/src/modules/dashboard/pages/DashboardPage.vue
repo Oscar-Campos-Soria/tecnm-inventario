@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import NavIcon from '../../../shared/components/NavIcon.vue'
+import DashboardMetrics from '../components/DashboardMetrics.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 
 const { session, hasPermission } = useAuth()
@@ -96,11 +97,6 @@ const greeting = computed(() => {
       </ul>
     </nav>
 
-    <section v-if="hasPermission('dashboard.view')" class="rounded-xl border border-dashed border-border p-6">
-      <h2 class="font-display text-base font-semibold text-foreground">Métricas del inventario</h2>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Próximamente: equipos por estado y por edificio (las vistas de la base ya existen; falta el endpoint de agregados).
-      </p>
-    </section>
+    <DashboardMetrics v-if="hasPermission('dashboard.view')" />
   </div>
 </template>
