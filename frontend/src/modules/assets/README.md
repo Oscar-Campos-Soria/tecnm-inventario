@@ -17,11 +17,16 @@ Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
 - 409 en movimiento/asignación/devolución: recarga la ficha y avisa.
 - Sin `locations.manage`, la ficha carga igual y la ubicación se muestra "—" (deuda `locations.view`).
 - "Reportar problema" (con `tickets.create`) enlaza a `/tickets?nuevo=1&assetId=N`.
+- "Software instalado" (con `software.manage`, `AssetSoftwareSection`): programas vigentes con versión y si ocupan
+  licencia, historial, registrar instalación (otra versión reemplaza a la vigente) y desinstalar. Si al
+  desinstalar el equipo sigue ocupando una licencia, se avisa con enlace a `/software`. Oculto para
+  registrar/desinstalar en activos dados de baja.
 
 ## Endpoints
 
 `GET /api/assets`, `GET /api/assets/{id}`, `GET/POST /api/assets/{id}/movements`,
 `GET/POST /api/assets/{id}/assignments`, `POST .../assignments/{id}/return`,
-`GET /api/users`, `GET /api/locations`, `GET /api/catalogs`.
+`GET /api/users`, `GET /api/locations`, `GET /api/catalogs`,
+`GET/POST /api/assets/{id}/software`, `POST .../software/{id}/uninstall`, `GET /api/software`.
 
 Especificación: `specs/assets.spec.md`

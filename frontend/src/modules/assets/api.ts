@@ -1,6 +1,8 @@
 import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
+  AssetSoftwareItem,
+  SoftwareOption,
   AssetDisposalInfo,
   AuditLogItem,
   CreateWarrantyInput,
@@ -116,6 +118,23 @@ export const assetsApi = {
   },
   suppliers() {
     return http.get<PagedResult<SupplierOption>>('/api/suppliers?pageSize=100').then((page) => page.items)
+  },
+  // Software instalado (software.manage: ADMIN y TECNICO).
+  software(assetId: number, includeHistory: boolean) {
+    return http.get<AssetSoftwareItem[]>(`/api/assets/${assetId}/software${buildQuery({ includeHistory })}`)
+  },
+  // shortcut: trae hasta 100 programas (tope de PagedRequest); con más, cambiar a buscador.
+  softwareCatalog() {
+    return http.get<PagedResult<SoftwareOption>>('/api/software?pageSize=100').then((page) => page.items)
+  },
+  installSoftware(assetId: number, input: { softwareId: number; versionInstalled: string | null; installedAt: string | null }) {
+    return http.post<{ assetSoftwareId: number }>(`/api/assets/${assetId}/software`, input)
+  },
+  uninstallSoftware(assetId: number, item: AssetSoftwareItem) {
+    return http.post<{ hasActiveLicense: boolean }>(
+      `/api/assets/${assetId}/software/${item.assetSoftwareId}/uninstall?expectedVersion=${item.version}`,
+      {},
+    )
   },
 }
 

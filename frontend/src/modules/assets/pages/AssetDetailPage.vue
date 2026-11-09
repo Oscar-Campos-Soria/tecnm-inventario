@@ -6,6 +6,7 @@ import UiField from '../../../shared/components/UiField.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import AssetDisposalSection from '../components/AssetDisposalSection.vue'
 import AssetMaintenanceSection from '../components/AssetMaintenanceSection.vue'
+import AssetSoftwareSection from '../components/AssetSoftwareSection.vue'
 import AssetTimelineSection from '../components/AssetTimelineSection.vue'
 import AssetWarrantySection from '../components/AssetWarrantySection.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
@@ -422,6 +423,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
     </section>
 
     <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" />
+
+    <AssetSoftwareSection :asset-id="detail.assetId" :disposed="isDisposed" />
 
     <AssetWarrantySection :asset-id="detail.assetId" />
 

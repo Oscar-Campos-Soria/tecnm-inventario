@@ -208,4 +208,24 @@ export interface SupplierOption {
   name: string
 }
 
+// Software instalado en el activo (software.manage).
+export interface AssetSoftwareItem {
+  assetSoftwareId: number
+  softwareId: number
+  softwareName: string
+  softwareVendor: string | null
+  versionInstalled: string | null
+  installedAt: string
+  isCurrent: boolean
+  // El equipo ocupa una licencia vigente de este programa.
+  hasActiveLicense: boolean
+  version: number
+}
+
+export interface SoftwareOption {
+  softwareId: number
+  name: string
+  vendor: string | null
+}
+
 export type { AuditLogItem } from '../../shared/api/audit'

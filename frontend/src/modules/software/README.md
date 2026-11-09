@@ -1,13 +1,21 @@
 # Módulo software
 
-Inventario de programas y control de licencias.
+Ruta `/software` (permiso `software.manage`: ADMIN y TECNICO). Menú "Software", orden 65. Dos pestañas:
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. usesoftware)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+- **Licencias** (por omisión): búsqueda por programa y filtro "solo las que vencen en 30 días".
+  Cada fila muestra el uso (`UsageBar`: "3 de 10 en uso", en naranja cuando ya no hay lugares;
+  "sin límite" si la cantidad está vacía) y la vigencia (vencida, vence en N días, hasta fecha).
+  - "Equipos" abre `LicenseDetailModal`: datos, clave enmascarada, buscador de equipos para asignar
+    (deshabilitado si está vencida o sin lugares), equipos vigentes con "Liberar" e historial.
+  - "Nueva licencia" / "Editar": tipo, equipos permitidos (vacío = sin límite), vigencia, clave
+    (campo de contraseña; al editar, vacío conserva la guardada y "Quitar la clave guardada" la borra),
+    proveedor (solo con `procurement.manage`) y notas.
+- **Programas**: alta, edición y borrado lógico (bloqueado si tiene licencias o sigue instalado).
 
-Especificación: `specs/software.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`
+El software instalado por equipo se registra en la ficha del activo (`modules/assets`,
+`AssetSoftwareSection`).
+
+409: recarga la lista y avisa "Otra persona modificó…".
+
+API: ver `specs/software.spec.md`. Usa también `GET /api/catalogs`, `GET /api/assets` (buscador)
+y `GET /api/suppliers`.
