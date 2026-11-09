@@ -28,7 +28,7 @@ public sealed class GetSuppliersHandler
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(s => new GetSuppliersResponse(
-                s.SupplierId, s.Name, s.TaxId, s.ContactName, s.Email, s.Phone, s.Version))
+                s.SupplierId, s.Name, s.TaxId, s.ContactName, s.Email, s.Phone, s.Address, s.Notes, s.Version))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<GetSuppliersResponse>(items, query.PageNumber, query.PageSize, totalCount);

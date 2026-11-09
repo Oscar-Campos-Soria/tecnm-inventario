@@ -7,4 +7,7 @@ public sealed record GetSuppliersResponse(
     string? ContactName,
     string? Email,
     string? Phone,
+    // Necesarios para editar sin borrar dirección ni notas (UpdateSupplier reemplaza todo).
+    string? Address,
+    string? Notes,
     int Version);

@@ -1,4 +1,5 @@
 using Mediator;
+using TecnmInventario.Api.Common.Errors;
 using Microsoft.EntityFrameworkCore;
 using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Authorization;
@@ -9,6 +10,8 @@ namespace TecnmInventario.Api.Features.Roles.AssignPermissions;
 
 public sealed class AssignPermissionsHandler : ICommandHandler<AssignPermissionsCommand, AssignPermissionsResponse>
 {
+    private static readonly string[] LockoutPermissions = { "roles.manage", "users.manage" };
+
     private readonly TecnmInventarioDbContext _context;
     private readonly IRolePermissionService _rolePermissionService;
     private readonly IAuditLogService _auditLog;
@@ -34,6 +37,14 @@ public sealed class AssignPermissionsHandler : ICommandHandler<AssignPermissions
             .FirstAsync(r => r.RoleId == command.RoleId && !r.IsDeleted, cancellationToken);
 
         var desiredCodes = command.PermissionCodes.ToHashSet();
+
+        // Anti-bloqueo: si ADMIN perdiera estos permisos, nadie podría
+        // volver a administrar roles ni usuarios desde la aplicación.
+        if (role.Code == "ADMIN" && LockoutPermissions.Any(p => !desiredCodes.Contains(p)))
+        {
+            throw new BusinessRuleViolationException(
+                $"El rol ADMIN debe conservar {string.Join(" y ", LockoutPermissions)}.");
+        }
         var currentCodes = role.Permissions.Select(p => p.Code).ToHashSet();
 
         var codesToRemove = currentCodes.Except(desiredCodes).ToList();

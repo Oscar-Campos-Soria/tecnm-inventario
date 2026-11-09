@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TecnmInventario.Api.Features.Roles.AssignPermissions;
 using TecnmInventario.Api.Features.Roles.CreateRole;
+using TecnmInventario.Api.Features.Roles.GetPermissions;
 using TecnmInventario.Api.Features.Roles.GetRoles;
 
 namespace TecnmInventario.Api.Features.Roles;
@@ -26,6 +27,11 @@ public class RolesController : ControllerBase
         var result = await _mediator.Send(new GetRolesQuery(), cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("/api/permissions")]
+    [Authorize(Policy = "roles.manage")]
+    public async Task<ActionResult<IReadOnlyList<PermissionItem>>> GetPermissions(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetPermissionsQuery(), cancellationToken));
 
     [HttpPost]
     [Authorize(Policy = "roles.manage")]

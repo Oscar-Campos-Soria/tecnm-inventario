@@ -17,11 +17,13 @@ public sealed class GetUsersHandler : IQueryHandler<GetUsersQuery, IReadOnlyList
         GetUsersQuery query, CancellationToken cancellationToken)
     {
         var search = (query.Search ?? "").Trim();
+        var roles = query.RoleCodes?.Select(r => r.Trim().ToUpperInvariant()).Where(r => r != "").ToArray() ?? [];
 
         // Selector para asignaciones: solo usuarios activos, top 50.
         // ILike para búsqueda insensible a mayúsculas en PostgreSQL.
         return await _context.AppUsers
             .Where(u => !u.IsDeleted && u.Status == "activo")
+            .Where(u => roles.Length == 0 || roles.Contains(u.Role.Code))
             .Where(u => search == "" ||
                 EF.Functions.ILike(u.Username, $"%{search}%") ||
                 EF.Functions.ILike(u.FirstName, $"%{search}%") ||
