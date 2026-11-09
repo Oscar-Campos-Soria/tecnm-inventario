@@ -30,6 +30,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(AuthRateLimits.LoginPolicy)]
     public async Task<ActionResult<AuthUserResponse>> Login(
         LoginCommand command,
         CancellationToken cancellationToken)

@@ -17,6 +17,8 @@ using TecnmInventario.Api.Features.Documents;
 using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Deletion;
 using TecnmInventario.Api.Features.Auth.Shared;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -161,6 +163,33 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 builder.Services.Configure<TecnmInventario.Api.Features.Tickets.Shared.TicketOptions>(
     builder.Configuration.GetSection(TecnmInventario.Api.Features.Tickets.Shared.TicketOptions.SectionName));
 builder.Services.AddHostedService<TecnmInventario.Api.Features.Tickets.Shared.TicketAutoCloseService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
+
+// Freno a la fuerza bruta en el login (rate limiter integrado de ASP.NET, sin librerías).
+// shortcut: se limita por IP; detrás de un proxy o una red con NAT compartida habría que
+// usar X-Forwarded-For (UseForwardedHeaders) y/o sumar un límite por usuario.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(AuthRateLimits.LoginPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = AuthRateLimits.LoginAttemptsPerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            title = "Demasiados intentos",
+            status = StatusCodes.Status429TooManyRequests,
+            detail = "Demasiados intentos de inicio de sesión. Espera un minuto e intenta de nuevo."
+        }, ct);
+    };
+});
 
 
 
@@ -186,5 +215,6 @@ app.UseHttpsRedirection();
 app.UseMiddleware<CsrfMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 app.Run();

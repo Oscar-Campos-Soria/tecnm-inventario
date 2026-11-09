@@ -8,7 +8,8 @@ namespace TecnmInventario.Api.Features.History.GetAssetTimeline;
 /// <summary>
 /// Línea de tiempo de un activo: sus propias filas de auditoría más las de
 /// otras tablas cuyo snapshot menciona su AssetId (movimientos, asignaciones,
-/// incidentes, mantenimientos, baja, conteos...). Últimos 200 eventos.
+/// incidentes, mantenimientos, baja, conteos...) y las compras que lo incluyen
+/// (el snapshot de acquisitions lista activos, no trae AssetId en la raíz). Últimos 200 eventos.
 /// </summary>
 public sealed class GetAssetTimelineHandler : IQueryHandler<GetAssetTimelineQuery, IReadOnlyList<AuditLogItem>>
 {
@@ -34,7 +35,9 @@ public sealed class GetAssetTimelineHandler : IQueryHandler<GetAssetTimelineQuer
             .FromSqlInterpolated($@"SELECT * FROM inventario.audit_log
                 WHERE (table_name = 'assets' AND record_id = {assetId})
                    OR new_data ->> 'AssetId' = {idText}
-                   OR old_data ->> 'AssetId' = {idText}")
+                   OR old_data ->> 'AssetId' = {idText}
+                   OR (table_name = 'acquisitions' AND record_id IN (
+                        SELECT acquisition_id FROM inventario.acquisition_assets WHERE asset_id = {assetId}))")
             .AsNoTracking()
             .OrderByDescending(l => l.AuditLogId)
             .Take(MaxEvents)

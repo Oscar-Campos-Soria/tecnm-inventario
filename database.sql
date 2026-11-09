@@ -846,9 +846,10 @@ INSERT INTO disposal_reasons (code, name) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- Usuario técnico del sistema, para las FK created_by/updated_by iniciales.
+-- Inactivo: firma procesos automáticos, nadie inicia sesión con él.
 INSERT INTO app_users (username, email, password_hash, first_name, last_name, role_id, status)
 SELECT 'system', 'system@localhost', 'SYSTEM_ACCOUNT_NO_LOGIN', 'Sistema', 'Automático',
-       r.role_id, 'activo'
+       r.role_id, 'inactivo'
 FROM roles r WHERE r.code = 'ADMIN'
 ON CONFLICT (username) DO NOTHING;
 
