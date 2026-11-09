@@ -18,7 +18,7 @@ public sealed class GetMaintenanceHandler : IQueryHandler<GetMaintenanceQuery, P
         GetMaintenanceQuery query, CancellationToken cancellationToken)
     {
         // maintenance_records no tiene filtro global de borrado: se excluye aquí.
-        var records = _context.MaintenanceRecords.AsNoTracking().Where(r => !r.IsDeleted);
+        var records = _context.MaintenanceRecords.AsNoTracking().Where(r => !r.IsDeleted && r.PerformedAt != null);
 
         if (query.AssetId.HasValue)
         {

@@ -8,6 +8,12 @@ export interface NavEntry {
   order: number
   // Permiso que habilita la entrada (solo UX; la API valida).
   permission?: string
+  // Contador junto a la etiqueta (p. ej. tickets sin asignar). Solo se pide si el
+  // usuario tiene badgePermission; se refresca al cambiar de ruta.
+  badge?: () => Promise<number>
+  badgePermission?: string
+  // Texto para lectores de pantalla: "3 sin asignar".
+  badgeLabel?: string
 }
 
 declare module 'vue-router' {

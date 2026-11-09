@@ -33,8 +33,9 @@ incidente es el registro técnico del activo (se liga, no se mezcla).
 - **Nuevo ticket:** tipo con íconos, título, detalles, urgencia (Normal = MEDIA, Alta, Urgente = CRITICA; Baja solo la pone el técnico), equipo opcional (`assets.view`), foto/PDF opcional (≤ 5 MB) que se sube tras crear.
 - **Detalle:** hilo (lo propio a la derecha, notas internas en ámbar con candado, mensajes del sistema al centro), banner "¿Quedó bien?" con fecha del cierre automático, aviso de respuesta pendiente, archivos, datos y cancelar; panel "Atención" para el técnico.
 
-## Pendiente
+## Menú
 
-- Contador de "sin asignar" en el menú (hoy solo en la pestaña).
+Con `tickets.manage`, la entrada "Tickets" muestra cuántos tickets abiertos no tienen técnico
+(`meta.nav.badge`: `GET /api/tickets?unassigned=true&onlyOpen=true&pageSize=1`, se refresca al cambiar de ruta).
 
 Especificación: `specs/tickets.spec.md`

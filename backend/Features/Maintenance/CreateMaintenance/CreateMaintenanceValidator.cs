@@ -25,6 +25,12 @@ public class CreateMaintenanceValidator : AbstractValidator<CreateMaintenanceCom
             .WithMessage("La próxima fecha debe ser posterior a la realización.")
             .When(x => x.NextMaintenanceAt.HasValue);
 
+        RuleFor(x => x.IncidentId)
+            .NotNull().WithMessage("Para resolver el incidente, liga el correctivo a ese incidente.")
+            .When(x => x.ResolveIncident);
+
+        RuleFor(x => x.IncidentSolution).MaximumLength(4000).When(x => x.IncidentSolution is not null);
+
         RuleFor(x => x.Cost)
             .GreaterThanOrEqualTo(0).WithMessage("El costo no puede ser negativo.")
             .LessThan(10_000_000_000m)

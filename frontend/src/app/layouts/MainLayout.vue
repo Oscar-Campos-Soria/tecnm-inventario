@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BrandMark from '../../shared/components/BrandMark.vue'
 import NavIcon from '../../shared/components/NavIcon.vue'
@@ -51,6 +51,18 @@ function isActive(to: string): boolean {
 const initial = computed(() =>
   (session.value?.firstName || session.value?.username || '?').charAt(0).toUpperCase(),
 )
+
+// Contadores del menú (meta.nav.badge). Un fallo deja la entrada sin número.
+const badges = ref<Record<string, number>>({})
+async function refreshBadges() {
+  const entries = await Promise.all(
+    activeItems.value
+      .filter((item) => item.badge && (!item.badgePermission || hasPermission(item.badgePermission)))
+      .map(async (item) => [item.to, await item.badge!().catch(() => 0)] as const),
+  )
+  badges.value = Object.fromEntries(entries)
+}
+watch(() => route.path, refreshBadges, { immediate: true })
 
 async function handleLogout() {
   await logout()
@@ -109,6 +121,12 @@ async function handleLogout() {
             >
               <NavIcon :paths="item.icon" />
               {{ item.label }}
+              <span
+                v-if="badges[item.to]"
+                class="ml-auto mr-2 rounded-full bg-priority-high px-2 py-0.5 text-xs font-semibold text-white tabular-nums"
+              >
+                {{ badges[item.to] }}<span class="sr-only"> {{ item.badgeLabel ?? 'pendientes' }}</span>
+              </span>
             </RouterLink>
           </li>
           <li v-for="item in plannedItems" :key="item.to" class="mr-3">

@@ -423,7 +423,7 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
       </form>
     </section>
 
-    <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" />
+    <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" @changed="loadDetail" />
 
     <AssetComponentsSection :asset-id="detail.assetId" :disposed="isDisposed" :component-types="catalogs?.componentTypes ?? []" />
 

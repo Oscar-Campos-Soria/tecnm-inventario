@@ -22,4 +22,6 @@ export interface MaintenanceItem {
   cost: number | null
   incidentId: number | null
   version: number
+  // Solo en programados sin realizar.
+  scheduledAt: string | null
 }

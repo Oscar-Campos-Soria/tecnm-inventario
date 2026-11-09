@@ -19,5 +19,6 @@ public static class MaintenanceProjection
         r.PartsUsed,
         r.Cost,
         r.IncidentId,
-        r.Version);
+        r.Version,
+        r.ScheduledAt);
 }

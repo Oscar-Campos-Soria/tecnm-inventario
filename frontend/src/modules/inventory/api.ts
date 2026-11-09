@@ -27,6 +27,10 @@ export const inventoryApi = {
   markNotFound(sessionId: number, recordId: number, expectedVersion: number) {
     return http.post(`${base}/${sessionId}/records/${recordId}/not-found?expectedVersion=${expectedVersion}`)
   },
+  // Descarta un conteo abierto; no toca activos ni se concilia.
+  cancel(sessionId: number, expectedVersion: number, reason: string) {
+    return http.post(`${base}/${sessionId}/cancel?expectedVersion=${expectedVersion}`, { reason })
+  },
   close(sessionId: number, expectedVersion: number) {
     return http.post<{ pendingMarkedNotFound: number }>(`${base}/${sessionId}/close?expectedVersion=${expectedVersion}`)
   },

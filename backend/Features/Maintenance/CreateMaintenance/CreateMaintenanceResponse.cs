@@ -6,4 +6,6 @@ public sealed record CreateMaintenanceResponse(
     string MaintenanceTypeCode,
     DateTime PerformedAt,
     DateTime? NextMaintenanceAt,
-    int Version);
+    int Version,
+    // Solo si el correctivo resolvió su incidente: estado final del activo.
+    string? AssetStatusAfter = null);

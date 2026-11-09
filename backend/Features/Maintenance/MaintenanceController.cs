@@ -7,6 +7,10 @@ using TecnmInventario.Api.Features.Maintenance.DeleteMaintenance;
 using TecnmInventario.Api.Features.Maintenance.GetMaintenance;
 using TecnmInventario.Api.Features.Maintenance.GetUpcomingMaintenance;
 
+using TecnmInventario.Api.Features.Maintenance.CompleteMaintenance;
+using TecnmInventario.Api.Features.Maintenance.GetScheduledMaintenance;
+using TecnmInventario.Api.Features.Maintenance.ScheduleMaintenance;
+
 namespace TecnmInventario.Api.Features.Maintenance;
 
 /// <summary>Bitácora de mantenimiento y calendario de preventivos (specs/maintenance.spec.md).</summary>
@@ -49,6 +53,27 @@ public class MaintenanceController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, result);
     }
+
+    [HttpGet("scheduled")]
+    public async Task<ActionResult<IReadOnlyList<MaintenanceItem>>> GetScheduled(
+        [FromQuery] int days = 90,
+        CancellationToken cancellationToken = default)
+        => Ok(await _mediator.Send(new GetScheduledMaintenanceQuery(days), cancellationToken));
+
+    [HttpPost("scheduled")]
+    public async Task<ActionResult<ScheduleMaintenanceResponse>> Schedule(
+        ScheduleMaintenanceCommand command, CancellationToken cancellationToken)
+        => StatusCode(StatusCodes.Status201Created, await _mediator.Send(command, cancellationToken));
+
+    public sealed record CompleteBody(
+        DateTime PerformedAt, string? Description, string? PartsUsed, decimal? Cost, DateTime? NextMaintenanceAt, long? PerformedBy);
+
+    [HttpPost("{maintenanceRecordId:long}/complete")]
+    public async Task<ActionResult<CompleteMaintenanceResponse>> Complete(
+        long maintenanceRecordId, [FromQuery] int expectedVersion, CompleteBody body, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new CompleteMaintenanceCommand(
+            maintenanceRecordId, expectedVersion, body.PerformedAt, body.Description,
+            body.PartsUsed, body.Cost, body.NextMaintenanceAt, body.PerformedBy), cancellationToken));
 
     [HttpDelete("{maintenanceRecordId:long}")]
     public async Task<ActionResult<DeleteMaintenanceResponse>> DeleteMaintenance(

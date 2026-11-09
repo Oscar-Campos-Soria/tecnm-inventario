@@ -13,26 +13,34 @@ del activo** (eso lo controlan los incidentes).
 | `GET` | `/api/maintenance?assetId&type&pageNumber&pageSize` | Historial paginado (más reciente primero) |
 | `GET` | `/api/maintenance/upcoming?days=30` | Preventivos con próxima fecha dentro de `days` (1-365) o vencidos |
 | `POST` | `/api/maintenance` | Registra una intervención realizada |
-| `DELETE` | `/api/maintenance/{id}?expectedVersion=N` | Baja lógica de un registro capturado por error (`ISoftDeleteAuditor`) |
+| `GET` | `/api/maintenance/scheduled?days=90` | Programados sin realizar dentro de `days` (1-730) más los atrasados |
+| `POST` | `/api/maintenance/scheduled` | Programa a futuro: `assetId`, `maintenanceTypeId`, `scheduledAt`, `description`, `performedBy` (asignado, opcional) |
+| `POST` | `/api/maintenance/{id}/complete?expectedVersion=N` | Marca un programado como realizado (`performedAt`, `description`, `partsUsed`, `cost`, `nextMaintenanceAt`) |
+| `DELETE` | `/api/maintenance/{id}?expectedVersion=N` | Baja lógica de un registro capturado por error o de un programado que se cancela (`ISoftDeleteAuditor`) |
 
 Body del POST: `assetId`, `maintenanceTypeId`, `performedAt` (no futura),
 `nextMaintenanceAt` (opcional, posterior), `description` (obligatoria, ≤ 4000),
 `partsUsed` (≤ 2000), `cost` (≥ 0, MXN), `performedBy` (opcional; por defecto
 quien registra; debe estar activo y tener `maintenance.manage`), `incidentId`
-(opcional; debe ser del mismo activo).
+(opcional; debe ser del mismo activo), `resolveIncident` (opcional, solo correctivo con
+`incidentId`) e `incidentSolution` (opcional; por defecto la descripción).
 
 ## Reglas de negocio
 
 - El activo debe existir y no estar `DADO_DE_BAJA`.
-- Registrar un correctivo **no** resuelve el incidente ligado (se resuelve aparte).
+- Un correctivo ligado puede resolver su incidente en el mismo paso (`resolveIncident`): el registro, el
+  incidente resuelto y el activo liberado van en una sola transacción (`IncidentResolver`, compartido con
+  `ResolveIncident`); si resolver falla, no queda el correctivo. Sin la casilla, se resuelve aparte.
+- Programado: `scheduled_at` sin `performed_at`. No sale en el historial ni en el calendario de preventivos
+  hasta marcarse realizado; la fecha no puede estar en el pasado (≤ 2 años).
 - Calendario: por activo cuenta solo su preventivo más reciente; uno posterior
   "atiende" al anterior. Activos dados de baja no aparecen.
-- Escritura + `audit_log` en transacción explícita.
+- Escritura + `audit_log` en la transacción de `TransactionBehavior` (`ITransactionalCommand`).
 
 ## Datos
 
 `maintenance_records` (+ `incident_id`, `cost` por `scripts/add-maintenance-fields.sql`),
-`maintenance_types` (PREVENTIVO, CORRECTIVO). `scheduled_at` existe pero no se usa todavía.
+`maintenance_types` (PREVENTIVO, CORRECTIVO). `scheduled_at` = mantenimiento programado.
 
 ## Frontend
 
@@ -43,4 +51,6 @@ quien registra; debe estar activo y tener `maintenance.manage`), `incidentId`
 
 - [x] Registro, historial y baja lógica de mantenimientos
 - [x] Calendario de preventivos por vencer
-- [ ] Programar mantenimientos a futuro (`scheduled_at`) y recordatorios (backlog)
+- [x] Programar mantenimientos a futuro (`scheduled_at`) y marcarlos realizados
+- [x] Correctivo que resuelve su incidente en un solo paso
+- [ ] Recordatorios por correo (backlog)

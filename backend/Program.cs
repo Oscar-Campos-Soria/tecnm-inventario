@@ -158,6 +158,7 @@ builder.Services.AddScoped<IDocumentAccessAuthorizer, DocumentAccessAuthorizer>(
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ISoftDeleteAuditor, SoftDeleteAuditor>();
 builder.Services.AddScoped<TecnmInventario.Api.Features.Assets.Shared.IAssetStatusChanger, TecnmInventario.Api.Features.Assets.Shared.AssetStatusChanger>();
+builder.Services.AddScoped<TecnmInventario.Api.Features.Incidents.Shared.IncidentResolver>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.Configure<TecnmInventario.Api.Features.Tickets.Shared.TicketOptions>(

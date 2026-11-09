@@ -6,4 +6,4 @@ public sealed record ResolveIncidentCommand(
     long IncidentId,
     int ExpectedVersion,
     string Solution,
-    string? Diagnosis) : ICommand<ResolveIncidentResponse>;
+    string? Diagnosis) : ICommand<ResolveIncidentResponse>, Common.Behaviors.ITransactionalCommand;

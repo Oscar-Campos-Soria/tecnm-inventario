@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TecnmInventario.Api.Common.Pagination;
 using TecnmInventario.Api.Features.Inventory.AdjustInventoryRecord;
+using TecnmInventario.Api.Features.Inventory.CancelInventorySession;
 using TecnmInventario.Api.Features.Inventory.CloseInventorySession;
 using TecnmInventario.Api.Features.Inventory.CreateInventorySession;
 using TecnmInventario.Api.Features.Inventory.GetInventorySessionById;
@@ -56,6 +57,13 @@ public class InventorySessionsController : ControllerBase
     public async Task<ActionResult<CloseInventorySessionResponse>> Close(
         long sessionId, [FromQuery] int expectedVersion, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new CloseInventorySessionCommand(sessionId, expectedVersion), cancellationToken));
+
+    public sealed record CancelBody(string Reason);
+
+    [HttpPost("{sessionId:long}/cancel")]
+    public async Task<ActionResult<CancelInventorySessionResponse>> Cancel(
+        long sessionId, [FromQuery] int expectedVersion, CancelBody body, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new CancelInventorySessionCommand(sessionId, expectedVersion, body.Reason), cancellationToken));
 
     public sealed record AdjustBody(string Adjustment, long? IncidentId);
 

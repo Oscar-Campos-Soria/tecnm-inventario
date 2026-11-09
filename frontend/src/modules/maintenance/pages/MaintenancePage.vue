@@ -4,6 +4,7 @@ import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import { formatDate } from '../../../shared/utils/format'
 import { maintenanceApi } from '../api'
+import ScheduledMaintenance from '../components/ScheduledMaintenance.vue'
 import type { MaintenanceItem, PagedResult } from '../types'
 
 const days = ref(30)
@@ -24,17 +25,14 @@ watch(
   { immediate: true },
 )
 
+function loadHistory() {
+  maintenanceApi
+    .history(page.value, typeFilter.value || undefined)
+    .then((h) => (history.value = h))
+    .catch((err) => (error.value = err instanceof ApiError ? err.message : 'No se pudo cargar el historial.'))
+}
 watch(typeFilter, () => (page.value = 1))
-watch(
-  [page, typeFilter],
-  () => {
-    maintenanceApi
-      .history(page.value, typeFilter.value || undefined)
-      .then((h) => (history.value = h))
-      .catch((err) => (error.value = err instanceof ApiError ? err.message : 'No se pudo cargar el historial.'))
-  },
-  { immediate: true },
-)
+watch([page, typeFilter], loadHistory, { immediate: true })
 
 // Días que faltan (negativo = vencido), contando por fecha local.
 function daysUntil(iso: string | null): number {
@@ -58,10 +56,12 @@ function dueLabel(iso: string | null): string {
   <div class="space-y-6">
     <header>
       <h1 class="font-display text-2xl font-semibold text-foreground">Mantenimiento</h1>
-      <p class="mt-1 text-sm text-muted-foreground">Preventivos por vencer y bitácora de intervenciones. Se registran desde la ficha de cada activo.</p>
+      <p class="mt-1 text-sm text-muted-foreground">Mantenimientos programados, preventivos por vencer y bitácora. Lo realizado sin programar se registra desde la ficha de cada activo.</p>
     </header>
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
+
+    <ScheduledMaintenance @completed="loadHistory" />
 
     <section aria-labelledby="proximos" class="rounded-lg border border-border bg-card p-5">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">

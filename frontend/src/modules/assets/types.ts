@@ -139,6 +139,8 @@ export interface CreateMaintenanceInput {
   partsUsed?: string
   cost?: number
   incidentId?: number
+  // Correctivo ligado: resolver también el incidente (requiere incidents.resolve).
+  resolveIncident?: boolean
 }
 
 export interface AssetIncidentOption {

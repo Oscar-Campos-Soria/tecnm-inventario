@@ -7,6 +7,7 @@ using TecnmInventario.Api.Common.Errors;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Core.Entities;
 using TecnmInventario.Api.Data;
+using TecnmInventario.Api.Features.Incidents.Shared;
 
 namespace TecnmInventario.Api.Features.Maintenance.CreateMaintenance;
 
@@ -22,17 +23,20 @@ public sealed class CreateMaintenanceHandler : ICommandHandler<CreateMaintenance
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditLogService _auditLog;
     private readonly IRolePermissionService _rolePermissions;
+    private readonly IncidentResolver _incidentResolver;
 
     public CreateMaintenanceHandler(
         TecnmInventarioDbContext context,
         ICurrentUserService currentUser,
         IAuditLogService auditLog,
-        IRolePermissionService rolePermissions)
+        IRolePermissionService rolePermissions,
+        IncidentResolver incidentResolver)
     {
         _context = context;
         _currentUser = currentUser;
         _auditLog = auditLog;
         _rolePermissions = rolePermissions;
+        _incidentResolver = incidentResolver;
     }
 
     public async ValueTask<CreateMaintenanceResponse> Handle(
@@ -54,6 +58,9 @@ public sealed class CreateMaintenanceHandler : ICommandHandler<CreateMaintenance
             .Select(t => t.Code)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new BusinessRuleViolationException("El tipo de mantenimiento especificado no existe.");
+
+        if (command.ResolveIncident && typeCode != MaintenanceTypeCodes.Correctivo)
+            throw new BusinessRuleViolationException("Solo un mantenimiento correctivo puede resolver un incidente.");
 
         if (command.IncidentId.HasValue)
         {
@@ -79,8 +86,8 @@ public sealed class CreateMaintenanceHandler : ICommandHandler<CreateMaintenance
                 throw new BusinessRuleViolationException("El técnico indicado no existe, está inactivo o no da mantenimiento.");
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
+        // La transacción la abre TransactionBehavior: el registro, el incidente
+        // resuelto y el activo liberado se confirman juntos o nada.
         var record = new MaintenanceRecord
         {
             AssetId = command.AssetId,
@@ -117,10 +124,18 @@ public sealed class CreateMaintenanceHandler : ICommandHandler<CreateMaintenance
             },
             cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+        string? assetStatusAfter = null;
+        if (command.ResolveIncident)
+        {
+            var incident = await _incidentResolver.LoadAsync(command.IncidentId!.Value, cancellationToken)
+                ?? throw new KeyNotFoundException("El incidente especificado no existe.");
+            var solution = string.IsNullOrWhiteSpace(command.IncidentSolution) ? record.Description! : command.IncidentSolution;
+            var resolved = await _incidentResolver.ResolveAsync(incident, solution, null, cancellationToken);
+            assetStatusAfter = resolved.AssetStatusCode;
+        }
 
         return new CreateMaintenanceResponse(
             record.MaintenanceRecordId, record.AssetId, typeCode, record.PerformedAt!.Value,
-            record.NextMaintenanceAt, record.Version);
+            record.NextMaintenanceAt, record.Version, assetStatusAfter);
     }
 }

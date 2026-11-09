@@ -14,6 +14,8 @@ const props = defineProps<{
   asset: AssetDetail
   catalogs: GetCatalogsResponse | null
 }>()
+// changed: un correctivo resolvió su incidente y el estado del activo pudo cambiar.
+const emit = defineEmits<{ changed: [] }>()
 
 const { hasPermission } = useAuth()
 const canManage = computed(() => hasPermission('maintenance.manage'))
@@ -34,7 +36,7 @@ const open = ref(false)
 const saving = ref(false)
 const error = ref('')
 const listError = ref('')
-const form = ref({ typeId: '', performedAt: '', nextAt: '', description: '', parts: '', cost: '', incidentId: '' })
+const form = ref({ typeId: '', performedAt: '', nextAt: '', description: '', parts: '', cost: '', incidentId: '', resolve: false })
 
 const isCorrective = computed(
   () => props.catalogs?.maintenanceTypes.find((t) => String(t.id) === form.value.typeId)?.code === 'CORRECTIVO',
@@ -59,7 +61,7 @@ function toIso(date: string): string {
 }
 
 function openForm() {
-  form.value = { typeId: '', performedAt: todayIso(), nextAt: '', description: '', parts: '', cost: '', incidentId: '' }
+  form.value = { typeId: '', performedAt: todayIso(), nextAt: '', description: '', parts: '', cost: '', incidentId: '', resolve: false }
   error.value = ''
   open.value = true
   if (hasPermission('incidents.view')) {
@@ -85,8 +87,11 @@ async function submit() {
       partsUsed: f.parts.trim() || undefined,
       cost: f.cost ? Number(f.cost) : undefined,
       incidentId: isCorrective.value && f.incidentId ? Number(f.incidentId) : undefined,
+      resolveIncident: isCorrective.value && !!f.incidentId && f.resolve,
     })
     open.value = false
+    // El incidente resuelto puede liberar el activo: la ficha recarga su estado.
+    if (isCorrective.value && f.incidentId && f.resolve) emit('changed')
     page.value = 1
     load()
   } catch (err) {
@@ -193,7 +198,11 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
             <option value="">Ninguno</option>
             <option v-for="i in incidents" :key="i.incidentId" :value="String(i.incidentId)">#{{ i.incidentId }} {{ i.title }} ({{ i.statusName }})</option>
           </select>
-          <p class="mt-1 text-xs text-muted-foreground">Registrar el correctivo no resuelve el incidente; resuélvelo desde su ficha.</p>
+          <label v-if="form.incidentId && hasPermission('incidents.resolve')" class="mt-2 flex cursor-pointer items-center gap-2 text-sm text-foreground">
+            <input v-model="form.resolve" type="checkbox" class="h-4 w-4 accent-accent" />
+            Resolver también el incidente (la descripción queda como solución)
+          </label>
+          <p v-else class="mt-1 text-xs text-muted-foreground">Registrar el correctivo no resuelve el incidente; resuélvelo desde su ficha.</p>
         </div>
         <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
         <div class="flex justify-end gap-2">

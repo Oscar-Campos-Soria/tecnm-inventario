@@ -31,6 +31,8 @@ diferencias **una por una** (nada cambia solo).
   PENDIENTE (sin revisar), ENCONTRADO (en su lugar), EN_OTRO_LUGAR,
   NO_ENCONTRADO, SOBRANTE (no estaba en la lista).
 - **Cerrar:** lo pendiente pasa a NO_ENCONTRADO. No toca activos.
+- **Cancelar** (`POST /api/inventory-sessions/{id}/cancel?expectedVersion=` con `{ reason }`): descarta un conteo
+  abierto. No toca activos ni registros, no se concilia y libera la ubicación; el motivo queda en `audit_log`.
 - **Conciliar** (conteo cerrado, solo EN_OTRO_LUGAR / NO_ENCONTRADO / SOBRANTE, una vez por renglón):
   - `MOVIMIENTO`: exige que el activo ya esté en la ubicación donde se encontró
     (el movimiento se registra antes con `POST /api/assets/{id}/movements`,
@@ -63,5 +65,4 @@ diferencias **una por una** (nada cambia solo).
 
 ## Pendiente
 
-- Cancelar un conteo abierto.
 - Etiquetas QR imprimibles.

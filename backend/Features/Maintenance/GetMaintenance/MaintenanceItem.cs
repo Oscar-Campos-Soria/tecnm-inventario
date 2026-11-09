@@ -14,4 +14,6 @@ public sealed record MaintenanceItem(
     string? PartsUsed,
     decimal? Cost,
     long? IncidentId,
-    int Version);
+    int Version,
+    // Solo en mantenimientos programados todavía sin realizar.
+    DateTime? ScheduledAt = null);

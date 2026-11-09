@@ -126,6 +126,26 @@ async function close() {
   }
 }
 
+async function cancel() {
+  if (!session.value) return
+  const reason = window.prompt('¿Por qué se cancela el conteo? No se cambia ningún equipo y la ubicación queda libre para un conteo nuevo.')
+  if (reason === null) return
+  if (reason.trim().length < 5) {
+    pageError.value = 'Para cancelar el conteo escribe el motivo (al menos 5 caracteres).'
+    return
+  }
+  pageError.value = ''
+  try {
+    await inventoryApi.cancel(session.value.inventorySessionId, session.value.version, reason.trim())
+    filter.value = 'TODOS'
+  } catch (err) {
+    pageError.value = err instanceof ApiError && err.status === 409
+      ? 'Otra persona modificó el conteo. Recargamos los datos.'
+      : err instanceof ApiError ? err.message : 'No se pudo cancelar el conteo.'
+  }
+  await load()
+}
+
 // ---------- Conciliación (conteo cerrado) ----------
 
 const ajusteReasonId = computed(() => catalogs.value?.movementReasons.find((m) => m.code === 'AJUSTE_INVENTARIO')?.id)
@@ -327,7 +347,8 @@ const FILTERS: (RecordStatus | 'TODOS')[] = ['TODOS', 'PENDIENTE', 'ENCONTRADO',
       </li>
     </ul>
 
-    <div v-if="isOpen" class="flex justify-end">
+    <div v-if="isOpen" class="flex flex-wrap justify-end gap-2">
+      <UiButton @click="cancel">Cancelar conteo</UiButton>
       <UiButton variant="danger" @click="close">Cerrar conteo</UiButton>
     </div>
   </div>
