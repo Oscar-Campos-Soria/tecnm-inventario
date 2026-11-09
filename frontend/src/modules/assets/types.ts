@@ -181,3 +181,31 @@ export interface CreateAssignmentInput {
   assignedAt?: string
   notes?: string
 }
+
+// Garantías del activo (procurement.manage).
+export interface WarrantyItem {
+  warrantyId: number
+  supplierId: number | null
+  warrantyNumber: string | null
+  startsOn: string | null
+  endsOn: string | null
+  coverage: string | null
+  version: number
+}
+
+export interface CreateWarrantyInput {
+  assetId: number
+  supplierId: number | null
+  warrantyNumber: string | null
+  startsOn: string | null
+  endsOn: string | null
+  coverage: string | null
+  terms: string | null
+}
+
+export interface SupplierOption {
+  supplierId: number
+  name: string
+}
+
+export type { AuditLogItem } from '../../shared/api/audit'

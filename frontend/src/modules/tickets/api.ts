@@ -59,9 +59,7 @@ export const ticketsApi = {
   },
   // Quien atiende tickets: el backend exige tickets.manage (ADMIN y TECNICO).
   technicians() {
-    return http
-      .get<UserItem[]>('/api/users')
-      .then((users) => users.filter((user) => user.roleCode === 'ADMIN' || user.roleCode === 'TECNICO'))
+    return http.get<UserItem[]>('/api/users?roles=ADMIN,TECNICO')
   },
   // Búsqueda de equipo por código, serie o hostname (sin dados de baja); 20 resultados.
   assets(search = '') {

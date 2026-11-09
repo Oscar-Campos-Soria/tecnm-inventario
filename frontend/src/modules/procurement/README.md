@@ -1,13 +1,14 @@
 # Módulo procurement
 
-Proveedores, garantías y adquisiciones de activos.
+Ruta `/procurement` (permiso `procurement.manage`, solo ADMIN). Dos pestañas:
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. useprocurement)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+- **Compras**: lista paginada (proveedor, orden de compra, factura, fecha, total, núm. de activos).
+  "Ver" abre el detalle con los activos y su costo unitario. "Nueva compra" pide proveedor (opcional),
+  OC, factura, fecha, montos, moneda (3 letras, MXN por omisión), garantía y los activos (buscador por
+  código, mínimo uno, sin repetir). Eliminar es borrado lógico con `expectedVersion`.
+- **Proveedores**: alta, edición (todos los campos; la lista trae dirección y notas para no borrarlas)
+  y eliminación lógica.
 
-Especificación: `specs/assets.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`
+Las **garantías** por activo viven en la ficha del activo (`AssetWarrantySection`).
+
+API: `/api/suppliers`, `/api/acquisitions`, `/api/warranties`, `GET /api/assets/{id}/warranties`.

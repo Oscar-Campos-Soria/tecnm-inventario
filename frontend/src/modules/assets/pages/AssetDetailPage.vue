@@ -6,6 +6,8 @@ import UiField from '../../../shared/components/UiField.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import AssetDisposalSection from '../components/AssetDisposalSection.vue'
 import AssetMaintenanceSection from '../components/AssetMaintenanceSection.vue'
+import AssetTimelineSection from '../components/AssetTimelineSection.vue'
+import AssetWarrantySection from '../components/AssetWarrantySection.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
 import { assetsApi, catalogName } from '../api'
@@ -421,6 +423,10 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
 
     <AssetMaintenanceSection :asset="detail" :catalogs="catalogs" />
 
+    <AssetWarrantySection :asset-id="detail.assetId" />
+
     <AssetDisposalSection :asset="detail" :catalogs="catalogs" @changed="loadDetail" @conflict="onDisposalConflict" />
+
+    <AssetTimelineSection :asset-id="detail.assetId" />
   </div>
 </template>

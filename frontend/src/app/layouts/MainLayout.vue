@@ -23,10 +23,6 @@ const PLANNED: PlannedItem[] = [
   { to: '/software', permission: 'software.manage', label: 'Software', icon: ['M7 7h10v10H7z', 'M10 10h4v4h-4z', 'M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4'], note: 'FASE 2' },
   { to: '/components', permission: 'components.manage', label: 'Componentes', icon: ['M12 3l9 5-9 5-9-5 9-5z', 'M3 13l9 5 9-5'], note: 'FASE 2' },
   { to: '/documents', label: 'Documentos', icon: ['M3 6h6l2 2h10v11H3z'], note: 'FASE 3' },
-  { to: '/history', label: 'Historial', icon: ['M12 21a9 9 0 110-18 9 9 0 010 18z', 'M12 7v5l3 2'], note: 'FASE 3' },
-  { to: '/users', permission: 'users.view', label: 'Usuarios', icon: ['M9 11a3 3 0 100-6 3 3 0 000 6z', 'M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'], note: 'FASE 3' },
-  { to: '/roles', permission: 'roles.manage', label: 'Roles', icon: ['M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z'], note: 'FASE 3' },
-  { to: '/procurement', label: 'Adquisiciones', icon: ['M9 20a1 1 0 100-2 1 1 0 000 2z', 'M17 20a1 1 0 100-2 1 1 0 000 2z', 'M4 5h2l2.5 11h10L21 8H7'], note: 'FASE 2' },
 ]
 
 const { session, logout, hasPermission } = useAuth()

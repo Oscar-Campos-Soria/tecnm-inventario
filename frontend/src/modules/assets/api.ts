@@ -2,6 +2,10 @@ import { http } from '../../shared/api/http'
 import type {
   AssetAssignment,
   AssetDisposalInfo,
+  AuditLogItem,
+  CreateWarrantyInput,
+  SupplierOption,
+  WarrantyItem,
   AssetFilters,
   AssetIncidentOption,
   CreateDisposalInput,
@@ -95,6 +99,23 @@ export const assetsApi = {
   },
   dispose(expectedVersion: number, input: CreateDisposalInput) {
     return http.post<{ assetDisposalId: number }>(`/api/disposals?expectedVersion=${expectedVersion}`, input)
+  },
+  // Línea de tiempo (history.view, solo ADMIN).
+  timeline(assetId: number) {
+    return http.get<AuditLogItem[]>(`/api/history/assets/${assetId}`)
+  },
+  // Garantías (procurement.manage, solo ADMIN).
+  warranties(assetId: number) {
+    return http.get<WarrantyItem[]>(`/api/assets/${assetId}/warranties`)
+  },
+  addWarranty(input: CreateWarrantyInput) {
+    return http.post<{ warrantyId: number }>('/api/warranties', input)
+  },
+  removeWarranty(warrantyId: number, expectedVersion: number) {
+    return http.delete(`/api/warranties/${warrantyId}?expectedVersion=${expectedVersion}`)
+  },
+  suppliers() {
+    return http.get<PagedResult<SupplierOption>>('/api/suppliers?pageSize=100').then((page) => page.items)
   },
 }
 

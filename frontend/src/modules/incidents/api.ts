@@ -73,13 +73,8 @@ export const incidentsApi = {
     return http.get<IncidentCatalogs>('/api/catalogs')
   },
   // Técnicos asignables: el backend exige que el destino tenga
-  // incidents.resolve (solo ADMIN y TECNICO), así que el
-  // selector filtra el resultado de GET /api/users.
+  // incidents.resolve (solo ADMIN y TECNICO); el servidor filtra por rol.
   technicians(search?: string) {
-    return http
-      .get<UserItem[]>(`/api/users${buildQuery({ search })}`)
-      .then((users) =>
-        users.filter((user) => user.roleCode === 'ADMIN' || user.roleCode === 'TECNICO'),
-      )
+    return http.get<UserItem[]>(`/api/users${buildQuery({ search, roles: 'ADMIN,TECNICO' })}`)
   },
 }

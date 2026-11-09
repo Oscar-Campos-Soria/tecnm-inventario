@@ -1,13 +1,14 @@
 # Módulo roles
 
-Roles y matriz de permisos (RBAC dinámico).
+Ruta `/roles` (permiso `roles.manage`, solo ADMIN).
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. useroles)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+- Lista de roles a la izquierda; al elegir uno se marcan sus permisos agrupados por módulo
+  (prefijo del código: `tickets.manage` -> `tickets`).
+- "Guardar permisos" reemplaza el conjunto completo (`PUT /api/roles/{id}/permissions`).
+  Sin cambios no se audita. La caché de permisos del rol se invalida al confirmar.
+- El rol ADMIN siempre conserva `roles.manage` y `users.manage` (el servidor responde 400;
+  la pantalla deja esas casillas bloqueadas).
+- Nuevo rol: código en MAYÚSCULAS, nombre y descripción; nace sin permisos.
+- Quien tenga el rol ve los permisos nuevos al renovar su sesión.
 
-Especificación: `specs/roles.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`
+API: `GET /api/roles`, `GET /api/permissions`, `POST /api/roles`, `PUT /api/roles/{id}/permissions`.
