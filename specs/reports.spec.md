@@ -2,24 +2,35 @@
 
 ## Propósito
 
-Generación y exportación de reportes del inventario: equipos por ubicación, resumen de activos, incidentes abiertos, mantenimientos, licencias.
+Generación y exportación de reportes del inventario en **Excel** (ClosedXML) y **PDF** (QuestPDF).
 
-## Fuentes de datos
+## Endpoint
 
-- Vistas `v_asset_summary` y `v_location_equipment_summary`
-- Entidades transaccionales (incident, maintenance_record, software_license)
+`GET /api/reports/{reporte}?format=xlsx|pdf` (`backend/Features/Reports`, permiso `reports.view`: ADMIN y
+RESPONSABLE_AREA). Solo lectura: no escribe en `audit_log`.
 
-## Reglas de negocio
+| Reporte | Contenido | Filtros |
+| --- | --- | --- |
+| `assets` | Código, tipo, estado, marca, modelo, serie, hostname, ubicación, resguardante vigente, alta | `status` (sin él, excluye dados de baja), `assetTypeId` |
+| `assets-by-location` | Equipos en servicio ordenados por ubicación | — |
+| `open-incidents` | Incidentes no resueltos: prioridad, estado, quién reportó, técnico, días abiertos | — |
+| `maintenance` | Mantenimientos realizados con costo, técnico, incidente y próximo | `from`, `to` (fecha de realización) |
+| `licenses` | Uso, permitidos, disponibles, vigencia y proveedor. **Nunca la clave** | — |
 
-- Exportación a PDF/Excel (según permiso `reports.view`).
-- Filtros por fecha, ubicación, tipo de activo y estado.
+## Reglas
+
+- Hasta 10,000 filas por reporte; si hay más, el archivo lo avisa y pide filtrar.
+- Excel: una hoja con título, filtros y fecha de generación, y una tabla con formato (encabezado fijo, fechas y
+  montos con formato). PDF: carta horizontal, encabezado institucional y paginación.
+- Fechas impresas en hora del centro de México.
 
 ## Criterios de aceptación
 
-- [ ] Reporte de equipos por ubicación (FASE 2+)
-- [ ] Exportación PDF/Excel (FASE 2+)
+- [x] Cinco reportes en Excel y PDF (prueba de integración con PostgreSQL real que relee el Excel)
+- [x] Pantalla `/reports` con filtros y descarga
+- [ ] Reportes programados por correo — backlog
 
 ## Implementación
 
-- Feature: `backend/Features/Reports/`
+- Feature: `backend/Features/Reports/` (`GetReport`, `Shared/ReportTable`, `Shared/ReportRenderer`)
 - Módulo frontend: `frontend/src/modules/reports/`
