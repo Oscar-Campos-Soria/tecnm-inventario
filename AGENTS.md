@@ -77,12 +77,13 @@ evidencia SQL, y "Hecho / Pendiente / Riesgos".
 
 ## Deuda técnica
 
+- Despliegue (specs/deployment.spec.md): `database/docker-compose.prod.yml`, nginx HTTPS en 6010 (pantallas) y 6011 (proxy a la API); api y db sin puertos. Probado en local; `database/.env.prod` y `database/certs/` de prueba (localhost) no se versionan. Pendiente: CLI `tecnm`.
 - Tests de integración con PostgreSQL real vía Testcontainers (`Category=Integration`); la suite rápida
   sigue en InMemory (`--filter "Category!=Integration"`). Sin Docker se omiten salvo
   `REQUIRE_DOCKER_TESTS=1`, que los convierte en fallo.
 - Cuenta técnica `system`: inactiva (scripts/deactivate-system-account.sql); firma el cierre automático de tickets, nadie inicia sesión con ella.
 - Datos de prueba en la BD de desarrollo (usuario prueba_movimientos id 5 ADMIN, ubicación PRUEBA-LAB id 4, activos 3 a 7): desactivar, no borrar, porque audit_log los referencia. Usuarios zz_admin_test (id 6, ADMIN) y zz_tecnico_test (id 7, TECNICO): creados en el checkpoint 1 de Incidentes y desactivados (status inactivo). test_responsable y test_usuario (RESPONSABLE_AREA y USUARIO_GENERAL) se crean con scripts/seed-test-users.sql (hash por variable psql).
-- Sesión: login limitado a 10 intentos por minuto por IP (429; detrás de proxy falta `UseForwardedHeaders`). Limpieza diaria de familias de `refresh_tokens` vencidas hace más de 30 días (`RefreshTokenCleanupService`). Perfil propio en `/profile` (`/api/auth/profile`: cambio de contraseña que conserva la sesión actual y desvincular Microsoft/Google). Login federado sin probar contra app registrations reales.
+- Sesión: login limitado a 10 intentos por minuto por IP (429; detrás de nginx usa la IP real vía `ForwardedHeaders:KnownNetworks`). Limpieza diaria de familias de `refresh_tokens` vencidas hace más de 30 días (`RefreshTokenCleanupService`). Perfil propio en `/profile` (`/api/auth/profile`: cambio de contraseña que conserva la sesión actual y desvincular Microsoft/Google). Login federado sin probar contra app registrations reales.
 - Incidentes (frontend): USUARIO_GENERAL no tiene `incidents.view`: da seguimiento desde Tickets.
 - Usuarios de demostración activos en la BD de desarrollo: demo_admin (id 9, ADMIN) y demo_usuario (id 10, USUARIO_GENERAL); contraseñas entregadas al usuario, no viven en el repo. Desactivar al terminar las pruebas.
 - Bajas, mantenimiento, búsqueda de activos y levantamiento físico implementados (specs/disposal, maintenance, inventory). Cancelar conteo, mantenimientos programados y correctivo que resuelve su incidente en un paso: hechos. Acta de baja en PDF (`GET /api/disposals/{id}/act.pdf`) y etiquetas QR en hoja carta (`GET /api/assets/labels.pdf?ids=`, máx. 90; el QR lleva el código de inventario): hechos. En Linux/Docker QuestPDF necesita fuentes instaladas. Datos de prueba: activos TEC-PRUEBA-TK-01..06 (01 y 02 dados de baja), incidentes, mantenimientos y conteos 1-2.

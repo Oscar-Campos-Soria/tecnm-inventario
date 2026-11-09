@@ -1,0 +1,82 @@
+# Producción (sistema interno). Lo administra el CLI tecnm; a mano:
+#   docker compose -f database/docker-compose.prod.yml --env-file database/.env.prod up -d --build
+#
+#   https://<PUBLIC_HOST>:6010  -> web: pantallas (nginx)
+#   https://<PUBLIC_HOST>:6011  -> web: proxy a la API
+#   api y db                    -> sin puertos publicados; db solo en la red interna "back"
+name: tecnm-prod
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [back]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  api:
+    build: ../backend
+    image: tecnm-api:latest
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Secret: ${JWT_SECRET:?falta JWT_SECRET}
+      Jwt__Issuer: tecnm-inventario
+      Jwt__Audience: tecnm-inventario
+      Auth__SpaBaseUrl: https://${PUBLIC_HOST:?falta PUBLIC_HOST}:6010
+      Auth__CookieSecure: "true"
+      Cors__AllowedOrigins__0: https://${PUBLIC_HOST}:6010
+      # Solo se cree el X-Forwarded-For que llega desde nginx (red "front").
+      ForwardedHeaders__KnownNetworks__0: 172.30.10.0/24
+    volumes:
+      - documents:/data/documents
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    networks: [front, back]
+    logging: *logging
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: https://${PUBLIC_HOST}:6011
+    image: tecnm-web:latest
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+      NGINX_ENVSUBST_FILTER: PUBLIC_HOST
+    ports:
+      - "6010:6010"
+      - "6011:6011"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    security_opt: [no-new-privileges:true]
+    networks: [front]
+    logging: *logging
+
+networks:
+  front:
+    ipam:
+      config: [{ subnet: 172.30.10.0/24 }]
+  back:
+    internal: true
+
+volumes:
+  pgdata:
+  documents:

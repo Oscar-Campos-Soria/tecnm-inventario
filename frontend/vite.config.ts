@@ -8,6 +8,8 @@ import tailwindcss from '@tailwindcss/vite'
 // y arme con él la redirect_uri del login federado.
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  // /assets/ es ruta de la SPA (ficha del activo); los archivos compilados van en /static/.
+  build: { assetsDir: 'static' },
   server: {
     proxy: {
       '/api': {

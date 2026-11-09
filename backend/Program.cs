@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using TecnmInventario.Api.Common.Behaviors;
 using TecnmInventario.Api.Common.Middleware;
@@ -171,9 +172,36 @@ builder.Services.Configure<TecnmInventario.Api.Features.Tickets.Shared.TicketOpt
 builder.Services.AddHostedService<TecnmInventario.Api.Features.Tickets.Shared.TicketAutoCloseService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
+// Producción: pantallas (nginx, :6010) y API (nginx -> api, :6011) en orígenes distintos.
+// Solo los orígenes listados pueden llamar con cookies; Content-Disposition se expone
+// para que las descargas conserven el nombre del archivo.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (corsOrigins.Length > 0)
+{
+    builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+        .WithOrigins(corsOrigins)
+        .AllowCredentials()
+        .WithHeaders("Content-Type", AuthCookies.CsrfHeader)
+        .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+        .WithExposedHeaders("Content-Disposition")));
+}
+
+// Detrás de nginx: la IP real llega en X-Forwarded-For. Solo se cree a los proxies de
+// las redes configuradas (la red de Docker); sin configurar, se usa la IP de conexión.
+var trustedProxyNetworks = builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [];
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
+    foreach (var network in trustedProxyNetworks)
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+});
+
 // Freno a la fuerza bruta en el login (rate limiter integrado de ASP.NET, sin librerías).
-// shortcut: se limita por IP; detrás de un proxy o una red con NAT compartida habría que
-// usar X-Forwarded-For (UseForwardedHeaders) y/o sumar un límite por usuario.
+// shortcut: se limita por IP (la real si ForwardedHeaders:KnownNetworks está configurado);
+// en una red con NAT compartida habría que sumar un límite por usuario.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -210,6 +238,11 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+if (trustedProxyNetworks.Length > 0)
+{
+    app.UseForwardedHeaders();
+}
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -218,9 +251,23 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+if (corsOrigins.Length > 0)
+{
+    app.UseCors();
+}
 app.UseMiddleware<CsrfMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
+
+// Salud para el CLI y Docker: API arriba y BD alcanzable. Sin datos del inventario.
+app.MapGet("/api/health", async (TecnmInventarioDbContext db, CancellationToken ct) =>
+{
+    var databaseUp = await db.Database.CanConnectAsync(ct);
+    return databaseUp
+        ? Results.Ok(new { status = "ok", database = "ok" })
+        : Results.Json(new { status = "degradado", database = "sin conexión" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+}).AllowAnonymous();
+
 app.Run();

@@ -1,0 +1,63 @@
+# Dos puertos separados, el mismo certificado:
+#   6010 -> pantallas (archivos estáticos de la SPA)
+#   6011 -> API (.NET en la red interna de Docker, sin puerto propio)
+# Certificado en /etc/nginx/certs (lo genera o instala el CLI tecnm).
+
+ssl_certificate     /etc/nginx/certs/server.crt;
+ssl_certificate_key /etc/nginx/certs/server.key;
+ssl_protocols       TLSv1.2 TLSv1.3;
+ssl_session_cache   shared:SSL:10m;
+server_tokens       off;
+
+# HSTS se omite a propósito: con la CA propia, un equipo sin el certificado raíz
+# instalado no podría ni aceptar la advertencia. Activarlo con certificado de confianza.
+
+server {
+    listen 6010 ssl;
+    http2 on;
+    root /usr/share/nginx/html;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy same-origin always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; connect-src 'self' https://${PUBLIC_HOST}:6011; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://${PUBLIC_HOST}:6011" always;
+
+    # index.html (y cualquier documento) nunca se cachea: así una actualización se ve al recargar.
+    add_header Cache-Control "no-cache" always;
+
+    # Rutas de la SPA (/assets/3, /tickets/5): siempre index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Archivos compilados (nombre con hash, vite build.assetsDir = static): caché larga.
+    # add_header aquí reemplaza los del server, por eso se repite nosniff.
+    location /static/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+}
+
+server {
+    listen 6011 ssl;
+    http2 on;
+
+    # Carga masiva y documentos: 5 MB de archivo más el sobre multipart.
+    client_max_body_size 6m;
+
+    add_header X-Content-Type-Options nosniff always;
+
+    location / {
+        proxy_pass http://api:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host:6011;
+        # Se reemplaza (no se agrega) para que el cliente no pueda falsear su IP.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 120s;
+    }
+}

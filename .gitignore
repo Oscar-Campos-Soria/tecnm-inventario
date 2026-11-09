@@ -83,3 +83,6 @@ entities.json
 
 # graphify (grafo de conocimiento local; herramienta de agente, no se versiona)
 graphify-out/
+
+# Certificados del despliegue (los genera el CLI tecnm)
+database/certs/
