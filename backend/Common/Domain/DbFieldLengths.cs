@@ -54,4 +54,10 @@ public static class DbFieldLengths
     {
         public const int WarrantyNumber = 100;
     }
+
+    public static class Software
+    {
+        public const int Name = 150;
+        public const int Vendor = 150;
+    }
 }

@@ -33,7 +33,9 @@ public sealed class DbFieldLengthsTests : PostgresTestBase
         [("suppliers", "contact_name")] = DbFieldLengths.Suppliers.ContactName,
         [("suppliers", "email")] = DbFieldLengths.Suppliers.Email,
         [("suppliers", "phone")] = DbFieldLengths.Suppliers.Phone,
-        [("asset_warranties", "warranty_number")] = DbFieldLengths.Warranties.WarrantyNumber
+        [("asset_warranties", "warranty_number")] = DbFieldLengths.Warranties.WarrantyNumber,
+        [("software", "name")] = DbFieldLengths.Software.Name,
+        [("software", "vendor")] = DbFieldLengths.Software.Vendor
     };
 
     public DbFieldLengthsTests(PostgresContainerFixture fixture)

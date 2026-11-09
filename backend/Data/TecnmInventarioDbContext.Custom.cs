@@ -188,6 +188,10 @@ public partial class TecnmInventarioDbContext
                 .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
+        // Baja lógica de software y licencias (mismo criterio que Supplier en el scaffold).
+        modelBuilder.Entity<Software>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SoftwareLicense>().HasQueryFilter(e => !e.IsDeleted);
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             var versionProp = entityType.FindProperty("Version");

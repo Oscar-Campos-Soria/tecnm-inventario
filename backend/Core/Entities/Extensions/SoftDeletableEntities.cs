@@ -36,3 +36,11 @@ public partial class MaintenanceRecord : ISoftDeletable
 public partial class Incident : ISoftDeletable
 {
 }
+
+public partial class Software : ISoftDeletable
+{
+}
+
+public partial class SoftwareLicense : ISoftDeletable
+{
+}
