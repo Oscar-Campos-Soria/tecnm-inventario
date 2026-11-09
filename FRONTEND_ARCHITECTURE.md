@@ -36,7 +36,7 @@ frontend/
 └── vite.config.ts
 ```
 
-Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`, `incidents`, `maintenance`, `disposal`, `tickets`. El resto (`bulk-import`, `reports`, `software`, `components`, `documents`, `history`, `users`, `roles`, `procurement`) solo tiene su README y aparece deshabilitado en el menú (lista `PLANNED` de `MainLayout.vue`).
+Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`, `incidents`, `maintenance`, `disposal`, `tickets`, `users`, `roles`, `history`, `procurement`, `software`. El resto (`bulk-import`, `reports`, `components`, `documents`) solo tiene su README y aparece deshabilitado en el menú (lista `PLANNED` de `MainLayout.vue`).
 
 ## Principios
 
