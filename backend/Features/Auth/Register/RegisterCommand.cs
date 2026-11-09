@@ -8,4 +8,4 @@ public sealed record RegisterCommand(
     string Password,
     string FirstName,
     string LastName,
-    string RoleCode) : ICommand<RegisterResponse>;
+    string RoleCode) : ICommand<RegisterResponse>, Common.Behaviors.ITransactionalCommand;

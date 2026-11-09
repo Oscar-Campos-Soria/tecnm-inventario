@@ -11,4 +11,4 @@ public sealed record UpdateSupplierCommand(
     string? Email,
     string? Phone,
     string? Address,
-    string? Notes) : ICommand<UpdateSupplierResponse>;
+    string? Notes) : ICommand<UpdateSupplierResponse>, Common.Behaviors.ITransactionalCommand;

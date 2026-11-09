@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Assets.UpdateAsset;
@@ -12,6 +13,10 @@ public class UpdateAssetValidator : AbstractValidator<UpdateAssetCommand>
     {
         _context = context;
 
+        RuleFor(x => x.ExpectedVersion)
+            .GreaterThan(0)
+            .WithMessage("Debe indicar la versión del activo que está editando.");
+
         RuleFor(x => x.ManufacturerId)
             .MustAsync(ManufacturerExists).WithMessage("El fabricante especificado no existe.")
             .When(x => x.ManufacturerId.HasValue);
@@ -20,12 +25,8 @@ public class UpdateAssetValidator : AbstractValidator<UpdateAssetCommand>
             .MustAsync(ModelExists).WithMessage("El modelo especificado no existe.")
             .When(x => x.ModelId.HasValue);
 
-        RuleFor(x => x.CurrentLocationId)
-            .MustAsync(LocationExists).WithMessage("La ubicación especificada no existe.")
-            .When(x => x.CurrentLocationId.HasValue);
-
-        RuleFor(x => x.SerialNumber).MaximumLength(150);
-        RuleFor(x => x.Hostname).MaximumLength(150);
+        RuleFor(x => x.SerialNumber).MaximumLength(DbFieldLengths.Assets.SerialNumber);
+        RuleFor(x => x.Hostname).MaximumLength(DbFieldLengths.Assets.Hostname);
     }
 
     private async Task<bool> ManufacturerExists(long? id, CancellationToken ct)
@@ -33,7 +34,4 @@ public class UpdateAssetValidator : AbstractValidator<UpdateAssetCommand>
 
     private async Task<bool> ModelExists(long? id, CancellationToken ct)
         => await _context.Models.AnyAsync(m => m.ModelId == id && !m.IsDeleted, ct);
-
-    private async Task<bool> LocationExists(long? id, CancellationToken ct)
-        => await _context.Locations.AnyAsync(l => l.LocationId == id && !l.IsDeleted, ct);
 }

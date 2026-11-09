@@ -1,4 +1,5 @@
 using FluentValidation;
+using TecnmInventario.Api.Common.Domain;
 
 namespace TecnmInventario.Api.Features.Documents.UploadDocument;
 
@@ -21,6 +22,8 @@ public class UploadDocumentValidator : AbstractValidator<UploadDocumentCommand>
             .Must(f => f.Length <= MaxSizeBytes).WithMessage("El archivo excede el límite de 5 MB.")
             .Must(f => AllowedMimeTypes.Contains(f.ContentType))
                 .WithMessage($"Tipo de archivo no permitido. Formatos aceptados: {string.Join(", ", AllowedMimeTypes)}.")
+            .Must(f => f.FileName.Length <= DbFieldLengths.Documents.FileName)
+                .WithMessage($"El nombre del archivo no puede exceder {DbFieldLengths.Documents.FileName} caracteres.")
             .When(x => x.File is not null);
     }
 }

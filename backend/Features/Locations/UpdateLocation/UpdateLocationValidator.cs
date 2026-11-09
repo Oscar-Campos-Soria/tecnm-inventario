@@ -16,8 +16,16 @@ public class UpdateLocationValidator : AbstractValidator<UpdateLocationCommand>
             .NotEmpty().WithMessage("El nombre de la ubicación es obligatorio.")
             .MaximumLength(150);
 
+        RuleFor(x => x.ExpectedVersion)
+            .GreaterThan(0)
+            .WithMessage("Debe indicar la versión de la ubicación que está editando.");
+
         RuleFor(x => x.LocationTypeId)
             .MustAsync(LocationTypeExists).WithMessage("El tipo de ubicación especificado no existe.");
+
+        RuleFor(x => x.ParentLocationId)
+            .MustAsync(ParentExists).WithMessage("La ubicación padre especificada no existe.")
+            .When(x => x.ParentLocationId.HasValue);
 
         RuleFor(x => x.ParentLocationId)
             .NotEqual(x => x.LocationId)
@@ -33,6 +41,9 @@ public class UpdateLocationValidator : AbstractValidator<UpdateLocationCommand>
 
     private async Task<bool> LocationTypeExists(long id, CancellationToken ct)
         => await _context.LocationTypes.AnyAsync(t => t.LocationTypeId == id && !t.IsDeleted, ct);
+
+    private async Task<bool> ParentExists(long? id, CancellationToken ct)
+        => await _context.Locations.AnyAsync(l => l.LocationId == id && !l.IsDeleted, ct);
 
     // Sube desde el ParentLocationId propuesto hacia la raíz: si en algún
     // punto se encuentra la propia ubicación que se está editando, el nuevo

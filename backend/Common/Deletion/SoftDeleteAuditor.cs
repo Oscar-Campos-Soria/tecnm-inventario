@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TecnmInventario.Api.Common.Audit;
+using TecnmInventario.Api.Common.Behaviors;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Contracts;
@@ -11,15 +12,21 @@ public sealed class SoftDeleteAuditor : ISoftDeleteAuditor
     private readonly TecnmInventarioDbContext _context;
     private readonly IAuditLogService _auditLog;
     private readonly ICurrentUserService _currentUser;
+    private readonly ITransactionScopeFactory _transactionFactory;
+    private readonly ILogger<SoftDeleteAuditor> _logger;
 
     public SoftDeleteAuditor(
         TecnmInventarioDbContext context,
         IAuditLogService auditLog,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ITransactionScopeFactory transactionFactory,
+        ILogger<SoftDeleteAuditor> logger)
     {
         _context = context;
         _auditLog = auditLog;
         _currentUser = currentUser;
+        _transactionFactory = transactionFactory;
+        _logger = logger;
     }
 
     public async Task<TEntity> DeleteAsync<TEntity>(
@@ -43,32 +50,60 @@ public sealed class SoftDeleteAuditor : ISoftDeleteAuditor
         // DeletedAt, UpdatedAt y Version los actualizan los triggers de
         // Postgres (prevent_invalid_soft_delete y touch_version).
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        // Si ya hay una transacción abierta (por ejemplo, un comando marcado
+        // con ITransactionalCommand), el dueño es el llamador: aquí solo se
+        // reutiliza y NO se confirma ni se revierte.
+        var ownsTransaction = !_transactionFactory.HasActiveTransaction;
+        await using var transaction = ownsTransaction
+            ? await _transactionFactory.BeginAsync(cancellationToken)
+            : null;
 
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // Releemos para capturar los valores reales que pusieron los
-        // triggers (deleted_at, version incrementada). No se ve afectado
-        // por HasQueryFilter: verificado con prueba real en Documents.
-        await _context.Entry(entity).ReloadAsync(cancellationToken);
-
-        var afterSnapshot = new
+        try
         {
-            entity.IsDeleted,
-            entity.DeletedAt,
-            entity.DeletedBy,
-            entity.Version
-        };
+            await _context.SaveChangesAsync(cancellationToken);
 
-        await _auditLog.LogAsync(
-            tableName: tableName,
-            recordId: recordId,
-            action: "DELETE",
-            oldData: snapshotBeforeDelete,
-            newData: afterSnapshot,
-            cancellationToken);
+            // Releemos para capturar los valores reales que pusieron los
+            // triggers (deleted_at, version incrementada). No se ve afectado
+            // por HasQueryFilter: verificado con prueba real en Documents.
+            await _context.Entry(entity).ReloadAsync(cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+            var afterSnapshot = new
+            {
+                entity.IsDeleted,
+                entity.DeletedAt,
+                entity.DeletedBy,
+                entity.Version
+            };
+
+            await _auditLog.LogAsync(
+                tableName: tableName,
+                recordId: recordId,
+                action: "DELETE",
+                oldData: snapshotBeforeDelete,
+                newData: afterSnapshot,
+                cancellationToken);
+
+            if (ownsTransaction)
+            {
+                await transaction!.CommitAsync(cancellationToken);
+            }
+        }
+        catch
+        {
+            if (ownsTransaction)
+            {
+                try
+                {
+                    await transaction!.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception rollbackException)
+                {
+                    _logger.LogError(rollbackException, "Falló el rollback del borrado de {TableName}.", tableName);
+                }
+            }
+
+            throw;
+        }
 
         return entity;
     }

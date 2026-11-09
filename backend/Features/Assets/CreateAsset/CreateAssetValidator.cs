@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Assets.CreateAsset;
@@ -14,7 +15,7 @@ public class CreateAssetValidator : AbstractValidator<CreateAssetCommand>
 
         RuleFor(x => x.InventoryCode)
             .NotEmpty().WithMessage("El código de inventario es obligatorio.")
-            .MaximumLength(50)
+            .MaximumLength(DbFieldLengths.Assets.InventoryCode)
             .MustAsync(BeUniqueInventoryCode).WithMessage("Ese código de inventario ya está en uso.");
 
         RuleFor(x => x.AssetTypeId)

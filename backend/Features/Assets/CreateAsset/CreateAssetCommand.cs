@@ -10,4 +10,4 @@ public sealed record CreateAssetCommand(
     long? CurrentLocationId,
     string? SerialNumber,
     string? Hostname,
-    string? Notes) : ICommand<CreateAssetResponse>;
+    string? Notes) : ICommand<CreateAssetResponse>, Common.Behaviors.ITransactionalCommand;

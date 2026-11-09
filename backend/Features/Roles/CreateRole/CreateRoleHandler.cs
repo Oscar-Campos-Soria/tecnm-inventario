@@ -1,4 +1,5 @@
 using Mediator;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Entities;
@@ -9,11 +10,16 @@ public sealed class CreateRoleHandler : ICommandHandler<CreateRoleCommand, Creat
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public CreateRoleHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public CreateRoleHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<CreateRoleResponse> Handle(CreateRoleCommand command, CancellationToken cancellationToken)
@@ -34,6 +40,21 @@ public sealed class CreateRoleHandler : ICommandHandler<CreateRoleCommand, Creat
 
         _context.Roles.Add(role);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            tableName: "roles",
+            recordId: role.RoleId,
+            action: "INSERT",
+            oldData: null,
+            newData: new
+            {
+                role.RoleId,
+                role.Code,
+                role.Name,
+                role.Description,
+                role.Version
+            },
+            cancellationToken);
 
         return new CreateRoleResponse(role.RoleId, role.Code, role.Name, role.Description);
     }

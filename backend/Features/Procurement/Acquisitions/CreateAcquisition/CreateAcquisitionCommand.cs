@@ -16,4 +16,4 @@ public sealed record CreateAcquisitionCommand(
     DateOnly? WarrantyStart,
     DateOnly? WarrantyEnd,
     string? Notes,
-    IReadOnlyList<AcquisitionAssetInput> Assets) : ICommand<CreateAcquisitionResponse>;
+    IReadOnlyList<AcquisitionAssetInput> Assets) : ICommand<CreateAcquisitionResponse>, Common.Behaviors.ITransactionalCommand;

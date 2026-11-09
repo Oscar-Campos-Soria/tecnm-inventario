@@ -1,4 +1,5 @@
 using Mediator;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Entities;
@@ -9,11 +10,16 @@ public sealed class CreateAcquisitionHandler : ICommandHandler<CreateAcquisition
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public CreateAcquisitionHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public CreateAcquisitionHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<CreateAcquisitionResponse> Handle(
@@ -50,13 +56,39 @@ public sealed class CreateAcquisitionHandler : ICommandHandler<CreateAcquisition
             });
         }
 
-        // Un solo SaveChangesAsync: EF Core inserta el padre (Acquisition) y
-        // los hijos (AcquisitionAssets) en la misma transacción implícita.
-        // No hace falta BeginTransactionAsync explícito aquí porque no hay
-        // un segundo paso separado (como el INSERT en audit_log que sí
-        // requiere SoftDeleteAuditor).
+        // Un solo SaveChangesAsync inserta el padre (Acquisition) y los hijos
+        // (AcquisitionAssets). La transacción explícita la abre
+        // TransactionBehavior, que también confirma la fila de audit_log.
         _context.Acquisitions.Add(acquisition);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // El INSERT se audita después del SaveChanges para tener el id. El
+        // snapshot incluye las líneas de acquisition_assets (activo + costo)
+        // porque son parte del hecho registrado, no una tabla aparte.
+        await _auditLog.LogAsync(
+            tableName: "acquisitions",
+            recordId: acquisition.AcquisitionId,
+            action: "INSERT",
+            oldData: null,
+            newData: new
+            {
+                acquisition.SupplierId,
+                acquisition.PurchaseOrder,
+                acquisition.InvoiceNumber,
+                acquisition.AcquiredAt,
+                acquisition.Subtotal,
+                acquisition.TaxAmount,
+                acquisition.TotalAmount,
+                acquisition.CurrencyCode,
+                acquisition.WarrantyStart,
+                acquisition.WarrantyEnd,
+                acquisition.Notes,
+                acquisition.Version,
+                Assets = acquisition.AcquisitionAssets
+                    .Select(a => new { a.AssetId, a.UnitCost })
+                    .ToList()
+            },
+            cancellationToken);
 
         return new CreateAcquisitionResponse(
             acquisition.AcquisitionId, acquisition.AcquisitionAssets.Count, acquisition.Version);

@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Procurement.Suppliers.UpdateSupplier;
@@ -12,12 +13,20 @@ public class UpdateSupplierValidator : AbstractValidator<UpdateSupplierCommand>
     {
         _context = context;
 
+        RuleFor(x => x.ExpectedVersion)
+            .GreaterThan(0)
+            .WithMessage("Debe indicar la versión del proveedor que está editando.");
+
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("El nombre del proveedor es obligatorio.")
-            .MaximumLength(180);
+            .MaximumLength(DbFieldLengths.Suppliers.Name);
+
+        RuleFor(x => x.TaxId).MaximumLength(DbFieldLengths.Suppliers.TaxId);
+        RuleFor(x => x.ContactName).MaximumLength(DbFieldLengths.Suppliers.ContactName);
+        RuleFor(x => x.Phone).MaximumLength(DbFieldLengths.Suppliers.Phone);
 
         RuleFor(x => x.Email)
-            .MaximumLength(254)
+            .MaximumLength(DbFieldLengths.Suppliers.Email)
             .EmailAddress().WithMessage("El correo electrónico no tiene un formato válido.")
             .When(x => !string.IsNullOrWhiteSpace(x.Email));
 

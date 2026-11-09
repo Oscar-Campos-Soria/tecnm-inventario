@@ -1,4 +1,5 @@
 using Mediator;
+using TecnmInventario.Api.Common.Audit;
 using TecnmInventario.Api.Common.Security;
 using TecnmInventario.Api.Data;
 using TecnmInventario.Api.Core.Entities;
@@ -9,11 +10,16 @@ public sealed class CreateLocationHandler : ICommandHandler<CreateLocationComman
 {
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAuditLogService _auditLog;
 
-    public CreateLocationHandler(TecnmInventarioDbContext context, ICurrentUserService currentUser)
+    public CreateLocationHandler(
+        TecnmInventarioDbContext context,
+        ICurrentUserService currentUser,
+        IAuditLogService auditLog)
     {
         _context = context;
         _currentUser = currentUser;
+        _auditLog = auditLog;
     }
 
     public async ValueTask<CreateLocationResponse> Handle(
@@ -36,6 +42,21 @@ public sealed class CreateLocationHandler : ICommandHandler<CreateLocationComman
 
         _context.Locations.Add(location);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            tableName: "locations",
+            recordId: location.LocationId,
+            action: "INSERT",
+            oldData: null,
+            newData: new
+            {
+                location.Code,
+                location.Name,
+                location.LocationTypeId,
+                location.ParentLocationId,
+                location.Version
+            },
+            cancellationToken);
 
         return new CreateLocationResponse(location.LocationId, location.Code, location.Version);
     }

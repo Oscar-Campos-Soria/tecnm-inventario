@@ -4,4 +4,4 @@ namespace TecnmInventario.Api.Features.Roles.AssignPermissions;
 
 public sealed record AssignPermissionsCommand(
     long RoleId,
-    IReadOnlyList<string> PermissionCodes) : ICommand<AssignPermissionsResponse>;
+    IReadOnlyList<string> PermissionCodes) : ICommand<AssignPermissionsResponse>, Common.Behaviors.ITransactionalCommand;

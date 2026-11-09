@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Procurement.Warranties.CreateAssetWarranty;
@@ -19,7 +20,8 @@ public class CreateAssetWarrantyValidator : AbstractValidator<CreateAssetWarrant
             .MustAsync(SupplierExists).WithMessage("El proveedor especificado no existe.")
             .When(x => x.SupplierId.HasValue);
 
-        RuleFor(x => x.WarrantyNumber).MaximumLength(100);
+        RuleFor(x => x.WarrantyNumber)
+            .MaximumLength(DbFieldLengths.Warranties.WarrantyNumber);
 
         RuleFor(x => x)
             .Must(x => x.EndsOn is null || x.StartsOn is null || x.EndsOn >= x.StartsOn)

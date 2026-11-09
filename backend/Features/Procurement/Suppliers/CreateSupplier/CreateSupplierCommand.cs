@@ -9,4 +9,4 @@ public sealed record CreateSupplierCommand(
     string? Email,
     string? Phone,
     string? Address,
-    string? Notes) : ICommand<CreateSupplierResponse>;
+    string? Notes) : ICommand<CreateSupplierResponse>, Common.Behaviors.ITransactionalCommand;

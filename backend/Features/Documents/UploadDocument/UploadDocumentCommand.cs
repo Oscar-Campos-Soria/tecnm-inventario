@@ -7,4 +7,4 @@ public sealed record UploadDocumentCommand(
     string OwnerType,
     long OwnerId,
     string? Description,
-    IFormFile File) : ICommand<UploadDocumentResponse>;
+    IFormFile File) : ICommand<UploadDocumentResponse>, Common.Behaviors.ITransactionalCommand;

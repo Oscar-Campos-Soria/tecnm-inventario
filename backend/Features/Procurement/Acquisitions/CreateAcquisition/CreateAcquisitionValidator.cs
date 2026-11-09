@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Data;
 
 namespace TecnmInventario.Api.Features.Procurement.Acquisitions.CreateAcquisition;
@@ -14,7 +15,14 @@ public class CreateAcquisitionValidator : AbstractValidator<CreateAcquisitionCom
 
         RuleFor(x => x.CurrencyCode)
             .NotEmpty().WithMessage("La moneda es obligatoria.")
-            .Length(3).WithMessage("El código de moneda debe tener 3 letras (ej. MXN, USD).");
+            .Length(DbFieldLengths.Acquisitions.CurrencyCode)
+            .WithMessage("El código de moneda debe tener 3 letras (ej. MXN, USD).");
+
+        RuleFor(x => x.PurchaseOrder)
+            .MaximumLength(DbFieldLengths.Acquisitions.PurchaseOrder);
+
+        RuleFor(x => x.InvoiceNumber)
+            .MaximumLength(DbFieldLengths.Acquisitions.InvoiceNumber);
 
         RuleFor(x => x.Subtotal).GreaterThanOrEqualTo(0).When(x => x.Subtotal.HasValue);
         RuleFor(x => x.TaxAmount).GreaterThanOrEqualTo(0).When(x => x.TaxAmount.HasValue);
