@@ -37,5 +37,9 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  if (to.meta.permission && !useAuth().hasPermission(to.meta.permission)) {
+    return to.path === '/' ? true : '/'
+  }
+
   return true
 })

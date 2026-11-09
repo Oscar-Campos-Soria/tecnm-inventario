@@ -16,6 +16,8 @@ declare module 'vue-router' {
     public?: boolean
     // Shell de la página; por defecto 'main' (con menú).
     layout?: 'auth' | 'main'
+    // Permiso para entrar a la ruta (solo UX; la API valida). Sin él, al panel.
+    permission?: string
     nav?: NavEntry
   }
 }

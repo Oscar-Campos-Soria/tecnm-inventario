@@ -36,7 +36,7 @@ frontend/
 └── vite.config.ts
 ```
 
-Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `incidents`, `tickets`. El resto (`maintenance`, `disposal`, `bulk-import`, `reports`, `software`, `components`, `documents`, `history`, `users`, `roles`, `procurement`) solo tiene su README y aparece deshabilitado en el menú (lista `PLANNED` de `MainLayout.vue`).
+Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`, `incidents`, `maintenance`, `disposal`, `tickets`. El resto (`bulk-import`, `reports`, `software`, `components`, `documents`, `history`, `users`, `roles`, `procurement`) solo tiene su README y aparece deshabilitado en el menú (lista `PLANNED` de `MainLayout.vue`).
 
 ## Principios
 
@@ -50,7 +50,7 @@ Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `incidents`,
 ## Sesión y router
 
 - Sesión en cookies HttpOnly; el JS nunca ve el token. `useAuth()` (`shared/hooks/useAuth.ts`) guarda en memoria el perfil con permisos de `GET /api/auth/me`; estado único a nivel de módulo (sin Pinia).
-- Guard global (`router.beforeEach`): espera `loadSession()`; ruta sin `meta.public` y sin sesión → `/login?redirect=<ruta>`. Con sesión, `/login` redirige a `redirect` (solo rutas internas, `shared/utils/redirect.ts`).
+- Guard global (`router.beforeEach`): espera `loadSession()`; ruta sin `meta.public` y sin sesión → `/login?redirect=<ruta>`; ruta con `meta.permission` sin ese permiso → panel (`/`). Con sesión, `/login` redirige a `redirect` (solo rutas internas, `shared/utils/redirect.ts`).
 - `http.ts`: CSRF (`X-CSRF-Token`) en métodos que escriben, refresh único ante 401 y, si la sesión se pierde, `/login?redirect=` conservando la ruta.
 
 ## Estilo y configuración

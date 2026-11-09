@@ -6,6 +6,7 @@ const routes: RouteRecordRaw[] = [
     name: 'maintenance',
     component: () => import('./pages/MaintenancePage.vue'),
     meta: {
+      permission: 'maintenance.manage',
       nav: {
         label: 'Mantenimiento',
         order: 45,

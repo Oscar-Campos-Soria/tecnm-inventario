@@ -6,6 +6,7 @@ const routes: RouteRecordRaw[] = [
     name: 'inventory',
     component: () => import('./pages/InventorySessionsPage.vue'),
     meta: {
+      permission: 'inventory.manage',
       nav: {
         label: 'Levantamiento',
         order: 35,
@@ -18,6 +19,7 @@ const routes: RouteRecordRaw[] = [
     path: '/inventory/:sessionId',
     name: 'inventory-session',
     component: () => import('./pages/InventorySessionPage.vue'),
+    meta: { permission: 'inventory.manage' },
   },
 ]
 
