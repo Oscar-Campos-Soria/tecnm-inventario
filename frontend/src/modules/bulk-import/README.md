@@ -1,13 +1,8 @@
 # Módulo bulk-import
 
-Asistente de carga masiva de activos desde Excel/CSV.
+Ruta `/bulk-import` (permiso `assets.create`; menú "Carga masiva", orden 25). Tres pasos: descargar la plantilla,
+subir el archivo (.xlsx o .csv; se revisa al instante y se listan los errores por número de fila, con filtro
+"Solo filas con errores") y confirmar, que solo se habilita si todas las filas están bien.
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. usebulk-import)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
-
+API: `GET /api/bulk-import/assets/template.xlsx`, `POST .../preview`, `POST .../commit`.
 Especificación: `specs/bulk-import.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`
