@@ -60,4 +60,9 @@ public static class DbFieldLengths
         public const int Name = 150;
         public const int Vendor = 150;
     }
+
+    public static class AssetSoftware
+    {
+        public const int VersionInstalled = 60;
+    }
 }
