@@ -127,7 +127,11 @@ async function handleLogout() {
       </nav>
 
       <div class="border-t border-white/10 p-3">
-        <div class="mb-2 flex items-center gap-2.5 px-1">
+        <RouterLink
+          to="/profile"
+          class="mb-2 flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors duration-150 hover:bg-sidebar-hover focus-visible:outline-white"
+          @click="menuOpen = false"
+        >
           <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white font-display text-sm font-semibold text-primary" aria-hidden="true">
             {{ initial }}
           </div>
@@ -135,9 +139,9 @@ async function handleLogout() {
             <p class="truncate text-sm font-medium">
               {{ session ? `${session.firstName} ${session.lastName}` : '' }}
             </p>
-            <p class="truncate text-xs text-sidebar-muted">{{ session?.roleName }}</p>
+            <p class="truncate text-xs text-sidebar-muted">{{ session?.roleName }}, ver mi perfil</p>
           </div>
-        </div>
+        </RouterLink>
         <button
           type="button"
           class="min-h-[44px] w-full cursor-pointer rounded-lg px-3 text-left text-sm text-sidebar-muted transition-colors duration-150 hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-white"
