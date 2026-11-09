@@ -5,6 +5,8 @@ using TecnmInventario.Api.Common.Pagination;
 using TecnmInventario.Api.Features.Disposals.CreateDisposal;
 using TecnmInventario.Api.Features.Disposals.GetDisposals;
 
+using TecnmInventario.Api.Features.Disposals.GetDisposalAct;
+
 namespace TecnmInventario.Api.Features.Disposals;
 
 /// <summary>Baja formal de activos (specs/disposal.spec.md).</summary>
@@ -35,6 +37,15 @@ public class DisposalsController : ControllerBase
 
     public sealed record CreateDisposalBody(
         long AssetId, long DisposalReasonId, string Folio, string? Dictamen, DateOnly? DisposedAt);
+
+    // Acta de baja en PDF (solo lectura).
+    [HttpGet("{assetDisposalId:long}/act.pdf")]
+    [Authorize(Policy = "assets.view")]
+    public async Task<IActionResult> GetAct(long assetDisposalId, CancellationToken cancellationToken)
+    {
+        var file = await _mediator.Send(new GetDisposalActQuery(assetDisposalId), cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
 
     [HttpPost]
     [Authorize(Policy = "assets.delete")]

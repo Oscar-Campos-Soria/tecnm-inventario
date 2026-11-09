@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import { downloadFile } from '../../../shared/utils/download'
 import { assetsApi } from '../api'
 import type { AssetFilters, AssetSummary, GetCatalogsResponse, LocationItem, PagedResult } from '../types'
 
@@ -74,6 +76,37 @@ const STATUS_CHIP: Record<string, string> = {
 }
 
 const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border-border bg-background px-2.5 text-sm text-foreground'
+
+// Etiquetas con QR: se eligen equipos (se conservan al cambiar de página) y se imprime la hoja.
+const MAX_LABELS = 90
+const selected = ref<Set<number>>(new Set())
+const labelError = ref('')
+const printing = ref(false)
+const pageSelected = computed(() => !!result.value?.items.length && result.value.items.every((a) => selected.value.has(a.assetId)))
+function toggle(id: number) {
+  const next = new Set(selected.value)
+  if (!next.delete(id)) next.add(id)
+  selected.value = next
+}
+function togglePage() {
+  const next = new Set(selected.value)
+  const items = result.value?.items ?? []
+  if (pageSelected.value) items.forEach((a) => next.delete(a.assetId))
+  else items.forEach((a) => next.add(a.assetId))
+  selected.value = next
+}
+async function printLabels() {
+  if (selected.value.size > MAX_LABELS) return void (labelError.value = `Elige a lo más ${MAX_LABELS} equipos (tres hojas).`)
+  printing.value = true
+  labelError.value = ''
+  try {
+    await downloadFile(`/api/assets/labels.pdf?${[...selected.value].map((id) => `ids=${id}`).join('&')}`)
+  } catch (err) {
+    labelError.value = err instanceof ApiError ? err.message : 'No se pudieron generar las etiquetas.'
+  } finally {
+    printing.value = false
+  }
+}
 </script>
 
 <template>
@@ -84,6 +117,13 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         {{ result.totalCount }} activo{{ result.totalCount === 1 ? '' : 's' }}
       </span>
     </header>
+
+    <div v-if="selected.size" class="flex flex-wrap items-center gap-3 rounded-lg border border-accent/40 bg-muted px-4 py-2.5 text-sm">
+      <span class="font-medium text-foreground">{{ selected.size }} {{ selected.size === 1 ? 'equipo elegido' : 'equipos elegidos' }}</span>
+      <UiButton variant="primary" :disabled="printing" @click="printLabels">{{ printing ? 'Generando…' : 'Imprimir etiquetas (PDF)' }}</UiButton>
+      <UiButton @click="selected = new Set()">Quitar selección</UiButton>
+      <p v-if="labelError" role="alert" class="w-full text-destructive">{{ labelError }}</p>
+    </div>
 
     <form role="search" aria-label="Filtros de activos" class="rounded-lg border border-border bg-card p-4" @submit.prevent>
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -143,6 +183,9 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
       <table class="w-full text-left text-sm">
         <thead>
           <tr class="border-b border-border bg-muted">
+            <th scope="col" class="w-10 px-4 py-2.5">
+              <input type="checkbox" class="h-4 w-4 cursor-pointer accent-accent" :checked="pageSelected" aria-label="Elegir todos los equipos de esta página para etiquetas" @change="togglePage" />
+            </th>
             <th scope="col" class="px-4 py-2.5 font-semibold text-foreground">Código de inventario</th>
             <th scope="col" class="px-4 py-2.5 font-semibold text-foreground">Tipo</th>
             <th scope="col" class="px-4 py-2.5 font-semibold text-foreground">Estado</th>
@@ -153,6 +196,9 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
         </thead>
         <tbody>
           <tr v-for="asset in result.items" :key="asset.assetId" class="border-b border-border last:border-0">
+            <td class="px-4 py-3">
+              <input type="checkbox" class="h-4 w-4 cursor-pointer accent-accent" :checked="selected.has(asset.assetId)" :aria-label="`Elegir ${asset.inventoryCode} para etiquetas`" @change="toggle(asset.assetId)" />
+            </td>
             <td class="px-4 py-3">
               <RouterLink :to="`/assets/${asset.assetId}`" class="font-medium text-primary underline-offset-2 hover:underline">
                 {{ asset.inventoryCode }}

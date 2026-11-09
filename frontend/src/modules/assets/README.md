@@ -16,6 +16,9 @@ Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
 - Selector de usuario con búsqueda (top 50, `users.view`).
 - 409 en movimiento/asignación/devolución: recarga la ficha y avisa.
 - Sin `locations.manage`, la ficha carga igual y la ubicación se muestra "—" (deuda `locations.view`).
+- Lista: casillas para elegir equipos (se conservan entre páginas) e "Imprimir etiquetas (PDF)": hoja carta de 30
+  etiquetas con QR del código de inventario (`GET /api/assets/labels.pdf?ids=`, máximo 90).
+- Baja formal: "Descargar acta (PDF)" genera el acta con los datos de la baja (`GET /api/disposals/{id}/act.pdf`).
 - "Reportar problema" (con `tickets.create`) enlaza a `/tickets?nuevo=1&assetId=N`.
 - "Componentes" (con `components.manage`, `AssetComponentsSection`): hardware instalado agrupado por tipo,
   agregar, reemplazar (el actual pasa al historial), retirar y eliminar capturas erróneas; historial plegable.

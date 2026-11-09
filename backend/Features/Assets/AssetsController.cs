@@ -15,6 +15,8 @@ using TecnmInventario.Api.Features.Assets.Assignments.EndAssetAssignment;
 using TecnmInventario.Api.Features.Procurement.Warranties.GetWarrantiesByAsset;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
 
+using TecnmInventario.Api.Features.Assets.GetAssetLabels;
+
 namespace TecnmInventario.Api.Features.Assets;
 
 [ApiController]
@@ -43,6 +45,15 @@ public class AssetsController : ControllerBase
             filters.Search, filters.Status, filters.AssetTypeId, filters.LocationId, filters.IncludeDisposed);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
+    }
+
+    // Etiquetas con QR en hoja carta: ?ids=1&ids=2 (máximo 90).
+    [HttpGet("labels.pdf")]
+    [Authorize(Policy = "assets.view")]
+    public async Task<IActionResult> GetLabels([FromQuery] long[] ids, CancellationToken cancellationToken)
+    {
+        var file = await _mediator.Send(new GetAssetLabelsQuery(ids), cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
     }
 
     [HttpGet("{assetId:long}")]

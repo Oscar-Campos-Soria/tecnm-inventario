@@ -65,4 +65,7 @@ diferencias **una por una** (nada cambia solo).
 
 ## Pendiente
 
-- Etiquetas QR imprimibles.
+## Etiquetas
+
+`GET /api/assets/labels.pdf?ids=` (`assets.view`, máximo 90): hoja carta de 3 x 10 etiquetas (tipo 5160) con QR
+del código de inventario, el mismo texto que lee el escaneo del conteo.

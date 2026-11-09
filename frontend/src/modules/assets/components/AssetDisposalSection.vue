@@ -6,6 +6,7 @@ import UiButton from '../../../shared/components/UiButton.vue'
 import UiField from '../../../shared/components/UiField.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { downloadFile } from '../../../shared/utils/download'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { assetsApi } from '../api'
 import type { AssetDetail, AssetDisposalInfo, GetCatalogsResponse } from '../types'
@@ -90,11 +91,31 @@ async function submit() {
 }
 
 const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-background px-3 text-foreground'
+
+// Acta generada por el servidor con los datos de la baja; la firmada se sube abajo.
+const downloading = ref(false)
+const actError = ref('')
+async function downloadAct() {
+  if (!disposal.value) return
+  downloading.value = true
+  actError.value = ''
+  try {
+    await downloadFile(`/api/disposals/${disposal.value.assetDisposalId}/act.pdf`)
+  } catch (err) {
+    actError.value = err instanceof ApiError ? err.message : 'No se pudo generar el acta.'
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <template>
   <section v-if="isDisposed" aria-labelledby="baja-formal" class="space-y-4 rounded-lg border border-border bg-card p-5">
-    <h2 id="baja-formal" class="font-display text-base font-semibold text-foreground">Baja formal</h2>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="baja-formal" class="font-display text-base font-semibold text-foreground">Baja formal</h2>
+      <UiButton v-if="disposal" :disabled="downloading" @click="downloadAct">{{ downloading ? 'Generando…' : 'Descargar acta (PDF)' }}</UiButton>
+    </div>
+    <p v-if="actError" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ actError }}</p>
     <p v-if="!disposal" class="text-sm text-muted-foreground">Cargando datos de la baja…</p>
     <dl v-else class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
       <UiField label="Folio del acta" :value="disposal.folio" />

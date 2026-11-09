@@ -20,6 +20,10 @@ using TecnmInventario.Api.Features.Auth.Shared;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
+// QuestPDF Community: gratis para instituciones públicas/educativas y organizaciones con
+// ingresos menores a 1 M USD (https://www.questpdf.com/license/). El TecNM califica.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();

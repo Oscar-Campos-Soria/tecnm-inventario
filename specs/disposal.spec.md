@@ -51,4 +51,5 @@ permiso `assets.delete`). El sistema no genera el PDF.
 
 - [x] Baja con validación de precondiciones
 - [x] Acta firmada adjunta (PDF)
-- [ ] Generación del acta en PDF (backlog; requeriría librería nueva)
+- [x] Acta en PDF generada al vuelo (QuestPDF): `GET /api/disposals/{id}/act.pdf` (`assets.view`), con datos del
+  activo, motivo, dictamen y espacio para firmas (Elaboró, Revisó, Autorizó). La firmada se sube como documento.
