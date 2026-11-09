@@ -159,7 +159,12 @@ internal sealed class RecordingLogger<T> : Microsoft.Extensions.Logging.ILogger<
 
 internal sealed class FakeDocumentAccessAuthorizer : TecnmInventario.Api.Features.Documents.IDocumentAccessAuthorizer
 {
-    public Task EnsureAuthorizedAsync(string ownerType, CancellationToken cancellationToken)
+    public Task EnsureAuthorizedAsync(
+        string ownerType,
+        long ownerId,
+        TecnmInventario.Api.Features.Documents.DocumentOperation operation,
+        long? documentCreatedBy,
+        CancellationToken cancellationToken)
         => Task.CompletedTask;
 }
 
