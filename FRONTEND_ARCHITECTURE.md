@@ -56,7 +56,7 @@ Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`,
 ## Estilo y configuración
 
 - **Tailwind CSS v4** CSS-first (`@import "tailwindcss"` y `@theme` en `src/shared/styles/index.css`). Sin `tailwind.config.js`.
-- Tokens blanco/azul institucional; `--color-priority-high` (`#c2410c`) para prioridad Alta de tickets. Lexend (display) + Source Sans 3 (texto).
+- Tokens blanco/azul institucional: menú lateral navy (`--color-sidebar` `#0f2747`, sección activa como pestaña del color del contenido), navy `#1b396a` para marca y enlaces, azul de acción `#1d5fd6` (`--color-accent`) solo para botones principales y foco, tinte cielo `#eaf2fd` (`--color-muted`). `--color-priority-high` (`#c2410c`) para prioridad Alta de tickets. Lexend (display) + Source Sans 3 (texto). Plano, con bordes en vez de sombras.
 - En componentes del UI kit, `class` del llamador se **suma** a la del componente (Vue): no pasar utilidades que choquen (p. ej. `px-5` sobre `UiButton`); para tamaños hay props (`BrandMark size`).
 - ESLint: `@eslint/js` + `typescript-eslint` + `eslint-plugin-vue` (`flat/recommended`). TypeScript estricto; `vue-tsc -b` revisa tipos dentro de `.vue`.
 

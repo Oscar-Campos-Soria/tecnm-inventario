@@ -11,9 +11,9 @@ withDefaults(
 
 const variantClasses: Record<UiButtonVariant, string> = {
   primary:
-    'bg-primary font-semibold text-on-primary hover:bg-secondary disabled:cursor-wait disabled:opacity-60',
+    'bg-accent font-semibold text-on-accent hover:bg-accent-hover disabled:cursor-wait disabled:opacity-60',
   secondary:
-    'border border-border bg-card text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50',
+    'border border-border bg-card text-primary hover:border-accent hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50',
   danger:
     'bg-destructive font-semibold text-on-destructive hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50',
 }

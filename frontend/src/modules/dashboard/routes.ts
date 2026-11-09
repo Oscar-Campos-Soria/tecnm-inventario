@@ -7,9 +7,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./pages/DashboardPage.vue'),
     meta: {
       nav: {
-        label: 'Panel',
+        label: 'Inicio',
         order: 10,
-        permission: 'dashboard.view',
+        // Inicio con accesos según el rol: lo ven todos.
         icon: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
       },
     },

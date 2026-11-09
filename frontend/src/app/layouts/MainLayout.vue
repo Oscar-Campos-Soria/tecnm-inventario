@@ -67,16 +67,16 @@ async function handleLogout() {
 <template>
   <div class="flex min-h-screen">
     <!-- Barra móvil -->
-    <header class="fixed inset-x-0 top-0 z-10 flex items-center justify-between border-b border-border bg-card px-4 py-2.5 md:hidden">
-      <span class="flex items-center gap-2 font-display text-base font-semibold text-primary">
-        <BrandMark size="h-7 w-7" />
+    <header class="fixed inset-x-0 top-0 z-10 flex items-center justify-between bg-sidebar px-4 py-2.5 md:hidden">
+      <span class="flex items-center gap-2 font-display text-base font-semibold text-sidebar-foreground">
+        <BrandMark size="h-7 w-7" inverted />
         TecNM Inventario
       </span>
       <button
         type="button"
         :aria-expanded="menuOpen"
         aria-label="Abrir menú"
-        class="min-h-[44px] min-w-[44px] cursor-pointer rounded-md px-3 text-primary"
+        class="min-h-[44px] min-w-[44px] cursor-pointer rounded-md px-3 text-sidebar-foreground focus-visible:outline-white"
         @click="menuOpen = !menuOpen"
       >
         <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -85,29 +85,31 @@ async function handleLogout() {
       </button>
     </header>
 
-    <!-- Barra lateral -->
+    <!-- Barra lateral navy. La sección activa es una pestaña del color del
+         contenido que "sale" del menú, como la ceja de un expediente. -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-20 w-60 flex-col border-r border-border bg-card md:static md:flex',
+        'fixed inset-y-0 left-0 z-20 w-60 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:flex md:h-screen',
         menuOpen ? 'flex pt-14' : 'hidden',
       ]"
     >
-      <div class="flex items-center gap-2.5 px-5 py-5">
-        <BrandMark />
-        <span class="font-display text-base font-semibold text-primary">TecNM Inventario</span>
+      <div class="flex items-center gap-2.5 px-5 py-6">
+        <BrandMark inverted />
+        <span class="font-display text-base font-semibold">TecNM Inventario</span>
       </div>
 
-      <nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Navegación principal">
-        <ul class="space-y-0.5">
+      <!-- Sin barra de desplazamiento visible: cortaría la pestaña activa (se desplaza igual). -->
+      <nav class="flex-1 overflow-y-auto py-2 pl-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Navegación principal">
+        <ul class="space-y-1">
           <li v-for="item in activeItems" :key="item.to">
             <RouterLink
               :to="item.to"
               :aria-current="isActive(item.to) ? 'page' : undefined"
               :class="[
-                'relative flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm transition-colors duration-150',
+                'flex min-h-[44px] items-center gap-3 px-3 text-sm transition-colors duration-150 focus-visible:outline-white',
                 isActive(item.to)
-                  ? 'bg-muted font-semibold text-primary before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-full before:bg-accent'
-                  : 'text-muted-foreground hover:bg-muted hover:text-primary',
+                  ? 'rounded-l-lg bg-background font-semibold text-primary'
+                  : 'mr-3 rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground',
               ]"
               @click="menuOpen = false"
             >
@@ -115,14 +117,14 @@ async function handleLogout() {
               {{ item.label }}
             </RouterLink>
           </li>
-          <li v-for="item in plannedItems" :key="item.to">
+          <li v-for="item in plannedItems" :key="item.to" class="mr-3">
             <div
               :title="`Pendiente (${item.note})`"
-              class="flex min-h-[44px] cursor-default items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground/60"
+              class="flex min-h-[44px] cursor-default items-center gap-3 rounded-lg px-3 text-sm text-sidebar-muted/55"
             >
               <NavIcon :paths="item.icon" />
               {{ item.label }}
-              <span class="ml-auto rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span class="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-sidebar-muted">
                 {{ item.note }}
               </span>
             </div>
@@ -130,21 +132,21 @@ async function handleLogout() {
         </ul>
       </nav>
 
-      <div class="border-t border-border p-3">
+      <div class="border-t border-white/10 p-3">
         <div class="mb-2 flex items-center gap-2.5 px-1">
-          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted font-display text-sm font-semibold text-primary" aria-hidden="true">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white font-display text-sm font-semibold text-primary" aria-hidden="true">
             {{ initial }}
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-foreground">
+            <p class="truncate text-sm font-medium">
               {{ session ? `${session.firstName} ${session.lastName}` : '' }}
             </p>
-            <p class="truncate text-xs text-muted-foreground">{{ session?.roleName }}</p>
+            <p class="truncate text-xs text-sidebar-muted">{{ session?.roleName }}</p>
           </div>
         </div>
         <button
           type="button"
-          class="min-h-[44px] w-full cursor-pointer rounded-lg px-3 text-left text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-primary"
+          class="min-h-[44px] w-full cursor-pointer rounded-lg px-3 text-left text-sm text-sidebar-muted transition-colors duration-150 hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-white"
           @click="handleLogout"
         >
           Cerrar sesión
@@ -152,8 +154,10 @@ async function handleLogout() {
       </div>
     </aside>
 
-    <main class="min-w-0 flex-1 p-4 pt-16 md:p-6 md:pt-6">
-      <slot />
+    <main class="min-w-0 flex-1 p-4 pt-20 md:p-8 md:pt-8">
+      <div class="mx-auto max-w-6xl">
+        <slot />
+      </div>
     </main>
   </div>
 </template>

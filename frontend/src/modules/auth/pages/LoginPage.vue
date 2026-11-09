@@ -134,7 +134,7 @@ async function handleSubmit() {
       <button
         type="submit"
         :disabled="isSubmitting"
-        class="min-h-[48px] w-full cursor-pointer rounded-lg bg-primary font-semibold text-on-primary transition-colors duration-150 hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+        class="min-h-[48px] w-full cursor-pointer rounded-lg bg-accent font-semibold text-on-accent transition-colors duration-150 hover:bg-accent-hover disabled:cursor-wait disabled:opacity-60"
       >
         {{ isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión' }}
       </button>
