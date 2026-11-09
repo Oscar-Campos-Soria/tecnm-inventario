@@ -65,4 +65,10 @@ public static class DbFieldLengths
     {
         public const int VersionInstalled = 60;
     }
+
+    public static class Components
+    {
+        public const int Description = 250;
+        public const int SerialNumber = 150;
+    }
 }

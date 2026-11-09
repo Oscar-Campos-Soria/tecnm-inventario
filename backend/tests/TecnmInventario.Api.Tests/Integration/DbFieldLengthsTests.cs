@@ -36,7 +36,9 @@ public sealed class DbFieldLengthsTests : PostgresTestBase
         [("asset_warranties", "warranty_number")] = DbFieldLengths.Warranties.WarrantyNumber,
         [("software", "name")] = DbFieldLengths.Software.Name,
         [("software", "vendor")] = DbFieldLengths.Software.Vendor,
-        [("asset_software", "version_installed")] = DbFieldLengths.AssetSoftware.VersionInstalled
+        [("asset_software", "version_installed")] = DbFieldLengths.AssetSoftware.VersionInstalled,
+        [("asset_components", "description")] = DbFieldLengths.Components.Description,
+        [("asset_components", "serial_number")] = DbFieldLengths.Components.SerialNumber
     };
 
     public DbFieldLengthsTests(PostgresContainerFixture fixture)

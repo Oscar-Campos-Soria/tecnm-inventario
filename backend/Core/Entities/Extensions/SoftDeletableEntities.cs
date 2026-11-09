@@ -44,3 +44,7 @@ public partial class Software : ISoftDeletable
 public partial class SoftwareLicense : ISoftDeletable
 {
 }
+
+public partial class AssetComponent : ISoftDeletable
+{
+}
