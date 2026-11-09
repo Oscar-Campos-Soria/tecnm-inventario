@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
+import DocumentList from '../../../shared/components/DocumentList.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
 import { formatDate, todayIso } from '../../../shared/utils/format'
@@ -198,6 +199,14 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
             <span class="text-secondary">{{ money(l.unitCost, detail.currencyCode) }}</span>
           </li>
         </ul>
+        <DocumentList
+          owner-type="ACQUISITION"
+          :owner-id="detail.acquisitionId"
+          title="Factura y documentos"
+          empty-text="Sin archivos. Adjunta la factura o la orden de compra (PDF o foto)."
+          can-upload
+          can-delete
+        />
       </div>
     </UiModal>
 

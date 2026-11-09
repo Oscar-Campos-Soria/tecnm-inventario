@@ -20,6 +20,9 @@ Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
   etiquetas con QR del código de inventario (`GET /api/assets/labels.pdf?ids=`, máximo 90).
 - Baja formal: "Descargar acta (PDF)" genera el acta con los datos de la baja (`GET /api/disposals/{id}/act.pdf`).
 - "Reportar problema" (con `tickets.create`) enlaza a `/tickets?nuevo=1&assetId=N`.
+- "Documentos" (`AssetDocumentsSection`): todos los archivos del equipo con el registro al que pertenecen
+  (enlace a incidente/ticket/compras), ver y descargar. Solo lectura; el servidor omite lo que el rol no puede ver.
+- Mantenimiento: "Archivos" en cada registro abre sus adjuntos (`DocumentList`, `MAINTENANCE`).
 - "Componentes" (con `components.manage`, `AssetComponentsSection`): hardware instalado agrupado por tipo,
   agregar, reemplazar (el actual pasa al historial), retirar y eliminar capturas erróneas; historial plegable.
   Sin acciones en activos dados de baja.

@@ -134,6 +134,7 @@ async function downloadAct() {
       title="Acta firmada"
       empty-text="Aún no se adjunta el acta firmada (PDF)."
       can-upload
+      can-delete
     />
   </section>
 

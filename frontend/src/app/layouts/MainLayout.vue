@@ -6,21 +6,6 @@ import NavIcon from '../../shared/components/NavIcon.vue'
 import { useAuth } from '../../shared/hooks/useAuth'
 import type { NavEntry } from '../router/route-meta'
 
-interface PlannedItem {
-  to: string
-  label: string
-  icon: string[]
-  // Sin permiso propio, los módulos pendientes solo los ve quien administra roles.
-  permission?: string
-  note: string
-}
-
-// Módulos aún sin pantallas: se muestran deshabilitados. Al implementarse,
-// el módulo declara meta.nav en su routes.ts y se quita de aquí.
-const PLANNED: PlannedItem[] = [
-  { to: '/documents', label: 'Documentos', icon: ['M3 6h6l2 2h10v11H3z'], note: 'FASE 3' },
-]
-
 const { session, logout, hasPermission } = useAuth()
 const router = useRouter()
 const route = useRoute()
@@ -34,11 +19,6 @@ const activeItems = computed(() =>
     .map((record) => ({ to: record.path, ...(record.meta.nav as NavEntry) }))
     .filter((item) => !item.permission || hasPermission(item.permission))
     .sort((a, b) => a.order - b.order),
-)
-
-// Menú por permisos efectivos del servidor (solo UX; la API valida).
-const plannedItems = computed(() =>
-  PLANNED.filter((item) => hasPermission(item.permission ?? 'roles.manage')),
 )
 
 // Activo también en las fichas (/assets/12 marca "Activos"); el panel solo en "/".
@@ -126,18 +106,6 @@ async function handleLogout() {
                 {{ badges[item.to] }}<span class="sr-only"> {{ item.badgeLabel ?? 'pendientes' }}</span>
               </span>
             </RouterLink>
-          </li>
-          <li v-for="item in plannedItems" :key="item.to" class="mr-3">
-            <div
-              :title="`Pendiente (${item.note})`"
-              class="flex min-h-[44px] cursor-default items-center gap-3 rounded-lg px-3 text-sm text-sidebar-muted/55"
-            >
-              <NavIcon :paths="item.icon" />
-              {{ item.label }}
-              <span class="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-sidebar-muted">
-                {{ item.note }}
-              </span>
-            </div>
           </li>
         </ul>
       </nav>

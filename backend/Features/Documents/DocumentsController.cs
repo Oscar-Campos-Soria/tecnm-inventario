@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TecnmInventario.Api.Features.Documents.DeleteDocument;
 using TecnmInventario.Api.Features.Documents.DownloadDocument;
+using TecnmInventario.Api.Features.Documents.GetAssetDocuments;
 using TecnmInventario.Api.Features.Documents.GetDocumentsByOwner;
 using TecnmInventario.Api.Features.Documents.UploadDocument;
 
@@ -42,6 +43,13 @@ public class DocumentsController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    // Todos los archivos del equipo; cada dueño se filtra por las reglas de documentos.
+    [HttpGet("~/api/assets/{assetId:long}/documents")]
+    [Authorize(Policy = "assets.view")]
+    public async Task<ActionResult<IReadOnlyList<GetAssetDocumentsResponse>>> GetAssetDocuments(
+        long assetId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetAssetDocumentsQuery(assetId), cancellationToken));
 
     [HttpGet("{documentId:long}/download")]
     public async Task<IActionResult> DownloadDocument(

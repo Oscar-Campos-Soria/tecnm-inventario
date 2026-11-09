@@ -155,6 +155,6 @@ const assetNote = computed(() => {
 
     <IncidentActions :incident="detail" @changed="reload" @conflict="onConflict" />
 
-    <DocumentList owner-type="INCIDENT" :owner-id="detail.incidentId" />
+    <DocumentList owner-type="INCIDENT" :owner-id="detail.incidentId" can-delete />
   </div>
 </template>

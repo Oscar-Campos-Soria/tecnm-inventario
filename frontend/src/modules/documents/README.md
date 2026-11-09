@@ -1,13 +1,11 @@
 # Módulo documents
 
-Evidencias y archivos vinculados a registros.
+Sin pantallas propias por diseño: cada archivo pertenece a un registro y se adjunta, ve y elimina ahí.
 
-Estructura prevista (FASE 3):
-- `pages/` — vistas del módulo
-- `components/` — componentes específicos
-- `hooks/` — hooks del módulo (p. ej. usedocuments)
-- `api.ts` — llamadas al backend vía `shared/api/http.ts`
-- `types.ts` — tipos de la API
+- Componente: `shared/components/DocumentList.vue` (`ownerType` + `ownerId`; `can-upload`, `can-delete`;
+  sin `can-delete` solo se ofrece eliminar lo que el usuario subió). API: `shared/api/documents.ts`.
+- Usos: incidentes (`INCIDENT`), tickets (`TICKET`), baja (`ASSET_DISPOSAL`, acta firmada),
+  mantenimientos de la ficha del activo (`MAINTENANCE`) y detalle de compra (`ACQUISITION`).
+- Consolidado por equipo: `modules/assets/components/AssetDocumentsSection.vue` (`GET /api/assets/{id}/documents`, solo lectura).
 
 Especificación: `specs/documents.spec.md`
-Estado: pendiente — ver `plans/03-frontend-spa-plan.md`

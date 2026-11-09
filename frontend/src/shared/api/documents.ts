@@ -1,9 +1,9 @@
 import { http } from './http'
 
-// Adjuntos de backend/Features/Documents (transversal: incidentes, tickets…).
+// Adjuntos de backend/Features/Documents (transversal: incidentes, tickets, mantenimientos, bajas, compras).
 // El servidor decide quién ve qué (permiso + dueño del registro).
 
-export type DocumentOwnerType = 'INCIDENT' | 'TICKET' | 'ASSET_DISPOSAL'
+export type DocumentOwnerType = 'INCIDENT' | 'TICKET' | 'ASSET_DISPOSAL' | 'MAINTENANCE' | 'ACQUISITION'
 
 export interface StoredDocument {
   documentId: number
@@ -14,6 +14,19 @@ export interface StoredDocument {
   createdAt: string
   createdBy: number | null
   version: number
+}
+
+// Archivo de la ficha del activo, con el registro al que pertenece.
+export interface AssetDocument {
+  documentId: number
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  description: string | null
+  createdAt: string
+  ownerType: DocumentOwnerType
+  ownerId: number
+  ownerLabel: string
 }
 
 export interface UploadDocumentResult {
@@ -40,6 +53,12 @@ export const documentsApi = {
     form.append('ownerId', String(ownerId))
     form.append('file', file)
     return http.postForm<UploadDocumentResult>('/api/documents', form)
+  },
+  forAsset(assetId: number) {
+    return http.get<AssetDocument[]>(`/api/assets/${assetId}/documents`)
+  },
+  remove(documentId: number, expectedVersion: number) {
+    return http.delete<unknown>(`/api/documents/${documentId}?expectedVersion=${expectedVersion}`)
   },
   download(documentId: number) {
     return http.download(`/api/documents/${documentId}/download`)

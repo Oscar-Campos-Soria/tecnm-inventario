@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
+import DocumentList from '../../../shared/components/DocumentList.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
@@ -30,6 +31,8 @@ const costFieldId = useId()
 const incidentFieldId = useId()
 
 const history = ref<PagedResult<MaintenanceItem> | null>(null)
+// Registro con sus archivos abiertos (uno a la vez).
+const filesOf = ref<number | null>(null)
 const page = ref(1)
 const incidents = ref<AssetIncidentOption[]>([])
 const open = ref(false)
@@ -141,7 +144,15 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
           </RouterLink>
           <button
             type="button"
-            class="ml-auto min-h-[44px] cursor-pointer rounded-md px-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+            :aria-expanded="filesOf === item.maintenanceRecordId"
+            class="ml-auto min-h-[44px] cursor-pointer rounded-md px-2 text-xs text-primary underline-offset-2 hover:underline"
+            @click="filesOf = filesOf === item.maintenanceRecordId ? null : item.maintenanceRecordId"
+          >
+            {{ filesOf === item.maintenanceRecordId ? 'Ocultar archivos' : 'Archivos' }}
+          </button>
+          <button
+            type="button"
+            class="min-h-[44px] cursor-pointer rounded-md px-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
             @click="remove(item)"
           >
             Eliminar
@@ -150,6 +161,16 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
         <p class="mt-1 whitespace-pre-wrap text-foreground">{{ item.description }}</p>
         <p v-if="item.partsUsed" class="text-xs text-muted-foreground">Piezas: {{ item.partsUsed }}</p>
         <p v-if="item.nextMaintenanceAt" class="text-xs text-muted-foreground">Próximo: {{ formatDate(item.nextMaintenanceAt) }}</p>
+        <DocumentList
+          v-if="filesOf === item.maintenanceRecordId"
+          class="mt-2"
+          owner-type="MAINTENANCE"
+          :owner-id="item.maintenanceRecordId"
+          title="Archivos del servicio"
+          empty-text="Sin archivos. Adjunta el reporte o la factura del servicio."
+          can-upload
+          can-delete
+        />
       </li>
     </ul>
 

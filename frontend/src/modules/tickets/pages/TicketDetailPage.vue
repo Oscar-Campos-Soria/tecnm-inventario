@@ -181,6 +181,7 @@ function cancelTicket() {
           title="Fotos y archivos"
           empty-text="Sin archivos adjuntos."
           :can-upload="!isTerminal"
+          :can-delete="ticket.canManage"
         />
       </div>
 

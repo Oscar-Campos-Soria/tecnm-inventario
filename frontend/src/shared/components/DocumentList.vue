@@ -4,6 +4,7 @@ import { ApiError } from '../api/http'
 import { ALLOWED_MIME_TYPES, MAX_DOCUMENT_BYTES, documentsApi } from '../api/documents'
 import type { DocumentOwnerType, StoredDocument } from '../api/documents'
 import { formatBytes, formatDate } from '../utils/format'
+import { useAuth } from '../hooks/useAuth'
 import UiModal from './UiModal.vue'
 
 // Lista de adjuntos de un registro (evidencias de incidente, fotos de ticket).
@@ -15,9 +16,37 @@ const props = withDefaults(
     emptyText?: string
     // Muestra el botón para adjuntar (el servidor valida dueño y estado).
     canUpload?: boolean
+    // Puede eliminar cualquier archivo; sin esto, solo los que subió (el servidor decide).
+    canDelete?: boolean
   }>(),
-  { title: 'Evidencias', emptyText: 'Sin evidencias adjuntas.', canUpload: false },
+  { title: 'Evidencias', emptyText: 'Sin evidencias adjuntas.', canUpload: false, canDelete: false },
 )
+
+const { session } = useAuth()
+const deleting = ref<number | null>(null)
+
+function canRemove(file: StoredDocument) {
+  return props.canDelete || (file.createdBy !== null && file.createdBy === session.value?.userId)
+}
+
+async function handleDelete(file: StoredDocument) {
+  if (!window.confirm(`¿Eliminar ${file.fileName}? Ya no se podrá ver ni descargar.`)) return
+  error.value = ''
+  deleting.value = file.documentId
+  try {
+    await documentsApi.remove(file.documentId, file.version)
+    load()
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 409) {
+      error.value = 'Alguien más cambió este archivo. Se recargó la lista.'
+      load()
+    } else {
+      error.value = err instanceof ApiError ? err.message : 'No se pudo eliminar el archivo.'
+    }
+  } finally {
+    deleting.value = null
+  }
+}
 
 const items = ref<StoredDocument[] | null>(null)
 const error = ref('')
@@ -156,6 +185,16 @@ const buttonClass =
         </div>
         <button type="button" :aria-label="`Ver ${file.fileName}`" :class="buttonClass" @click="handlePreview(file)">Ver</button>
         <button type="button" :aria-label="`Descargar ${file.fileName}`" :class="buttonClass" @click="handleDownload(file)">Descargar</button>
+        <button
+          v-if="canRemove(file)"
+          type="button"
+          :aria-label="`Eliminar ${file.fileName}`"
+          :disabled="deleting !== null"
+          class="min-h-[44px] cursor-pointer rounded-md px-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline disabled:cursor-wait disabled:opacity-60"
+          @click="handleDelete(file)"
+        >
+          {{ deleting === file.documentId ? 'Eliminando…' : 'Eliminar' }}
+        </button>
       </li>
     </ul>
 
