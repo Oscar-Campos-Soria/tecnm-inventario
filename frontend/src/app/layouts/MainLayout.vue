@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AssistantWidget from '../../modules/assistant/components/AssistantWidget.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BrandMark from '../../shared/components/BrandMark.vue'
@@ -142,5 +143,8 @@ async function handleLogout() {
         <slot />
       </div>
     </main>
+
+    <!-- Asistente IA: solo si el rol lo permite; el componente se oculta solo si el modelo no responde. -->
+    <AssistantWidget v-if="hasPermission('assistant.use')" />
   </div>
 </template>

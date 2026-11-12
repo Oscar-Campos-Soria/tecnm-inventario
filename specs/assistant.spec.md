@@ -65,7 +65,10 @@ responde aunque haya una conversión en curso). `mem_limit: 3584m` (pico medido 
 
 - [x] RAG: manual de usuario en `backend/Features/Assistant/Manual/*.md` (embebido en la API) + `buscar_manual`
   (BM25 en memoria por secciones "## ", sinónimos solo en la pregunta)
-- [ ] Pantalla con botón flotante — **solo después de pasar el set de evaluación**
+- [x] Set de evaluación: 63 preguntas (activos, ficha e historial, incidentes, tickets, combinadas, seguimiento,
+  permisos, manual, mis equipos) al 100% contra el modelo real
+- [x] Pantalla: botón flotante "Pregúntale" en todas las páginas (`frontend/src/modules/assistant`), panel con la
+  conversación, sugerencias según el rol, "Consulté" con los datos reales de cada consulta y "Nueva conversación"
 
 ## Evaluación
 

@@ -138,7 +138,7 @@ cd ../frontend && npm run build && npm run lint
 │   ├── Features/Assistant/   # asistente IA: herramientas de solo lectura, orquestación, manual (RAG)
 │   ├── tests/                # xUnit (InMemory + Testcontainers)
 │   └── tools/                # CLI tecnm (despliegue) y PasswordHasher
-├── frontend/       # SPA Vue 3 — app / modules / shared, rutas por módulo
+├── frontend/       # SPA Vue 3 — app / modules / shared, rutas por módulo (modules/assistant: botón "Pregúntale")
 ├── database/       # docker-compose (desarrollo y producción), modelos de IA (no versionados)
 ├── scripts/        # SQL de seeds y permisos, idempotentes (orden en scripts/README.md)
 ├── specs/          # Especificaciones funcionales por módulo
@@ -162,8 +162,11 @@ cd ../frontend && npm run build && npm run lint
 
 - **Carga masiva con IA** ([`specs/bulk-import-ai.spec.md`](specs/bulk-import-ai.spec.md)): convierte un Excel, CSV,
   PDF o foto de un oficio a la plantilla oficial; la persona la revisa y la sube. La IA nunca escribe en la BD.
-- **Asistente** ([`specs/assistant.spec.md`](specs/assistant.spec.md)): responde con datos actuales usando herramientas
-  de solo lectura sobre las consultas existentes, con los permisos del rol del usuario; no genera SQL.
+- **Asistente "Pregúntale"** ([`specs/assistant.spec.md`](specs/assistant.spec.md)): botón flotante en todas las
+  páginas. Responde con datos actuales usando herramientas de solo lectura sobre las consultas existentes, con los
+  permisos del rol del usuario (no genera SQL), recuerda la conversación para preguntas de seguimiento, explica cómo se
+  hacen las cosas con el manual integrado y muestra bajo cada respuesta qué consultó y los datos reales.
+- Si el modelo está apagado, el botón y la conversión con IA no aparecen y el resto del sistema funciona igual.
 
 ## Decisiones y desviaciones de la plantilla
 
