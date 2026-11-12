@@ -1,6 +1,7 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using TecnmInventario.Api.Common.Audit;
+using TecnmInventario.Api.Common.Authorization;
 using TecnmInventario.Api.Common.Domain;
 using TecnmInventario.Api.Common.Errors;
 using TecnmInventario.Api.Common.Security;
@@ -14,15 +15,18 @@ public sealed class CreateTicketHandler : ICommandHandler<CreateTicketCommand, C
     private readonly TecnmInventarioDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditLogService _auditLog;
+    private readonly IRolePermissionService _permissions;
 
     public CreateTicketHandler(
         TecnmInventarioDbContext context,
         ICurrentUserService currentUser,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        IRolePermissionService permissions)
     {
         _context = context;
         _currentUser = currentUser;
         _auditLog = auditLog;
+        _permissions = permissions;
     }
 
     public async ValueTask<CreateTicketResponse> Handle(
@@ -55,6 +59,13 @@ public sealed class CreateTicketHandler : ICommandHandler<CreateTicketCommand, C
             if (assetStatus == AssetStatusCodes.DadoDeBaja)
                 throw new BusinessRuleViolationException(
                     "No se puede levantar un ticket sobre un activo dado de baja.");
+
+            // Quien no ve el inventario (usuario general) solo puede ligar sus propios equipos.
+            var canSeeAll = _currentUser.RoleCode is { } role
+                && await _permissions.HasPermissionAsync(role, "assets.view", cancellationToken);
+            if (!canSeeAll && !await _context.AssetAssignments.AnyAsync(a =>
+                    a.AssetId == command.AssetId.Value && a.AssignedTo == userId && a.ReturnedAt == null, cancellationToken))
+                throw new BusinessRuleViolationException("Solo puedes reportar equipos que tienes asignados.");
         }
 
         if (command.LocationId.HasValue)

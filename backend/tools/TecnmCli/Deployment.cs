@@ -58,7 +58,7 @@ internal sealed partial class Deployment(string root)
         var cert = Certificates.ReadServer(CertDir);
         var days = cert is null ? "sin certificado" : $"certificado: {(cert.NotAfter - DateTime.Now).Days} días";
         var last = Directory.Exists(BackupDir) ? BackupFiles.Stamps(Directory.GetFiles(BackupDir).Select(Path.GetFileName)!).FirstOrDefault() : null;
-        return $"{app}   {WebUrl}   {days}   último respaldo: {last ?? "ninguno"}";
+        return $"{app}   {WebUrl}   {days}   último respaldo: {last ?? "ninguno"}   {AiStatusLine()}";
     }
 
     public void Status()

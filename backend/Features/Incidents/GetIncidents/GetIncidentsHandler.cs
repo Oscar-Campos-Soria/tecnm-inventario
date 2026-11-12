@@ -75,6 +75,18 @@ public sealed class GetIncidentsHandler
             incidents = incidents.Where(i => i.Title.ToLower().Contains(term));
         }
 
+        if (query.ReportedFrom.HasValue)
+        {
+            var from = query.ReportedFrom.Value;
+            incidents = incidents.Where(i => i.ReportedAt >= from);
+        }
+
+        if (query.AssetTypeId.HasValue)
+        {
+            var typeId = query.AssetTypeId.Value;
+            incidents = incidents.Where(i => i.Asset.AssetTypeId == typeId);
+        }
+
         var totalCount = await incidents.CountAsync(cancellationToken);
 
         var items = await incidents

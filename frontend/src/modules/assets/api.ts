@@ -17,6 +17,7 @@ import type {
   AssetDetail,
   AssetMovement,
   AssetSummary,
+  MyAsset,
   CatalogItem,
   CreateAssignmentInput,
   CreateMovementInput,
@@ -36,6 +37,10 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
 }
 
 export const assetsApi = {
+  // Equipos asignados al usuario actual (sin assets.view: cada quien ve solo lo suyo).
+  mine() {
+    return http.get<MyAsset[]>('/api/assets/mine')
+  },
   list(pageNumber = 1, pageSize = 20, filters: AssetFilters = {}) {
     return http.get<PagedResult<AssetSummary>>(
       `/api/assets${buildQuery({ pageNumber, pageSize, ...filters })}`,

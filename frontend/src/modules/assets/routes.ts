@@ -15,6 +15,20 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    // Equipos a cargo del usuario; para quien no ve el inventario completo (usuario general).
+    path: '/my-assets',
+    name: 'my-assets',
+    component: () => import('./pages/MyAssetsPage.vue'),
+    meta: {
+      nav: {
+        label: 'Mis equipos',
+        order: 20,
+        hideWithPermission: 'assets.view',
+        icon: ['M4 5h16v10H4z', 'M8 19h8', 'M12 15v4'],
+      },
+    },
+  },
+  {
     path: '/assets/:assetId',
     name: 'asset-detail',
     component: () => import('./pages/AssetDetailPage.vue'),

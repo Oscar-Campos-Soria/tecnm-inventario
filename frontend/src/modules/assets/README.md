@@ -7,6 +7,7 @@ Lista de activos y ficha detallada con movimientos de ubicación y asignaciones.
 | Ruta | Página | Menú |
 | --- | --- | --- |
 | `/assets` | `pages/AssetsPage.vue` — tabla paginada (código, tipo, estado, ubicación, serie, hostname) con búsqueda (código/serie/hostname) y filtros por estado, tipo, ubicación (incluye sub-ubicaciones) y "incluir dados de baja" | "Activos", orden 20, `assets.view` |
+| `/my-assets` | `pages/MyAssetsPage.vue` — "Mis equipos": tarjetas de los equipos asignados al usuario (estado, ubicación, desde cuándo, sus tickets de ese equipo) y "Reportar problema" | "Mis equipos", orden 20, oculto a quien tiene `assets.view` (`meta.nav.hideWithPermission`) |
 | `/assets/:assetId` | `pages/AssetDetailPage.vue` — datos generales, tipo/estado, movimientos (paginados + registro), asignaciones (registro + devolución) | — |
 
 ## Reglas reflejadas

@@ -8,6 +8,8 @@ export interface NavEntry {
   order: number
   // Permiso que habilita la entrada (solo UX; la API valida).
   permission?: string
+  // Oculta la entrada a quien tenga este permiso (p. ej. "Mis equipos" no aparece a quien ve "Activos").
+  hideWithPermission?: string
   // Contador junto a la etiqueta (p. ej. tickets sin asignar). Solo se pide si el
   // usuario tiene badgePermission; se refresca al cambiar de ruta.
   badge?: () => Promise<number>

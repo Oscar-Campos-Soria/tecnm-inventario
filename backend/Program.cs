@@ -165,6 +165,23 @@ builder.Services.AddScoped<ISoftDeleteAuditor, SoftDeleteAuditor>();
 builder.Services.AddScoped<TecnmInventario.Api.Features.Assets.Shared.IAssetStatusChanger, TecnmInventario.Api.Features.Assets.Shared.AssetStatusChanger>();
 builder.Services.AddScoped<TecnmInventario.Api.Features.Incidents.Shared.IncidentResolver>();
 builder.Services.AddScoped<TecnmInventario.Api.Features.BulkImport.Shared.AssetImportChecker>();
+// Asistente IA local (servicio "ia"): conversión de archivos para la carga masiva.
+builder.Services.Configure<TecnmInventario.Api.Common.Ai.AiOptions>(
+    builder.Configuration.GetSection(TecnmInventario.Api.Common.Ai.AiOptions.SectionName));
+// 5 min es el tope de la carga masiva (una imagen); el asistente pone su propio límite por petición.
+builder.Services.AddHttpClient<TecnmInventario.Api.Common.Ai.ILocalAiClient,
+    TecnmInventario.Api.Common.Ai.LocalAiClient>(c => c.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TecnmInventario.Api.Features.BulkImport.Shared.Ai.AiImportJobs>();
+builder.Services.AddScoped<TecnmInventario.Api.Features.BulkImport.Shared.Ai.AiImportProcessor>();
+builder.Services.AddHostedService<TecnmInventario.Api.Features.BulkImport.Shared.Ai.AiImportWorker>();
+// Asistente ("Pregúntale a la IA"): herramientas de solo lectura sobre queries existentes.
+builder.Services.AddSingleton<TecnmInventario.Api.Features.Assistant.Shared.ConversationStore>();
+builder.Services.AddSingleton<TecnmInventario.Api.Features.Assistant.Shared.ManualIndex>();
+builder.Services.AddScoped<TecnmInventario.Api.Features.Assistant.Shared.AssistantOrchestrator>();
+foreach (var tool in typeof(Program).Assembly.GetTypes().Where(t => t is { IsClass: true, IsAbstract: false }
+             && typeof(TecnmInventario.Api.Features.Assistant.Shared.IAssistantTool).IsAssignableFrom(t)))
+    builder.Services.AddScoped(typeof(TecnmInventario.Api.Features.Assistant.Shared.IAssistantTool), tool);
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.Configure<TecnmInventario.Api.Features.Tickets.Shared.TicketOptions>(

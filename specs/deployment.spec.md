@@ -68,6 +68,7 @@ El CLI busca la raíz del repo subiendo desde su carpeta (o `TECNM_ROOT`).
 | 8 Administrador | Crea o reactiva un ADMIN; contraseña oculta (12+), BCrypt, valores por variables de psql. Escribe directo en la BD: no queda en `audit_log` |
 | C Certificado | Regenera el del servidor con la misma CA; instrucciones para instalar `ca.crt` (Windows, Android, iPhone) o usar uno de sistemas |
 | P Programar | Respaldo diario 02:00: Programador de tareas (Windows) o crontab (Linux) |
+| I Asistente IA | Modelo local de la carga masiva (ver abajo). También `tecnm ia instalar [--desde archivo.gguf] \| estado \| probar \| desactivar` |
 | S Sandbox | En el equipo de desarrollo: BD de `database/docker-compose.yml`, `dotnet run` (5112) y vite (5173); Enter los detiene |
 
 Se niega a operar si `.env.prod` falta o tiene secretos débiles (contraseña < 24, JWT < 64).
@@ -79,3 +80,20 @@ validando solo contra `ca.crt`, respaldo → cambio → restauración (vuelve al
 cancelación sin `RESTAURAR`, actualización sobre BD existente, regenerar certificado (CA intacta),
 reactivar admin inactivo, contraseñas cortas/distintas rechazadas, sandbox arranca y cierra sus
 procesos, binario linux-x64 compilado en el contenedor del SDK.
+
+## Asistente IA (modelo local)
+
+Servicio `ia` del compose: `ghcr.io/ggml-org/llama.cpp:server-b11960` con `Qwen3.5-2B-Q4_K_M.gguf` y su módulo
+de visión `mmproj-F16.gguf` (`unsloth/Qwen3.5-2B-GGUF` en Hugging Face, Apache 2.0; tamaños y SHA256 fijados en
+`backend/tools/TecnmCli/AiModel.cs`). Lee texto e imágenes (oficios escaneados). Es opcional: perfil `ia`,
+encendido con `COMPOSE_PROFILES=ia` en `.env.prod`.
+
+- Sin puerto publicado y solo en la red `back` (interna, sin internet): únicamente la API le habla (`http://ia:8080`).
+- `--ctx-size 8192 --parallel 2`: dos turnos de 4096 (el asistente responde aunque una carga masiva esté corriendo).
+  `mem_limit: 3584m` (pico medido ~3.15 GB con ambos turnos trabajando y leyendo una imagen), caché KV en 8 bits y `--image-max-tokens 512`
+  (misma precisión, transcribe en 23 s en lugar de 36 s). Las versiones IQ3 del 2B y el 0.8B se probaron: rompen la extracción. Hilos `IA_THREADS` (4 por omisión). Contenedor de solo lectura.
+- El modelo vive en `database/models/` (no se versiona). `tecnm ia instalar` descarga cada archivo a `.part` y solo lo
+  acepta si tamaño y SHA256 coinciden; `--desde <carpeta>` hace lo mismo con archivos copiados (servidor sin internet).
+  Borra los `.gguf` de modelos anteriores.
+- `tecnm ia probar` empareja encabezados de ejemplo con las columnas de la plantilla (JSON con esquema) y mide tokens/s.
+- `tecnm ia desactivar` borra el contenedor y apaga el perfil; el modelo se conserva.

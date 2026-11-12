@@ -67,6 +67,12 @@ export const ticketsApi = {
       .get<PagedResult<AssetOption>>(`/api/assets${buildQuery({ pageNumber: 1, pageSize: 20, search: search || undefined })}`)
       .then((page) => page.items)
   },
+  // Equipos asignados al usuario (para quien no ve el inventario completo).
+  myAssets() {
+    return http.get<{ assetId: number; inventoryCode: string; assetTypeName: string; manufacturerName: string | null; modelName: string | null }[]>(
+      '/api/assets/mine',
+    )
+  },
   asset(assetId: number) {
     return http.get<{ assetId: number; inventoryCode: string; hostname: string | null }>(`/api/assets/${assetId}`)
   },

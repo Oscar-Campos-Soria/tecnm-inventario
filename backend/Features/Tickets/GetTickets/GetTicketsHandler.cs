@@ -77,6 +77,12 @@ public sealed class GetTicketsHandler
             tickets = tickets.Where(t => t.Title.ToLower().Contains(term));
         }
 
+        if (query.CreatedFrom.HasValue)
+        {
+            var from = query.CreatedFrom.Value;
+            tickets = tickets.Where(t => t.CreatedAt >= from);
+        }
+
         var totalCount = await tickets.CountAsync(cancellationToken);
 
         // Bandeja de pendientes: lo urgente arriba y, a igual prioridad, lo más viejo primero.

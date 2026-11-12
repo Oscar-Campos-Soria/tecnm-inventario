@@ -21,8 +21,17 @@ if (args.Length > 0)
         case "estado": deployment.Status(); return deployment.IsHealthy() ? 0 : 1;
         case "iniciar": deployment.Start(); return 0;
         case "detener": deployment.Stop(); return 0;
+        case "ia" when args.Length > 1:
+            switch (args[1])
+            {
+                case "instalar": return deployment.AiInstall(args.Length > 3 && args[2] == "--desde" ? args[3] : null) ? 0 : 1;
+                case "estado": deployment.AiStatus(); return 0;
+                case "probar": return deployment.AiTest() ? 0 : 1;
+                case "desactivar": deployment.AiDisable(); return 0;
+            }
+            goto default;
         default:
-            Ui.Info("Uso: tecnm [respaldar | estado | iniciar | detener]   (sin argumentos: menú)");
+            Ui.Info("Uso: tecnm [respaldar | estado | iniciar | detener | ia instalar [--desde carpeta] | ia estado | ia probar | ia desactivar]   (sin argumentos: menú)");
             return 2;
     }
 }
@@ -38,6 +47,7 @@ while (true)
     Ui.Info("  4) Estado y logs           9) Instalar por primera vez");
     Ui.Info("  5) Actualizar              C) Certificado HTTPS");
     Ui.Info("  P) Programar respaldo      S) Sandbox (modo desarrollo en este equipo)");
+    Ui.Info("  I) Asistente IA (carga masiva)");
     Ui.Info("  0) Salir\n");
 
     var option = Ui.Ask("Opción").ToUpperInvariant();
@@ -55,6 +65,7 @@ while (true)
         case "C": deployment.CertificateMenu(); break;
         case "P": deployment.ScheduleBackup(); break;
         case "S": Sandbox.Run(root); break;
+        case "I": deployment.AiMenu(); break;
         case "0" or "": return 0;
         default: Ui.Warn("Opción no válida."); break;
     }

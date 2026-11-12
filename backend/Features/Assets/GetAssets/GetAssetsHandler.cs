@@ -42,6 +42,12 @@ public sealed class GetAssetsHandler : IQueryHandler<GetAssetsQuery, PagedResult
             assets = assets.Where(a => a.AssetTypeId == typeId);
         }
 
+        if (query.ManufacturerId.HasValue)
+        {
+            var manufacturerId = query.ManufacturerId.Value;
+            assets = assets.Where(a => a.ManufacturerId == manufacturerId);
+        }
+
         if (query.LocationId.HasValue)
         {
             var locationIds = await LocationTree.DescendantsAndSelfAsync(_context, query.LocationId.Value, cancellationToken);
@@ -64,7 +70,9 @@ public sealed class GetAssetsHandler : IQueryHandler<GetAssetsQuery, PagedResult
                 a.AssetStatus.Code,
                 a.AssetStatus.Name,
                 a.CurrentLocationId,
-                a.CurrentLocation != null ? a.CurrentLocation.Name : null))
+                a.CurrentLocation != null ? a.CurrentLocation.Name : null,
+                a.Manufacturer != null ? a.Manufacturer.Name : null,
+                a.Model != null ? a.Model.ModelName : null))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<GetAssetsResponse>(items, query.PageNumber, query.PageSize, totalCount);

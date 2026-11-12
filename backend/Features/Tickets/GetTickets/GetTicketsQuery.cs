@@ -12,4 +12,6 @@ public sealed record GetTicketsQuery(
     long? AssignedTo,
     bool? Unassigned,
     bool? OnlyOpen,
-    string? Search) : IQuery<PagedResult<GetTicketsResponse>>;
+    string? Search,
+    // Creados desde esta fecha (UTC). Lo usa el asistente para "¿qué hay de nuevo?".
+    DateTime? CreatedFrom = null) : IQuery<PagedResult<GetTicketsResponse>>;

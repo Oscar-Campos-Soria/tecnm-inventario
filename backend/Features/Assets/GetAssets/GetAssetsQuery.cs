@@ -13,4 +13,5 @@ public sealed record GetAssetsQuery(
     // Incluye las sub-ubicaciones (edificio -> plantas -> salones).
     long? LocationId = null,
     // Los dados de baja se ocultan salvo que se pidan.
-    bool IncludeDisposed = false) : IQuery<PagedResult<GetAssetsResponse>>;
+    bool IncludeDisposed = false,
+    long? ManufacturerId = null) : IQuery<PagedResult<GetAssetsResponse>>;

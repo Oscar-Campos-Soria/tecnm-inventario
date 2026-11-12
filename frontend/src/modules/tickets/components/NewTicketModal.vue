@@ -37,6 +37,9 @@ const assetId = ref('')
 const presetAsset = ref<AssetOption | null>(null)
 const locationId = ref('')
 const locations = ref<LocationOption[]>([])
+// Sin assets.view: sus propios equipos ("Mis equipos").
+const myAssets = ref<{ assetId: number; label: string }[]>([])
+const myAssetsFieldId = useId()
 const photo = ref<File | null>(null)
 const error = ref('')
 const submitting = ref(false)
@@ -63,6 +66,15 @@ watch(
         .asset(props.presetAssetId)
         .then((a) => (presetAsset.value = { assetId: a.assetId, inventoryCode: a.inventoryCode, hostname: a.hostname }))
         .catch(() => (presetAsset.value = null))
+    }
+    if (!canPickAsset.value) {
+      ticketsApi
+        .myAssets()
+        .then((list) => (myAssets.value = list.map((a) => ({
+          assetId: a.assetId,
+          label: `${[a.assetTypeName, a.manufacturerName, a.modelName].filter(Boolean).join(' ')} (${a.inventoryCode})`,
+        }))))
+        .catch(() => (myAssets.value = []))
     }
     if (canPickLocation.value) {
       ticketsApi.locations().then((list) => (locations.value = list)).catch(() => (locations.value = []))
@@ -210,6 +222,15 @@ const inputClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
         :initial="presetAsset"
         empty-label="No es de un equipo en particular"
       />
+      <div v-else-if="myAssets.length > 0">
+        <label :for="myAssetsFieldId" class="mb-1 block text-sm font-medium text-foreground">
+          ¿Es de alguno de tus equipos? <span class="font-normal text-muted-foreground">(opcional)</span>
+        </label>
+        <select :id="myAssetsFieldId" v-model="assetId" class="min-h-[44px] w-full cursor-pointer rounded-md border border-border bg-background px-2.5 text-foreground">
+          <option value="">No es de un equipo en particular</option>
+          <option v-for="asset in myAssets" :key="asset.assetId" :value="String(asset.assetId)">{{ asset.label }}</option>
+        </select>
+      </div>
 
       <div v-if="canPickLocation">
         <label :for="locationFieldId" class="mb-1 block text-sm font-medium text-foreground">

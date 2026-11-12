@@ -16,6 +16,7 @@ using TecnmInventario.Api.Features.Procurement.Warranties.GetWarrantiesByAsset;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
 
 using TecnmInventario.Api.Features.Assets.GetAssetLabels;
+using TecnmInventario.Api.Features.Assets.GetMyAssets;
 
 namespace TecnmInventario.Api.Features.Assets;
 
@@ -29,6 +30,12 @@ public class AssetsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    // Equipos asignados al usuario que pregunta. Sin assets.view: cada quien ve solo lo suyo.
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<MyAssetResponse>>> GetMyAssets(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetMyAssetsQuery(), cancellationToken));
 
     public sealed record AssetFilters(
         string? Search, string? Status, long? AssetTypeId, long? LocationId, bool IncludeDisposed = false);

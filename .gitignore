@@ -32,6 +32,9 @@ pnpm-debug.log*
 backend/storage/documents/*
 !backend/storage/documents/.gitkeep
 
+# Modelo de IA local (~1.9 GB): lo descarga `tecnm ia instalar`
+database/models/
+
 # ==========================================
 # Logs
 # ==========================================

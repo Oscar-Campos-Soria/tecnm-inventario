@@ -91,7 +91,7 @@ public static class AssetImportParser
         }
     }
 
-    private static List<List<string>> ReadCsv(byte[] content)
+    internal static List<List<string>> ReadCsv(byte[] content)
     {
         var text = new UTF8Encoding(false).GetString(content).TrimStart('\uFEFF');
         var firstLine = text.Split('\n', 2)[0];

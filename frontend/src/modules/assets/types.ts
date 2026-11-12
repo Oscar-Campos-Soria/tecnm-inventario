@@ -1,3 +1,4 @@
+import type { TicketStatus } from '../tickets/types'
 export interface PagedResult<T> {
   items: T[]
   pageNumber: number
@@ -242,6 +243,29 @@ export interface SoftwareOption {
   softwareId: number
   name: string
   vendor: string | null
+}
+
+// GET /api/assets/mine: equipos con asignación vigente del usuario y sus propios tickets de cada uno.
+export interface MyAsset {
+  assetId: number
+  inventoryCode: string
+  assetTypeName: string
+  manufacturerName: string | null
+  modelName: string | null
+  serialNumber: string | null
+  statusCode: string
+  statusName: string
+  locationName: string | null
+  assignmentTypeName: string
+  assignedAt: string
+  tickets: MyAssetTicket[]
+}
+
+export interface MyAssetTicket {
+  ticketId: number
+  title: string
+  status: TicketStatus
+  createdAt: string
 }
 
 export type { AuditLogItem } from '../../shared/api/audit'

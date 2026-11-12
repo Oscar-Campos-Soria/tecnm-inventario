@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Manual de usuario que consulta el asistente (RAG) -->
+    <EmbeddedResource Include="Features\Assistant\Manual\*.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="FluentValidation" />
@@ -26,6 +31,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="PdfPig" />
     <PackageReference Include="QRCoder" />
     <PackageReference Include="QuestPDF" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />

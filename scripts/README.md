@@ -20,9 +20,13 @@ psql "$DATABASE_URL" -f add-maintenance-fields.sql       # maintenance_records: 
 psql "$DATABASE_URL" -f add-inventory-counts.sql        # levantamiento físico: columnas, motivo AJUSTE_INVENTARIO, permiso inventory.manage
 psql "$DATABASE_URL" -f add-admin-permissions.sql       # users.manage e history.view (solo ADMIN)
 psql "$DATABASE_URL" -f add-locations-view-permission.sql   # permiso locations.view (solo lectura de ubicaciones, todos los roles)
+psql "$DATABASE_URL" -f add-assistant-permission.sql    # assistant.use (asistente IA, todos los roles)
+psql "$DATABASE_URL" -f restrict-general-user.sql       # USUARIO_GENERAL sin assets.view ni incidents.create (ve "Mis equipos")
 psql "$DATABASE_URL" -f deactivate-system-account.sql   # cuenta técnica "system" inactiva (no inicia sesión)
 psql "$DATABASE_URL" -f seed-locations-demo.sql  # OPCIONAL, solo desarrollo: árbol de ejemplo (Edificio B)
 psql "$DATABASE_URL" -v hash="$HASH" -f seed-test-users.sql   # OPCIONAL, solo desarrollo: usuarios de prueba RBAC (el hash se pasa por variable, no vive en el repo)
+psql "$DATABASE_URL" -v hash="$HASH" -f seed-dev-admin.sql   # OPCIONAL, solo desarrollo: primer ADMIN (admin_local); en producción se usa el CLI tecnm
+psql "$DATABASE_URL" -f seed-assistant-demo.sql  # OPCIONAL, solo desarrollo: fabricantes y modelos de ejemplo (asistente IA, carga masiva)
 ```
 
 | Script | Contenido |
@@ -37,6 +41,10 @@ psql "$DATABASE_URL" -v hash="$HASH" -f seed-test-users.sql   # OPCIONAL, solo d
 | `add-maintenance-fields.sql` | Columnas `incident_id` (correctivo ligado a incidente) y `cost` en `maintenance_records`, e índices por activo y próxima fecha |
 | `add-inventory-counts.sql` | Levantamiento físico: `inventory_sessions.location_id`; en `inventory_records` ubicación esperada, revisión y ajuste de conciliación; motivo `AJUSTE_INVENTARIO`; permiso `inventory.manage` (ADMIN, TECNICO) |
 | `add-admin-permissions.sql` | Permisos `users.manage` (editar usuarios, rol, estado, contraseña) e `history.view` (bitácora y línea de tiempo), solo ADMIN |
+| `add-assistant-permission.sql` | Permiso `assistant.use` (asistente IA de solo lectura) para todos los roles; cada herramienta exige además su propio permiso |
+| `restrict-general-user.sql` | USUARIO_GENERAL solo ve lo suyo: quita `assets.view` e `incidents.create` (reporta por ticket; sus equipos en "Mis equipos") |
+| `seed-assistant-demo.sql` | OPCIONAL, solo desarrollo: fabricantes y modelos de ejemplo para probar el asistente IA y la carga masiva |
+| `seed-dev-admin.sql` | OPCIONAL, solo desarrollo: primer administrador `admin_local` (hash por variable de psql) |
 | `add-locations-view-permission.sql` | Permiso `locations.view` (ver ubicaciones sin modificarlas) para ADMIN, TECNICO, RESPONSABLE_AREA y USUARIO_GENERAL |
 | `deactivate-system-account.sql` | Deja inactiva la cuenta técnica `system` (firma procesos automáticos; su hash no es bcrypt) |
 | `add-tickets.sql` | Tablas `ticket_categories` (catálogo + seed), `tickets` y `ticket_comments`; permisos `tickets.create` (todos los roles) y `tickets.manage` (ADMIN, TECNICO); `documents.owner_type` acepta `TICKET` |

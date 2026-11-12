@@ -42,6 +42,8 @@ services:
       Cors__AllowedOrigins__0: https://${PUBLIC_HOST}:6010
       # Solo se cree el X-Forwarded-For que llega desde nginx (red "front").
       ForwardedHeaders__KnownNetworks__0: 172.30.10.0/24
+      # Asistente IA (servicio "ia", perfil opcional). Si no está encendido, la API lo detecta y oculta la función.
+      Ia__BaseUrl: http://ia:8080
     volumes:
       - documents:/data/documents
     read_only: true
@@ -68,6 +70,33 @@ services:
       - ./certs:/etc/nginx/certs:ro
     security_opt: [no-new-privileges:true]
     networks: [front]
+    logging: *logging
+
+  # Modelo local (llama.cpp + Qwen3.5-2B con visión) para la carga masiva. Opcional: lo enciende
+  # `tecnm ia instalar` (COMPOSE_PROFILES=ia en .env.prod). Sin puerto publicado y en la
+  # red interna "back", sin internet: solo la API le habla.
+  ia:
+    image: ghcr.io/ggml-org/llama.cpp:server-b11960
+    profiles: [ia]
+    restart: unless-stopped
+    command: >-
+      -m /models/Qwen3.5-2B-Q4_K_M.gguf --mmproj /models/mmproj-F16.gguf --host 0.0.0.0 --port 8080
+      --ctx-size 8192 --parallel 2 --threads ${IA_THREADS:-4} --jinja
+      -ctk q8_0 -ctv q8_0 --image-max-tokens 512
+    volumes:
+      - ./models:/models:ro
+    # 2 turnos (asistente + carga masiva a la vez), 4096 de contexto cada uno. Medido: pico ~3.15 GB
+    # con ambos trabajando y leyendo una imagen. Versiones más comprimidas (IQ3, 0.8B) rompen la extracción.
+    mem_limit: 3584m
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     logging: *logging
 
 networks:

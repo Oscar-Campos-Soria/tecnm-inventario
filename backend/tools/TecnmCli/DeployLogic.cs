@@ -94,6 +94,21 @@ internal static class ProdEnv
         .GroupBy(p => p.Key)
         .ToDictionary(g => g.Key, g => g.Last().Value);
 
+    /// <summary>Cambia (o agrega al final) una variable conservando el resto del archivo y sus comentarios.</summary>
+    public static string Set(string text, string key, string value)
+    {
+        var lines = text.Split('\n').ToList();
+        var i = lines.FindIndex(l => l.TrimStart().StartsWith(key + "=", StringComparison.Ordinal));
+        if (i >= 0) lines[i] = $"{key}={value}";
+        else
+        {
+            if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+            lines.Add($"{key}={value}");
+            lines.Add("");
+        }
+        return string.Join('\n', lines);
+    }
+
     /// <summary>Problemas que impiden instalar o actualizar (vacío = válido). Nunca incluye los valores.</summary>
     public static IReadOnlyList<string> Problems(IReadOnlyDictionary<string, string> env)
     {

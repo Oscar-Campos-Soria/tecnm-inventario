@@ -10,4 +10,6 @@ public sealed record GetAssetsResponse(
     string StatusCode,
     string StatusName,
     long? LocationId,
-    string? LocationName);
+    string? LocationName,
+    string? ManufacturerName = null,
+    string? ModelName = null);

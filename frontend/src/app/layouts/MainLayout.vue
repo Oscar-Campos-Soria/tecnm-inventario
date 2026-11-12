@@ -18,6 +18,7 @@ const activeItems = computed(() =>
     .filter((record) => record.meta.nav)
     .map((record) => ({ to: record.path, ...(record.meta.nav as NavEntry) }))
     .filter((item) => !item.permission || hasPermission(item.permission))
+    .filter((item) => !item.hideWithPermission || !hasPermission(item.hideWithPermission))
     .sort((a, b) => a.order - b.order),
 )
 

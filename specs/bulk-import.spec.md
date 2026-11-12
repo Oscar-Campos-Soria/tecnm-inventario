@@ -34,6 +34,7 @@ UTF-8, separado por coma o punto y coma, con comillas dobles. Máximo 1000 filas
 - [x] Plantilla, revisión y confirmación (prueba de integración con PostgreSQL real)
 - [x] Pantalla `/bulk-import` de tres pasos
 - [ ] Importar asignaciones o componentes — backlog
+- Archivos con otro formato, PDF o fotos: conversión con IA a esta plantilla (specs/bulk-import-ai.spec.md)
 
 ## Implementación
 

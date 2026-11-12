@@ -92,4 +92,41 @@ public class CliDeployLogicTests
             if (Directory.Exists(otherDir)) Directory.Delete(otherDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void Env_set_cambia_o_agrega_sin_tocar_lo_demas()
+    {
+        var text = "# comentario\nPUBLIC_HOST=a\nJWT_SECRET=x=y\n";
+
+        var added = ProdEnv.Set(text, "COMPOSE_PROFILES", "ia");
+        Assert.Equal("# comentario\nPUBLIC_HOST=a\nJWT_SECRET=x=y\nCOMPOSE_PROFILES=ia\n", added);
+        Assert.True(AiModel.Enabled(ProdEnv.Parse(added)));
+
+        var cleared = ProdEnv.Set(added, "COMPOSE_PROFILES", "");
+        Assert.Equal("# comentario\nPUBLIC_HOST=a\nJWT_SECRET=x=y\nCOMPOSE_PROFILES=\n", cleared);
+        Assert.False(AiModel.Enabled(ProdEnv.Parse(cleared)));
+        Assert.Equal("x=y", ProdEnv.Parse(cleared)["JWT_SECRET"]);
+    }
+
+    [Fact]
+    public void Modelo_solo_se_acepta_con_tamano_y_huella_exactos()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, "abc");
+            const string sha = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"; // SHA256("abc")
+
+            Assert.True(AiModel.Matches(path, 3, sha));
+            Assert.False(AiModel.Matches(path, 4, sha));
+            Assert.False(AiModel.Matches(path, 3, new string('0', 64)));
+            Assert.False(AiModel.Matches(path + ".no-existe", 3, sha));
+            Assert.Equal(["Qwen3-1.7B-Q4_K_M.gguf"],
+                AiModel.Stale(["Qwen3-1.7B-Q4_K_M.gguf", .. AiModel.Files.Select(f => f.FileName), "notas.txt"]));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

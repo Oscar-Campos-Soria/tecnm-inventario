@@ -52,6 +52,8 @@ ABIERTO ──asignar──► EN_ATENCION ⇄ ESPERANDO_USUARIO
 
 ## Reglas de negocio
 
+- Equipo del ticket: quien no tiene `assets.view` (usuario general) solo puede ligar un equipo que tenga asignado
+  (400 "Solo puedes reportar equipos que tienes asignados."). En la pantalla elige entre "Mis equipos".
 - Título obligatorio (≤ 200); descripción opcional (≤ 4000); comentario
   obligatorio (≤ 4000); resolución obligatoria (≤ 4000).
 - Prioridad: catálogo `incident_priorities`. Si el solicitante no la indica,

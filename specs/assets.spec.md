@@ -10,6 +10,7 @@ Ficha técnica de cada equipo físico inventariable, máquina de estados de cicl
 | --- | --- | --- | --- |
 | `GET` | `/api/assets` | `assets.view` | Listado paginado |
 | `GET` | `/api/assets/{assetId}` | `assets.view` | Detalle por id |
+| `GET` | `/api/assets/mine` | sesión (sin permiso especial) | "Mis equipos": asignaciones vigentes del usuario que pregunta, con sus propios tickets de cada equipo (máx. 5) |
 | `POST` | `/api/assets` | `assets.create` | Crea activo |
 | `PUT` | `/api/assets/{assetId}` | `assets.update` | Edita ficha (fabricante, modelo, ubicación, serie, hostname, notas) |
 | `PUT` | `/api/assets/{assetId}/status` | `assets.update` | Transición de estado (máquina de estados) |
@@ -29,6 +30,8 @@ Ficha técnica de cada equipo físico inventariable, máquina de estados de cicl
 - Ubicación actual desnormalizada en `current_location_id`; el histórico vive en `asset_movements`.
 - **Concurrencia optimista con `version`**: `PUT /{assetId}`, `PATCH /{assetId}/status` y los comandos de movimiento, asignación y devolución reciben `expectedVersion` (query) con la versión del activo que el cliente vio. Si no coincide con la versión actual: `409 Conflicto de concurrencia` y no se escribe nada (la comparación ocurre antes de abrir la transacción). Un `expectedVersion` ausente o ≤ 0 da `400` de validación. Las respuestas de escritura devuelven la versión nueva del activo (`version` en `PUT`/`PATCH`, `assetVersion` en los otros tres).
 - **Movimientos:** el destino no puede coincidir con la ubicación actual; cada movimiento registra origen/destino y es inmutable (no se borra para corregir).
+- **Usuario general (sin `assets.view`)**: no ve el inventario; ve solo sus equipos asignados en "Mis equipos"
+  (`/my-assets`). Tener equipo es opcional; la asociación es la asignación que hace ADMIN o TECNICO.
 - **Asignaciones:** un activo solo tiene una asignación activa (`returned_at IS NULL`); debe devolverse antes de reasignar. El usuario asignado debe existir y estar activo.
 
 ## Datos

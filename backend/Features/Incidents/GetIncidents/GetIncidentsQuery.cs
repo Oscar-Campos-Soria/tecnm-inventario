@@ -12,4 +12,8 @@ public sealed record GetIncidentsQuery(
     long? IncidentTypeId,
     long? AssignedTo,
     bool? OnlyOpen,
-    string? Search) : IQuery<PagedResult<GetIncidentsResponse>>;
+    string? Search,
+    // Reportados desde esta fecha (UTC). Lo usa el asistente para "¿qué hay de nuevo?".
+    DateTime? ReportedFrom = null,
+    // Incidentes de activos de este tipo (ej. todas las impresoras). Lo usa el asistente.
+    long? AssetTypeId = null) : IQuery<PagedResult<GetIncidentsResponse>>;

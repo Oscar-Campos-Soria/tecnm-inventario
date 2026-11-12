@@ -1,3 +1,4 @@
+using TecnmInventario.Api.Features.Assets.GetMyAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -36,9 +37,12 @@ public class TicketsTests
 
     private static readonly Dictionary<string, string[]> RolePermissions = new()
     {
-        ["ADMIN"] = new[] { "tickets.create", "tickets.manage", "incidents.create", "incidents.resolve", "incidents.view" },
-        ["TECNICO"] = new[] { "tickets.create", "tickets.manage", "incidents.create", "incidents.resolve", "incidents.view" },
-        ["USUARIO_GENERAL"] = new[] { "tickets.create", "incidents.create" },
+        ["ADMIN"] = new[] { "assets.view", "tickets.create", "tickets.manage", "incidents.create", "incidents.resolve", "incidents.view" },
+        ["TECNICO"] = new[] { "assets.view", "tickets.create", "tickets.manage", "incidents.create", "incidents.resolve", "incidents.view" },
+        // Rol hipotético que solo reporta incidentes (sin verlos ni resolverlos): prueba la regla del autorizador.
+        ["SOLO_REPORTA"] = new[] { "tickets.create", "incidents.create" },
+        // Igual que scripts/restrict-general-user.sql: sin assets.view ni incidents.create.
+        ["USUARIO_GENERAL"] = new[] { "tickets.create" },
     };
 
     private sealed class FakeCurrentUser : ICurrentUserService
@@ -73,8 +77,20 @@ public class TicketsTests
         }
 
         public Task<CreateTicketResponse> Create(string title = "No tengo internet", long? assetId = null)
-            => new CreateTicketHandler(Context, User, Audit)
+            => new CreateTicketHandler(Context, User, Audit, _permissions)
                 .Handle(new CreateTicketCommand(1, null, title, null, assetId, null), default).AsTask();
+
+        public void AssignAsset(long assetId, long userId)
+        {
+            if (!Context.AssignmentTypes.Any())
+                Context.AssignmentTypes.Add(new AssignmentType { AssignmentTypeId = 1, Code = "PERSONAL", Name = "Personal" });
+            Context.AssetAssignments.Add(new AssetAssignment
+            {
+                AssetId = assetId, AssignedTo = userId, AssignmentTypeId = 1, AssignedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Version = 1,
+            });
+            Context.SaveChanges();
+        }
 
         public Task<GetTicketByIdResponse> Get(long id)
             => new GetTicketByIdHandler(Context, User, _permissions, _options)
@@ -151,9 +167,41 @@ public class TicketsTests
     }
 
     [Fact]
+    public async Task UsuarioGeneral_solo_liga_sus_equipos_y_el_tecnico_cualquiera()
+    {
+        var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() => h.Create(assetId: 10));
+        Assert.Equal("Solo puedes reportar equipos que tienes asignados.", ex.Message);
+        Assert.Empty(h.Context.Tickets);
+
+        h.As(TechnicianId, "TECNICO");
+        var created = await h.Create(assetId: 10);
+        Assert.Equal(10, h.Context.Tickets.Single(t => t.TicketId == created.TicketId).AssetId);
+    }
+
+    [Fact]
+    public async Task Mis_equipos_trae_solo_lo_asignado_al_usuario_con_sus_tickets()
+    {
+        var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+        h.AssignAsset(10, UserAId);
+        await h.Create("Mi PC no prende", assetId: 10);
+        await h.Create("Sin equipo");
+
+        var mine = await new GetMyAssetsHandler(h.Context, h.User).Handle(new GetMyAssetsQuery(), default);
+        var other = await new GetMyAssetsHandler(h.Context, h.As(UserBId, "USUARIO_GENERAL").User).Handle(new GetMyAssetsQuery(), default);
+
+        var asset = Assert.Single(mine);
+        Assert.Equal("TEC-0010", asset.InventoryCode);
+        Assert.Equal("Mi PC no prende", Assert.Single(asset.Tickets).Title);
+        Assert.Empty(other);
+    }
+
+    [Fact]
     public async Task Create_DefaultsToMedia_AndDoesNotTouchAssetStatus()
     {
         var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+        h.AssignAsset(10, UserAId);
 
         var created = await h.Create(assetId: 10);
 
@@ -318,12 +366,17 @@ public class TicketsTests
     public async Task IncidentEvidence_ReporterOnly_ForUsersWithoutStaffPermissions()
     {
         // Incidente 20 lo reportó Beto.
-        var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+        var h = new Harness().As(UserAId, "SOLO_REPORTA");
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => h.Authorize(DocumentOwnerTypes.Incident, 20, DocumentOperation.Read));
 
-        h.As(UserBId, "USUARIO_GENERAL");
+        h.As(UserBId, "SOLO_REPORTA");
         await h.Authorize(DocumentOwnerTypes.Incident, 20, DocumentOperation.Read);
+
+        // El usuario general ya no levanta incidentes (reporta por ticket): tampoco ve su evidencia.
+        h.As(UserBId, "USUARIO_GENERAL");
+        await Assert.ThrowsAsync<ForbiddenAccessException>(
+            () => h.Authorize(DocumentOwnerTypes.Incident, 20, DocumentOperation.Read));
 
         h.As(TechnicianId, "TECNICO");
         await h.Authorize(DocumentOwnerTypes.Incident, 20, DocumentOperation.Read);
