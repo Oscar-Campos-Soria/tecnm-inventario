@@ -12,17 +12,17 @@ internal static class Sandbox
     private const string ApiHealth = "http://localhost:5112/api/health";
     private const string WebUrl = "http://localhost:5173";
 
-    public static void Run(string root)
+    public static bool Run(string root)
     {
         Ui.Title("Sandbox (modo desarrollo)");
         if (!File.Exists(Path.Combine(root, "database", ".env")))
         {
             Ui.Error("Falta database/.env (credenciales de la BD de desarrollo).");
-            return;
+            return false;
         }
 
         if (Shell.Stream("docker", ["compose", "-f", Path.Combine(root, "database", "docker-compose.yml"), "up", "-d"]) != 0)
-            return;
+            return false;
 
         var logDir = Path.Combine(Path.GetTempPath(), "tecnm-sandbox");
         Directory.CreateDirectory(logDir);
@@ -47,23 +47,35 @@ internal static class Sandbox
                 started.Add(Launch("node", [Path.Combine("node_modules", "vite", "bin", "vite.js")], frontend, Path.Combine(logDir, "web.log")));
             }
 
-            Console.Write("Esperando a la API");
+            Ui.Progress("Esperando a la API");
             for (var i = 0; i < 90 && !Shell.IsHealthy(ApiHealth, ""); i++)
             {
-                Console.Write('.');
+                Ui.Progress(".");
                 Thread.Sleep(2000);
             }
-            Console.WriteLine();
+            Ui.Progress("\n");
             if (!Shell.IsHealthy(ApiHealth, ""))
             {
                 Ui.Error($"La API no respondió. Revisa {Path.Combine(logDir, "api.log")}.");
-                return;
+                return false;
             }
 
             Ui.Ok($"Sandbox en {WebUrl} (API en http://localhost:5112). Logs en {logDir}.");
             if (!Console.IsInputRedirected) Shell.OpenBrowser(WebUrl);
-            Console.Write("Presiona Enter para detener el sandbox…");
-            Console.ReadLine();
+            if (Console.IsInputRedirected)
+            {
+                // Modo directo (agentes, scripts): sin teclado, corre hasta Ctrl+C o hasta que maten el proceso.
+                Ui.Info("Corriendo. Ctrl+C para detener el sandbox.");
+                using var stop = new ManualResetEventSlim();
+                Console.CancelKeyPress += (_, e) => { e.Cancel = true; stop.Set(); };
+                stop.Wait();
+            }
+            else
+            {
+                Console.Write("Presiona Enter para detener el sandbox…");
+                Console.ReadLine();
+            }
+            return true;
         }
         finally
         {

@@ -12,30 +12,10 @@ internal sealed partial class Deployment
 
     public string AiStatusLine() => AiModel.Enabled(Env) ? (AiHealthy() ? "IA: ● lista" : "IA: ○ sin responder") : "IA: apagada";
 
-    public void AiMenu()
-    {
-        Ui.Title("Asistente IA (carga masiva)");
-        Ui.Info(AiStatusLine());
-        Ui.Info("\n  1) Instalar / encender (descarga el modelo ~1.9 GB)");
-        Ui.Info("  2) Instalar desde una carpeta con los .gguf (servidor sin internet)");
-        Ui.Info("  3) Estado y memoria");
-        Ui.Info("  4) Probar");
-        Ui.Info("  5) Apagar (conserva el modelo)");
-        Ui.Info("  0) Volver");
-        switch (Ui.Ask("Opción", "0"))
-        {
-            case "1": AiInstall(null); break;
-            case "2": AiInstall(Ui.Ask("Carpeta con " + string.Join(" y ", AiModel.Files.Select(f => f.FileName)))); break;
-            case "3": AiStatus(); break;
-            case "4": AiTest(); break;
-            case "5": AiDisable(); break;
-        }
-    }
-
     public bool AiInstall(string? from)
     {
         Ui.Title("Instalar asistente IA");
-        if (!Ready()) return false;
+        Ready();
         Directory.CreateDirectory(ModelDir);
 
         foreach (var file in AiModel.Files)
@@ -52,19 +32,19 @@ internal sealed partial class Deployment
         Certificates.WriteSecret(EnvFile, ProdEnv.Set(File.ReadAllText(EnvFile), "COMPOSE_PROFILES", AiModel.Profile));
         if (Shell.Stream("docker", Compose("up", "-d", "ia")) != 0) return false;
 
-        Console.Write("Cargando el modelo");
+        Ui.Progress("Cargando el modelo");
         for (var i = 0; i < 90; i++)
         {
             if (AiHealthy())
             {
-                Console.WriteLine();
+                Ui.Progress("\n");
                 Ui.Ok("Asistente IA listo (solo la API lo ve, por la red interna).");
                 return AiTest();
             }
-            Console.Write('.');
+            Ui.Progress(".");
             Thread.Sleep(2000);
         }
-        Console.WriteLine();
+        Ui.Progress("\n");
         Ui.Error("El modelo no respondió en 3 minutos. Revisa: docker compose logs ia");
         return false;
     }
@@ -92,16 +72,16 @@ internal sealed partial class Deployment
                     target.Write(buffer, 0, read);
                     done += read;
                     var percent = (int)(done * 100 / file.Size);
-                    if (percent != lastPercent) { Console.Write($"\r  {percent}% ({done / 1_048_576} MB)"); lastPercent = percent; }
+                    if (percent != lastPercent) { Ui.Progress($"\r  {percent}% ({done / 1_048_576} MB)"); lastPercent = percent; }
                 }
             }
-            Console.WriteLine();
+            Ui.Progress("\n");
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
-            Console.WriteLine();
+            Ui.Progress("\n");
             File.Delete(part);
-            Ui.Error($"Falló la descarga: {ex.Message}. Sin internet usa la opción 2 (carpeta con los .gguf).");
+            Ui.Error($"Falló la descarga: {ex.Message}. Sin internet: tecnm ai install --from <carpeta con los .gguf>.");
             return false;
         }
         return Accept(part, file);
@@ -134,22 +114,32 @@ internal sealed partial class Deployment
     private bool AiHealthy() =>
         Shell.Capture("docker", Compose("exec", "-T", "ia", "curl", "-fs", "http://localhost:8080/health")).Code == 0;
 
-    public void AiStatus()
+    public AiStatusInfo AiStatus()
     {
         Ui.Title("Asistente IA");
-        Ui.Info(AiStatusLine());
-        foreach (var file in AiModel.Files)
-            Ui.Info(AiModel.Matches(PathOf(file), file) ? $"{file.FileName}: huella correcta" : $"{file.FileName}: no descargado o dañado");
+        RequireInstalled();
+        var enabled = AiModel.Enabled(Env);
+        var healthy = enabled && AiHealthy();
+        Ui.Info(enabled ? (healthy ? "IA: ● lista" : "IA: ○ sin responder") : "IA: apagada");
+        var files = AiModel.Files.Select(f => new AiFileInfo(f.FileName, AiModel.Matches(PathOf(f), f))).ToList();
+        foreach (var file in files)
+            Ui.Info(file.Verified ? $"{file.Name}: huella correcta" : $"{file.Name}: no descargado o dañado");
+        string? usage = null;
         var (code, id) = Shell.Capture("docker", Compose("ps", "-q", "ia"));
         if (code == 0 && id.Trim().Length > 0)
-            Shell.Stream("docker", ["stats", "--no-stream", "--format", "Memoria: {{.MemUsage}}   CPU: {{.CPUPerc}}", id.Trim()]);
+        {
+            usage = Shell.Capture("docker", ["stats", "--no-stream", "--format", "Memoria: {{.MemUsage}}   CPU: {{.CPUPerc}}", id.Trim()]).Output.Trim();
+            Ui.Info(usage);
+        }
+        return new AiStatusInfo(enabled, healthy, files, usage);
     }
 
     /// <summary>Prueba real: empareja encabezados de ejemplo con las columnas de la plantilla y mide la velocidad.</summary>
     public bool AiTest()
     {
         Ui.Title("Prueba del modelo");
-        if (!AiHealthy()) { Ui.Error("El asistente IA no responde. Instálalo o enciéndelo (opción 1)."); return false; }
+        RequireInstalled();
+        if (!AiHealthy()) { Ui.Error("El asistente IA no responde. Instálalo o enciéndelo: tecnm ai install."); return false; }
 
         string[] columns = ["codigo_inventario", "tipo", "fabricante", "modelo", "serie", "hostname", "ubicacion", "notas", "ninguna"];
         var schema = new
@@ -214,12 +204,17 @@ internal sealed partial class Deployment
         }
     }
 
-    public void AiDisable()
+    public bool AiDisable()
     {
         Ui.Title("Apagar asistente IA");
-        if (!File.Exists(EnvFile)) { Ui.Error("No existe database/.env.prod."); return; }
-        Shell.Stream("docker", Compose("rm", "-sf", "ia"));
+        RequireInstalled();
+        if (Shell.Stream("docker", Compose("rm", "-sf", "ia")) != 0) { Ui.Error("docker no pudo quitar el contenedor ia."); return false; }
         Certificates.WriteSecret(EnvFile, ProdEnv.Set(File.ReadAllText(EnvFile), "COMPOSE_PROFILES", ""));
-        Ui.Ok("Apagado. El modelo sigue en database/models/; la opción 1 lo vuelve a encender sin descargar.");
+        Ui.Ok("Apagado. El modelo sigue en database/models/; tecnm ai install lo vuelve a encender sin descargar.");
+        return true;
     }
 }
+
+internal sealed record AiFileInfo(string Name, bool Verified);
+
+internal sealed record AiStatusInfo(bool Enabled, bool Healthy, IReadOnlyList<AiFileInfo> Files, string? Usage);

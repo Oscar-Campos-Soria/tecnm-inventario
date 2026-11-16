@@ -25,40 +25,72 @@ Monorrepo: API REST (.NET 10) + SPA (Vue 3 + TypeScript + Vite) + PostgreSQL en 
 | Desarrollo | Docker, Git, [.NET 10 SDK](https://dotnet.microsoft.com/download), Node.js 22+ y npm |
 | Asistente IA (opcional) | ~2 GB de disco para el modelo y ~3.5 GB de RAM libres para su contenedor |
 
-En Windows, los comandos de este README son de **Git Bash**.
+En Windows, la instalación de producción es en **PowerShell**; los comandos de desarrollo de este README son de **Git Bash**.
 
 ---
 
 ## Instalación en un servidor (producción)
 
 Todo lo hace el CLI `tecnm`: genera secretos aleatorios, emite el certificado HTTPS, levanta los contenedores, aplica
-el esquema y los scripts, y crea el primer administrador.
+el esquema y los scripts, y crea el primer administrador. El instalador lo compila dentro de un contenedor (el
+servidor no necesita .NET) y deja el comando `tecnm` disponible en cualquier terminal.
+
+**Windows (PowerShell)** — requiere Docker Desktop con WSL2:
+
+```powershell
+git clone <url-del-repo> tecnm-inventario
+cd tecnm-inventario
+powershell -ExecutionPolicy Bypass -File database\instalar.ps1                # pregunta lo necesario
+powershell -ExecutionPolicy Bypass -File database\instalar.ps1 -HostName 10.0.0.5
+```
+
+**Linux (Bash)** — requiere Docker Engine con el plugin compose:
 
 ```bash
 git clone <url-del-repo> tecnm-inventario
 cd tecnm-inventario
-
-# 1. Compilar el CLI (Linux; solo necesita Docker)
-docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
-  dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -r linux-x64 \
-  --self-contained -p:PublishSingleFile=true -o backend/tools/TecnmCli/dist
-
-# 2. Instalar: abre el menú y elige "9) Instalar por primera vez"
-backend/tools/TecnmCli/dist/tecnm
+bash database/instalar.sh                  # pregunta lo necesario
+bash database/instalar.sh --host 10.0.0.5
 ```
 
-En Windows: `dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -o backend/tools/TecnmCli/dist` y
-ejecuta `backend\tools\TecnmCli\dist\tecnm.exe`.
+Los dos hacen lo mismo: revisan Docker, compilan `tecnm`, lo registran (Windows: PATH del usuario y `TECNM_ROOT`;
+Linux: `/usr/local/bin/tecnm`, o `~/.local/bin/tecnm` sin sudo), ejecutan `tecnm install` y, si hay una persona en
+la terminal, ofrecen crear el primer administrador. Volver a ejecutarlos es seguro: recompilan el CLI y la
+instalación se salta lo que ya existe. `-SoloCli` / `--solo-cli` solo actualiza el comando `tecnm`.
 
 Al terminar:
 
 - **Pantallas:** `https://<IP-o-nombre>:6010` · **API:** `https://<IP-o-nombre>:6011`. La BD y la IA no tienen puertos publicados.
-- Instala el certificado raíz (`database/certs/ca.crt`) en cada equipo para quitar la advertencia: menú → `C`.
-- Programa el respaldo diario: menú → `P`.
+- Instala el certificado raíz (`database/certs/ca.crt`) en cada equipo para quitar la advertencia: `tecnm cert help`.
+- Programa el respaldo diario: `tecnm schedule-backup` (Programador de tareas en Windows, crontab en Linux).
 
-**Asistente IA (opcional):** `tecnm ia instalar` descarga el modelo (~1.9 GB), comprueba su huella SHA256 y lo
-enciende. Sin internet: copia los dos `.gguf` por USB y usa `tecnm ia instalar --desde <carpeta>`.
-`tecnm ia estado | probar | desactivar` para administrarlo. Si está apagado, el sistema funciona igual sin la IA.
+### Administrar el sistema
+
+`tecnm` (o `tecnm menu`) abre el menú: panel de estado, flechas ↑↓ y Enter, o la tecla de cada opción. Cada opción
+muestra abajo su comando directo. Mismos comandos en Windows y Linux:
+
+| Tarea | Comando |
+| --- | --- |
+| Ver si está en línea | `tecnm status` (sale con 1 si no responde) |
+| Iniciar / detener / reiniciar | `tecnm start` · `tecnm stop` · `tecnm restart` |
+| Ver logs | `tecnm logs [--tail 200]` |
+| Actualizar (después de `git pull`) | `tecnm update --yes` (respalda antes) |
+| Respaldar / listar / restaurar | `tecnm backup` · `tecnm backup list` · `tecnm restore --backup <fecha> --yes` |
+| Administrador | `tecnm admin --user admin --email <correo> --password-stdin` |
+| Certificado | `tecnm cert` · `tecnm cert renew --yes` · `tecnm cert help` |
+| Asistente IA (opcional) | `tecnm ai install [--from <carpeta>]` · `tecnm ai status` · `tecnm ai test` · `tecnm ai disable` |
+| Todo | `tecnm help` |
+
+**Para scripts y agentes:** ningún comando directo pregunta nada; `--json` escribe un solo objeto
+(`command`, `ok`, `exitCode`, `data`, `messages`, `error {code, message, hint}`); lo que reemplaza datos o reinicia
+(`update`, `restore`, `cert renew`) exige `--yes`. Códigos de salida: `0` bien · `1` falló · `2` uso incorrecto ·
+`3` falta `--yes` · `4` falta un requisito (Docker, instalación). La contraseña nunca va como argumento:
+`echo "$PASS" | tecnm admin --user admin --email a@b.mx --password-stdin --json`.
+
+**Asistente IA (opcional):** `tecnm ai install` descarga el modelo (~1.9 GB), comprueba su huella SHA256 y lo
+enciende. Sin internet: copia los dos `.gguf` por USB y usa `tecnm ai install --from <carpeta>`. Si está apagado,
+el sistema funciona igual sin la IA. Los nombres de antes (`tecnm respaldar`, `estado`, `ia instalar --desde`…)
+siguen funcionando.
 
 Detalles (puertos, seguridad, respaldos, actualizar): [`specs/deployment.spec.md`](specs/deployment.spec.md).
 

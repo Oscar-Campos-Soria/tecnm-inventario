@@ -129,4 +129,52 @@ public class CliDeployLogicTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void Argumentos_aceptan_nombres_de_antes_opciones_y_banderas()
+    {
+        var legacy = CliArgs.Parse(["ia", "instalar", "--desde", "/mnt/usb"]);
+        Assert.Equal(["ai", "install"], legacy.Words);
+        Assert.Equal("/mnt/usb", legacy.Get("from"));
+
+        var args = CliArgs.Parse(["restore", "--backup=20261116-160800", "--yes", "--json"]);
+        Assert.Equal("restore", args.Command);
+        Assert.Equal("20261116-160800", args.Get("backup"));
+        Assert.True(args.Has("yes") && args.Has("json"));
+        Assert.Equal("menu", CliArgs.Parse([]).Command);
+        Assert.Equal("backup", CliArgs.Parse(["respaldar"]).Command);
+    }
+
+    [Theory]
+    [InlineData("start", "--bogus")]
+    [InlineData("logs", "--tail")]
+    [InlineData("restore", "--yes=si")]
+    public void Opcion_invalida_es_error_de_uso(string command, string option)
+    {
+        var ex = Assert.Throws<CliException>(() => CliArgs.Parse([command, option]));
+        Assert.Equal(ExitCodes.Usage, ex.ExitCode);
+        Assert.Equal("USAGE", ex.Code);
+    }
+
+    [Fact]
+    public void Destructiva_sin_yes_y_dato_faltante_tienen_su_codigo()
+    {
+        Assert.Equal(ExitCodes.NeedsConfirmation, CliException.NeedsYes("Restaurar reemplaza los datos.").ExitCode);
+        var missing = Assert.Throws<CliException>(() => CliArgs.Parse(["restore"]).Require("backup", "fecha"));
+        Assert.Equal(ExitCodes.Usage, missing.ExitCode);
+        Assert.Contains("--backup", missing.Message);
+    }
+
+    [Fact]
+    public void Contenedores_se_leen_en_los_dos_formatos_de_compose()
+    {
+        const string lines = "{\"Service\":\"api\",\"State\":\"running\",\"Health\":\"healthy\",\"Status\":\"Up 2 minutes\"}\n{\"Service\":\"db\",\"State\":\"exited\",\"Status\":\"Exited (0)\"}";
+        var fromLines = Deployment.ParseContainers(lines);
+        Assert.Equal(["api", "db"], fromLines.Select(c => c.Service));
+        Assert.Equal("", fromLines[1].Health);
+
+        var fromArray = Deployment.ParseContainers("[{\"Service\":\"web\",\"State\":\"running\"}]");
+        Assert.Equal("web", Assert.Single(fromArray).Service);
+        Assert.Empty(Deployment.ParseContainers("no es json"));
+    }
 }

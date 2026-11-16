@@ -28,12 +28,14 @@ internal static class Shell
     private static (int Code, string Output) Exec(
         string file, IEnumerable<string> args, string? cwd, Stream? input, string? outputFile, bool capture)
     {
+        // --json: lo que normalmente se vería en pantalla se guarda en los mensajes (stdout queda solo para el JSON).
+        var quiet = Ui.Json && !capture;
         var psi = new ProcessStartInfo(file)
         {
             UseShellExecute = false,
             RedirectStandardInput = input is not null,
-            RedirectStandardOutput = outputFile is not null || capture,
-            RedirectStandardError = capture,
+            RedirectStandardOutput = outputFile is not null || capture || quiet,
+            RedirectStandardError = capture || quiet,
         };
         if (cwd is not null) psi.WorkingDirectory = cwd;
         foreach (var arg in args) psi.ArgumentList.Add(arg);
@@ -57,16 +59,18 @@ internal static class Shell
             });
 
             var output = string.Empty;
+            var stderr = quiet || capture ? process.StandardError.ReadToEndAsync() : Task.FromResult("");
             if (outputFile is not null)
             {
                 using var file2 = File.Create(outputFile);
                 process.StandardOutput.BaseStream.CopyTo(file2);
             }
-            else if (capture)
+            else if (capture || quiet)
             {
-                var error = process.StandardError.ReadToEndAsync();
-                output = process.StandardOutput.ReadToEnd() + error.GetAwaiter().GetResult();
+                output = process.StandardOutput.ReadToEnd();
             }
+            output += stderr.GetAwaiter().GetResult();
+            if (quiet) Ui.Output(output);
 
             feed.GetAwaiter().GetResult();
             process.WaitForExit();

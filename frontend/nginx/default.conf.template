@@ -15,6 +15,8 @@ server_tokens       off;
 server {
     listen 6010 ssl;
     http2 on;
+    # http:// en un puerto HTTPS (nginx: 497 "plain HTTP request"): se manda a https:// en vez del 400.
+    error_page 497 =301 https://$host:$server_port$request_uri;
     root /usr/share/nginx/html;
 
     add_header X-Content-Type-Options nosniff always;
@@ -45,6 +47,8 @@ server {
 server {
     listen 6011 ssl;
     http2 on;
+    # http:// en un puerto HTTPS (nginx: 497 "plain HTTP request"): se manda a https:// en vez del 400.
+    error_page 497 =301 https://$host:$server_port$request_uri;
 
     # Carga masiva y documentos: 5 MB de archivo más el sobre multipart.
     client_max_body_size 6m;

@@ -46,30 +46,48 @@ Archivos: `database/docker-compose.prod.yml`, `database/.env.prod` (no se versio
 
 ## CLI `tecnm` (`backend/tools/TecnmCli`)
 
-Menú en consola para el administrador del servidor; sin argumentos abre el menú, y
-`tecnm respaldar | estado | iniciar | detener` sirve para tareas programadas.
+Dos modos con la misma lógica (`Deployment`): ninguna operación pregunta nada; el menú (`Menu.cs`) pide los datos y
+confirma, el modo directo (`Commands.cs`) los toma de las opciones. Un requisito que falta corta con
+`CliException` (código estable + pista); una operación que falla devuelve `false`.
 
-Compilar en el servidor sin instalar .NET (solo Docker), desde la raíz del repo:
+- **Interactivo:** `tecnm` o `tecnm menu`. Panel con estado (en línea, URL, días de certificado, último respaldo, IA),
+  opciones por sección (Servicio, Respaldos, Instalación, Desarrollo), flechas ↑↓ + Enter, atajo por tecla, Esc
+  vuelve; bajo la opción elegida muestra su comando directo. Mismas teclas que antes. Sin terminal (stdin
+  redirigido) lista las opciones y lee la tecla como texto.
+- **Directo:** `tecnm <comando> [opciones]`, sin preguntas. `--json`: nada en pantalla mientras trabaja (la salida
+  de docker va a `messages`) y un solo objeto al final:
+  `{"command","ok","exitCode","data","messages":[{"level","text"}],"error":{"code","message","hint"}|null}`.
 
-```bash
-docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:10.0   dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -r linux-x64   --self-contained -p:PublishSingleFile=true -o backend/tools/TecnmCli/dist
-backend/tools/TecnmCli/dist/tecnm
-```
+| Código de salida | Significado | `error.code` |
+| --- | --- | --- |
+| 0 | Bien | — |
+| 1 | La operación falló (o `status`: no responde) | `OPERATION_FAILED`, `UNHEALTHY`, `NO_CERTIFICATE`, `AI_UNHEALTHY` |
+| 2 | Uso incorrecto: comando, opción o dato inválido o faltante | `USAGE`, `BACKUP_NOT_FOUND` |
+| 3 | Operación que reemplaza datos o reinicia sin `--yes` | `CONFIRMATION_REQUIRED` |
+| 4 | Falta un requisito | `DOCKER_UNAVAILABLE`, `NOT_INSTALLED`, `ENV_INVALID`, `ROOT_NOT_FOUND`, `CLI_NOT_PUBLISHED` |
 
-En Windows: `dotnet publish backend/tools/TecnmCli/TecnmCli.csproj -c Release -o backend/tools/TecnmCli/dist`.
-El CLI busca la raíz del repo subiendo desde su carpeta (o `TECNM_ROOT`).
+| Menú | Comando directo | Qué hace |
+| --- | --- | --- |
+| 1 · 2 · 3 | `start` · `stop` · `restart` | `docker compose up -d` / `stop` / `restart` y espera `/api/health` |
+| 4 | `status` · `logs [--tail N]` | Contenedores (`compose ps --format json`), salud, URL, certificado, último respaldo, IA; logs de api y web |
+| 9 | `install [--host IP]` | Crea `database/.env.prod` con secretos aleatorios (no los muestra; host por omisión: la IP detectada), emite la CA propia y el certificado, levanta los contenedores y aplica `database.sql` + scripts del README (sin los de desarrollo). El menú ofrece crear el administrador al final |
+| 5 | `update --yes` | Respaldo, `docker compose build`, `up -d`, scripts otra vez (idempotentes) y espera `/api/health`. Hacer `git pull` antes |
+| 6 | `backup` · `backup list` | `pg_dump -Fc` + `tar` de documentos en `database/backups/` (no se versiona); conserva 14 |
+| 7 | `restore --backup FECHA --yes` | Respaldo de seguridad, `pg_restore --single-transaction` y documentos. El menú pide escribir `RESTAURAR` |
+| 8 | `admin --user U --email E [--first --last] --password-stdin` | Crea o reactiva un ADMIN; contraseña 12+ por stdin (por tubería, o escrita sin mostrarse), BCrypt, valores por variables de psql. Escribe directo en la BD: no queda en `audit_log` |
+| C | `cert [status]` · `cert renew --yes` · `cert help` | Regenera el del servidor con la misma CA; instrucciones para instalar `ca.crt` (Windows, Android, iPhone) o usar uno de sistemas |
+| P | `schedule-backup` | Respaldo diario 02:00 (`tecnm respaldar`): Programador de tareas (Windows) o crontab (Linux) |
+| I | `ai status \| install [--from CARPETA] \| test \| disable` | Modelo local (ver abajo) |
+| S | `sandbox` | En el equipo de desarrollo: BD de `database/docker-compose.yml`, `dotnet run` (5112) y vite (5173); Enter los detiene (sin terminal: Ctrl+C) |
 
-| Opción | Qué hace |
-| --- | --- |
-| 9 Instalar | Crea `database/.env.prod` con secretos aleatorios (no los muestra), emite la CA propia y el certificado para el host, levanta los contenedores, aplica `database.sql` + scripts del README (sin los de desarrollo) y crea el primer administrador |
-| 5 Actualizar | Respaldo, `docker compose build`, `up -d`, scripts otra vez (idempotentes) y espera `/api/health`. Hacer `git pull` antes |
-| 6 Respaldar | `pg_dump -Fc` + `tar` de documentos en `database/backups/` (no se versiona); conserva 14 |
-| 7 Restaurar | Elige respaldo, pide escribir `RESTAURAR`, saca respaldo de seguridad, `pg_restore --single-transaction` y documentos |
-| 8 Administrador | Crea o reactiva un ADMIN; contraseña oculta (12+), BCrypt, valores por variables de psql. Escribe directo en la BD: no queda en `audit_log` |
-| C Certificado | Regenera el del servidor con la misma CA; instrucciones para instalar `ca.crt` (Windows, Android, iPhone) o usar uno de sistemas |
-| P Programar | Respaldo diario 02:00: Programador de tareas (Windows) o crontab (Linux) |
-| I Asistente IA | Modelo local de la carga masiva (ver abajo). También `tecnm ia instalar [--desde archivo.gguf] \| estado \| probar \| desactivar` |
-| S Sandbox | En el equipo de desarrollo: BD de `database/docker-compose.yml`, `dotnet run` (5112) y vite (5173); Enter los detiene |
+Alias de antes: `respaldar`, `estado`, `iniciar`, `detener`, `reiniciar`, `actualizar`, `restaurar`, `ayuda`,
+`ia instalar|estado|probar|desactivar`, `--desde`. La tarea programada sigue llamando `tecnm respaldar`.
+
+Instalación: `database/instalar.ps1` (Windows) y `database/instalar.sh` (Linux) compilan el CLI en
+`mcr.microsoft.com/dotnet/sdk:10.0` sobre una copia (los `obj/` del contenedor no tocan los del repo; en Linux con el
+usuario actual), un solo archivo `win-x64` / `linux-x64` / `linux-arm64` en `backend/tools/TecnmCli/dist`, y lo
+registran: Windows en el PATH del usuario + `TECNM_ROOT`; Linux con un lanzador en `/usr/local/bin` (o
+`~/.local/bin`) que fija `TECNM_ROOT`. El CLI también encuentra la raíz subiendo desde su carpeta.
 
 Se niega a operar si `.env.prod` falta o tiene secretos débiles (contraseña < 24, JWT < 64).
 La CA no publica lista de revocación (igual que mkcert): los navegadores la aceptan; `curl` en
@@ -92,8 +110,8 @@ encendido con `COMPOSE_PROFILES=ia` en `.env.prod`.
 - `--ctx-size 8192 --parallel 2`: dos turnos de 4096 (el asistente responde aunque una carga masiva esté corriendo).
   `mem_limit: 3584m` (pico medido ~3.15 GB con ambos turnos trabajando y leyendo una imagen), caché KV en 8 bits y `--image-max-tokens 512`
   (misma precisión, transcribe en 23 s en lugar de 36 s). Las versiones IQ3 del 2B y el 0.8B se probaron: rompen la extracción. Hilos `IA_THREADS` (4 por omisión). Contenedor de solo lectura.
-- El modelo vive en `database/models/` (no se versiona). `tecnm ia instalar` descarga cada archivo a `.part` y solo lo
-  acepta si tamaño y SHA256 coinciden; `--desde <carpeta>` hace lo mismo con archivos copiados (servidor sin internet).
+- El modelo vive en `database/models/` (no se versiona). `tecnm ai install` descarga cada archivo a `.part` y solo lo
+  acepta si tamaño y SHA256 coinciden; `--from <carpeta>` hace lo mismo con archivos copiados (servidor sin internet).
   Borra los `.gguf` de modelos anteriores.
-- `tecnm ia probar` empareja encabezados de ejemplo con las columnas de la plantilla (JSON con esquema) y mide tokens/s.
-- `tecnm ia desactivar` borra el contenedor y apaga el perfil; el modelo se conserva.
+- `tecnm ai test` empareja encabezados de ejemplo con las columnas de la plantilla (JSON con esquema) y mide tokens/s.
+- `tecnm ai disable` borra el contenedor y apaga el perfil; el modelo se conserva.
