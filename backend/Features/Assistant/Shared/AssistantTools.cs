@@ -314,6 +314,60 @@ public sealed class MyAssetsTool : IAssistantTool
     }
 }
 
+/// <summary>
+/// Borrador de ticket: no escribe nada. La pantalla lo muestra en una tarjeta y solo un clic del usuario lo
+/// crea con POST /api/tickets (sus validaciones, transacción y auditoría). Una inyección no puede crear tickets.
+/// </summary>
+public sealed class ProposeTicketTool : IAssistantTool
+{
+    public string Name => "proponer_ticket";
+    public string? Permission => "assistant.tickets.propose";
+    public string Description => "Prepara un borrador de ticket de ayuda cuando el usuario pide abrir, levantar o reportar un problema (\"no prende mi laptop\", \"ábreme un ticket\"). No crea nada: el usuario lo revisa y confirma en una tarjeta. Si habla de su equipo y no sabes el código, usa antes mis_equipos. Para consultar tickets que ya existen usa buscar_tickets.";
+
+    public JsonObject Parameters(AiCatalog catalog) => Object(
+        ("categoria", OneOf((catalog.TicketCategories ?? []).Select(c => c.Code),
+            "tipo de ayuda: " + string.Join(", ", (catalog.TicketCategories ?? []).Select(c => $"{c.Code} = {c.Name}")))),
+        ("titulo", Text("qué pasa, en una frase corta")),
+        ("descripcion", Text("solo detalles que el usuario escribió (desde cuándo, qué mensaje sale); no inventes ni preguntes; vacío si no dio")),
+        ("equipo", Text("código de inventario del equipo, solo si se sabe; vacío si no"))).Required("categoria", "titulo");
+
+    public async Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext ctx, CancellationToken ct)
+    {
+        var categories = ctx.Catalog.TicketCategories ?? [];
+        var code = args.Enum("categoria", categories.Select(c => c.Code))
+            ?? throw new ToolArgumentException("Falta la categoría del ticket.");
+        var category = categories.First(c => c.Code == code);
+        var title = Clip(args.Str("titulo"), 200) ?? throw new ToolArgumentException("Falta el título del ticket.");
+        var description = Clip(args.Str("descripcion"), 4000);
+
+        long? assetId = null;
+        var equipo = args.Str("equipo");
+        if (equipo is not null)
+        {
+            if (ctx.Can("assets.view")) assetId = ctx.AssetId(equipo);
+            else
+            {
+                // Sin inventario completo solo puede ligar sus equipos (POST /api/tickets lo vuelve a revisar).
+                var mine = await ctx.Mediator.Send(new GetMyAssetsQuery(), ct);
+                assetId = mine.FirstOrDefault(a => string.Equals(a.InventoryCode, equipo, StringComparison.OrdinalIgnoreCase))?.AssetId
+                    ?? throw new ToolArgumentException($"«{equipo}» no es uno de los equipos asignados al usuario; consulta mis_equipos.");
+            }
+        }
+
+        return new ToolResult($"Borrador de ticket «{title}» (aún sin crear)", new JsonObject
+        {
+            ["borrador"] = new JsonObject
+            {
+                ["categoria_id"] = category.Id, ["categoria"] = category.Name, ["titulo"] = title,
+                ["descripcion"] = description, ["activo_id"] = assetId, ["equipo"] = assetId is null ? null : equipo,
+            },
+            ["aviso"] = "Aún no existe: se crea solo si el usuario pulsa «Crear ticket» en la tarjeta de abajo.",
+        });
+    }
+
+    private static string? Clip(string? text, int max) => text is null ? null : text.Length <= max ? text : text[..max];
+}
+
 public sealed class NewsTool : IAssistantTool
 {
     public string Name => "novedades";

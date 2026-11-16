@@ -45,6 +45,7 @@ La pantalla debe mostrar `data` además del texto: si el modelo redacta mal un n
 | `resumen_inventario` | `GetDashboardSummaryQuery` | `dashboard.view` |
 | `novedades` (incidentes y tickets desde una fecha; cada parte con su permiso) | `GetIncidentsQuery` + `GetTicketsQuery` | — |
 | `mis_equipos` (equipos asignados al que pregunta) | `GetMyAssetsQuery` | — |
+| `proponer_ticket` (borrador de ticket; **no escribe**: la tarjeta del panel lo crea con `POST /api/tickets` al confirmar; sin `assets.view` solo liga equipos de `mis_equipos`) | `GetMyAssetsQuery` (si indica equipo) | `assistant.tickets.propose` (RESPONSABLE_AREA, USUARIO_GENERAL) |
 | `buscar_manual` (RAG) | `ManualIndex` | — |
 
 Cambios a queries existentes (parámetros opcionales al final, sin afectar a la pantalla): `GetAssetsQuery.ManufacturerId`

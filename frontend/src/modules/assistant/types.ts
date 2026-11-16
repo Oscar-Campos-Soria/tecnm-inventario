@@ -14,6 +14,16 @@ export interface AssistantStep {
   error: string | null
 }
 
+// data.borrador de la herramienta proponer_ticket (nada se crea hasta que el usuario confirma).
+export interface TicketDraft {
+  categoria_id: number
+  categoria: string
+  titulo: string
+  descripcion: string | null
+  activo_id: number | null
+  equipo: string | null
+}
+
 export interface AskResponse {
   conversationId: string
   answer: string

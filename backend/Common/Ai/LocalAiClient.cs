@@ -21,7 +21,8 @@ public sealed record AiToolCall(string Id, string Name, string Arguments);
 /// Respuesta de un turno de conversación: texto final o herramientas por ejecutar.
 /// Message es el mensaje del asistente tal cual, para agregarlo al historial antes de los resultados.
 /// </summary>
-public sealed record AiChatReply(string? Content, IReadOnlyList<AiToolCall> ToolCalls, JsonObject Message);
+/// <summary>Truncated: se acabó max_tokens (el modelo entró en bucle); la respuesta no sirve.</summary>
+public sealed record AiChatReply(string? Content, IReadOnlyList<AiToolCall> ToolCalls, JsonObject Message, bool Truncated = false);
 
 /// <summary>Modelo local (llama.cpp, API compatible con OpenAI). Sin SDK: HttpClient.</summary>
 public interface ILocalAiClient
@@ -92,7 +93,7 @@ public sealed class LocalAiClient : ILocalAiClient
             ["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false },
             ["temperature"] = 0,
         };
-        var content = (await SendAsync(body, ct))["content"]?.GetValue<string>()
+        var content = (await SendAsync(body, ct)).Message["content"]?.GetValue<string>()
             ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA.");
         try
         {
@@ -127,9 +128,11 @@ public sealed class LocalAiClient : ILocalAiClient
             ["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false },
             ["temperature"] = 0,
         };
-        return (await SendAsync(body, ct))["content"]?.GetValue<string>()
+        return (await SendAsync(body, ct)).Message["content"]?.GetValue<string>()
             ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA.");
     }
+
+    public const int MaxChatTokens = 800;
 
     public async Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct)
     {
@@ -138,10 +141,12 @@ public sealed class LocalAiClient : ILocalAiClient
             ["messages"] = messages.DeepClone(),
             ["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false },
             ["temperature"] = 0,
+            // Medido: el 2B a veces entra en bucle y llena los 4096 del turno; la siguiente vuelta ya no cabe (400).
+            ["max_tokens"] = MaxChatTokens,
         };
         if (tools is { Count: > 0 }) body["tools"] = tools.DeepClone();
 
-        var message = await SendAsync(body, ct);
+        var (message, truncated) = await SendAsync(body, ct);
         var calls = (message["tool_calls"] as JsonArray ?? [])
             .OfType<JsonObject>()
             .Select(c => new AiToolCall(
@@ -150,11 +155,11 @@ public sealed class LocalAiClient : ILocalAiClient
                 c["function"]?["arguments"]?.GetValue<string>() ?? "{}"))
             .ToList();
         var content = message["content"]?.GetValue<string>();
-        return new AiChatReply(string.IsNullOrWhiteSpace(content) ? null : content, calls, message);
+        return new AiChatReply(string.IsNullOrWhiteSpace(content) ? null : content, calls, message, truncated);
     }
 
     /// <summary>POST a chat/completions; devuelve el mensaje del asistente (choices[0].message).</summary>
-    private async Task<JsonObject> SendAsync(JsonObject body, CancellationToken ct)
+    private async Task<(JsonObject Message, bool Truncated)> SendAsync(JsonObject body, CancellationToken ct)
     {
         if (!_configured) throw new AiUnavailableException("El asistente IA no está configurado.");
         HttpResponseMessage response;
@@ -171,8 +176,9 @@ public sealed class LocalAiClient : ILocalAiClient
             throw new AiUnavailableException($"El asistente IA respondió {(int)response.StatusCode}.");
 
         var json = await response.Content.ReadFromJsonAsync<JsonNode>(ct);
-        return json?["choices"]?[0]?["message"] as JsonObject
-            ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA.");
+        var choice = json?["choices"]?[0];
+        return (choice?["message"] as JsonObject ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA."),
+            choice?["finish_reason"]?.GetValue<string>() == "length");
     }
 }
 

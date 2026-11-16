@@ -215,6 +215,57 @@ public class AssistantTests
         Assert.Equal("CON_FALLA", args.Enum("estado", ["DISPONIBLE", "CON_FALLA"]));
     }
 
+    [Fact]
+    public async Task Proponer_ticket_solo_arma_el_borrador_y_no_escribe()
+    {
+        var db = TestDb.Create();
+        var catalog = new AiCatalog([], [], [(3, "RED_INTERNET", "Red e internet")]);
+        var ctx = new ToolContext(null!, db, catalog, DateTime.UtcNow);
+        var tool = new ProposeTicketTool();
+
+        var result = await tool.ExecuteAsync(new ToolArgs(new JsonObject
+        {
+            ["categoria"] = "red internet", ["titulo"] = new string('x', 250), ["descripcion"] = "desde ayer",
+        }), ctx, CancellationToken.None);
+
+        var draft = result.Data["borrador"]!;
+        Assert.Equal(3, (long)draft["categoria_id"]!);
+        Assert.Equal(200, ((string)draft["titulo"]!).Length);
+        Assert.Null(draft["activo_id"]);
+        Assert.Empty(db.Tickets);
+        await Assert.ThrowsAsync<ToolArgumentException>(() => tool.ExecuteAsync(
+            new ToolArgs(new JsonObject { ["categoria"] = "NO_EXISTE", ["titulo"] = "x" }), ctx, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Si_pide_ticket_y_el_modelo_solo_explica_se_le_insiste_una_vez()
+    {
+        var db = TestDb.Create();
+        var propose = new CountingTool("proponer_ticket", null);
+        var ai = new ScriptedAi(Text("Usa la herramienta proponer_ticket."), Tools(Call("proponer_ticket")), Text("Revisa la tarjeta."));
+        var orchestrator = new AssistantOrchestrator(ai, [propose], new RolePermissions(), null!, db, TimeProvider.System,
+            NullLogger<AssistantOrchestrator>.Instance);
+
+        var (answer, _) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "ábreme un ticket, no hay internet", CancellationToken.None);
+
+        Assert.Equal(1, propose.Runs);
+        Assert.Equal("Revisa la tarjeta.", answer);
+    }
+
+    [Fact]
+    public async Task Respuesta_cortada_por_bucle_se_descarta_y_si_falto_permiso_lo_dice()
+    {
+        var loop = new AiChatReply(new string('a', 50), [], new JsonObject { ["role"] = "assistant", ["content"] = "aaa" }, Truncated: true);
+        var (orchestrator, ai, _, incidents) = Build(Tools(Call("buscar_incidentes")), loop, loop);
+
+        var (answer, _) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "¿cuántas fallas hay?", CancellationToken.None);
+
+        Assert.Equal(0, incidents.Runs);
+        Assert.Contains("no tiene permiso", answer);
+        // La respuesta en bucle nunca se reenvía al modelo.
+        Assert.DoesNotContain(ai.MessagesSeen[2], m => (string?)m!["content"] == "aaa");
+    }
+
     private sealed class ScriptedAi(params AiChatReply[] replies) : ILocalAiClient
     {
         private int _next;

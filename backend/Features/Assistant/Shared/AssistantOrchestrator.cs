@@ -25,6 +25,12 @@ public sealed partial class AssistantOrchestrator
     [System.Text.RegularExpressions.GeneratedRegex(@"\bmis (tickets|solicitudes|reportes|pendientes)\b")]
     private static partial System.Text.RegularExpressions.Regex MyTicketsQuestion();
 
+    [System.Text.RegularExpressions.GeneratedRegex(@"\bmi (laptop|equipo|computadora|compu|pc|cpu|impresora|monitor|proyector|maquina)\b")]
+    private static partial System.Text.RegularExpressions.Regex MyDeviceQuestion();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\b(abr|levant|cre|gener|ha[zc]|report|mand)\w*\b[^.?!]*\bticket")]
+    private static partial System.Text.RegularExpressions.Regex TicketRequest();
+
     public const int MaxRounds = 4;
     public const int MaxToolChars = 3000;
     public static readonly TimeSpan Budget = TimeSpan.FromSeconds(120);
@@ -115,6 +121,10 @@ public sealed partial class AssistantOrchestrator
         var prefetch = new List<(string Tool, JsonObject Args)>();
         if (HowToQuestion().IsMatch(plain)) prefetch.Add(("buscar_manual", new JsonObject { ["consulta"] = question }));
         if (MyTicketsQuestion().IsMatch(plain)) prefetch.Add(("buscar_tickets", new JsonObject()));
+        var wantsTicket = byName.ContainsKey("proponer_ticket") && TicketRequest().IsMatch(plain);
+        var nudged = false;
+        // "¿cuándo arreglan mi computadora?" / "mi laptop no prende, ábreme un ticket": el 2B no consulta sus equipos solo.
+        if (MyDeviceQuestion().IsMatch(plain)) prefetch.Add(("mis_equipos", new JsonObject()));
         foreach (var (tool, args) in prefetch.Where(p => byName.ContainsKey(p.Tool)))
         {
             var call = new AiToolCall($"pre{steps.Count}", tool, args.ToJsonString());
@@ -141,9 +151,27 @@ public sealed partial class AssistantOrchestrator
         {
             for (var round = 0; round < MaxRounds && answer is null; round++)
             {
-                var reply = TextToolCalls.Recover(await _ai.ChatAsync(messages, definitions, ct));
+                var raw = await _ai.ChatAsync(messages, definitions, ct);
+                // Respuesta cortada = el modelo entró en bucle: se descarta (no cabría en la siguiente vuelta).
+                if (raw.Truncated)
+                {
+                    _logger.LogWarning("Asistente: respuesta descartada por llegar al tope de {Max} tokens", LocalAiClient.MaxChatTokens);
+                    break;
+                }
+                var reply = TextToolCalls.Recover(raw);
                 if (reply.ToolCalls.Count == 0)
                 {
+                    // Medido: el 2B a veces le dice al usuario "usa proponer_ticket" en vez de llamarla. Se le insiste una vez.
+                    if (wantsTicket && !nudged && steps.All(s => s.Tool != "proponer_ticket"))
+                    {
+                        nudged = true;
+                        foreach (var m in new[] { Msg("assistant", reply.Content ?? ""), Msg("user", "Prepara ahora el borrador con proponer_ticket; no me expliques cómo.") })
+                        {
+                            messages.Add(m.DeepClone());
+                            work.Add(m);
+                        }
+                        continue;
+                    }
                     answer = reply.Content;
                     break;
                 }
@@ -166,7 +194,11 @@ public sealed partial class AssistantOrchestrator
                 }
             }
             // Se acabaron las vueltas: que responda con lo que ya consultó, sin más herramientas.
-            answer ??= (await _ai.ChatAsync(messages, null, ct)).Content;
+            if (answer is null)
+            {
+                var last = await _ai.ChatAsync(messages, null, ct);
+                answer = last.Truncated ? null : last.Content;
+            }
         }
         catch (OperationCanceledException) when (!caller.IsCancellationRequested)
         {
@@ -175,7 +207,9 @@ public sealed partial class AssistantOrchestrator
 
         // Una llamada a herramienta escrita como texto nunca se le muestra al usuario.
         if (string.IsNullOrWhiteSpace(answer) || answer.Contains("<function=", StringComparison.Ordinal) || answer.Contains("<tool_call>", StringComparison.Ordinal))
-            answer = steps.Count == 0
+            answer = steps.Any(s => s.Error?.Contains("no tiene permiso", StringComparison.Ordinal) == true)
+                ? $"Tu rol ({roleCode}) no tiene permiso para consultar esa información."
+                : steps.Count == 0
                 ? "No pude generar una respuesta. Intenta reformular la pregunta."
                 : "No pude completar la respuesta. Esto es lo que consulté: " + string.Join("; ", steps.Select(s => s.Summary)) + ". Intenta una pregunta más concreta.";
         answer = answer.Trim();
@@ -233,6 +267,7 @@ public sealed partial class AssistantOrchestrator
         ["buscar_incidentes"] = "incidentes", ["historial_activo"] = "historial de activos",
         ["mantenimientos_proximos"] = "mantenimientos", ["resumen_inventario"] = "resumen general del inventario",
         ["buscar_tickets"] = "tickets", ["buscar_activos"] = "activos", ["detalle_activo"] = "fichas de activos",
+        ["proponer_ticket"] = "abrir tickets desde el asistente (se abren en la pantalla Tickets)",
     };
 
     private static string SystemPrompt(ToolContext context, string roleCode, IReadOnlyList<string> missing) => $"""
@@ -245,8 +280,9 @@ public sealed partial class AssistantOrchestrator
         - En cada herramienta pon todos los filtros que el usuario mencionó (tipo, ubicación, estado, marca, tema) y ninguno que no haya mencionado.
         - Responde solo con lo que devolvieron las herramientas. Si "total" es mayor que los elementos mostrados, menciona el total. Si no hay resultados, dilo.
         - Para preguntas de seguimiento ("¿y cuáles…?", "¿quién la tiene?") usa los resultados anteriores o vuelve a consultar con el filtro nuevo.
-        - No puedes crear, modificar ni borrar nada. Si te lo piden, explica que se hace desde la pantalla correspondiente.
+        - No puedes crear, modificar ni borrar nada. Si piden abrir o levantar un ticket y tienes proponer_ticket, úsala: solo prepara un borrador que el usuario confirma en una tarjeta; nunca digas que el ticket ya se creó. Para todo lo demás explica que se hace desde la pantalla correspondiente.
         - Si no hay una herramienta para lo que piden, dilo: puede ser que su rol no tenga ese permiso.{(missing.Count == 0 ? "" : $"\n        - El rol {roleCode} NO tiene permiso para consultar: {string.Join(", ", missing.Select(m => Areas.GetValueOrDefault(m, m)).Distinct())}. Si preguntan por eso, responde que su rol no tiene permiso para verlo; no respondas con otra información.")}
+        - Nunca menciones al usuario los nombres de las herramientas (buscar_tickets, proponer_ticket…): habla de pantallas y acciones.
         - Si la pregunta no tiene que ver con el sistema, explica amablemente que solo ayudas con el inventario.
         """;
 }

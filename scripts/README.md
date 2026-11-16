@@ -21,6 +21,7 @@ psql "$DATABASE_URL" -f add-inventory-counts.sql        # levantamiento físico:
 psql "$DATABASE_URL" -f add-admin-permissions.sql       # users.manage e history.view (solo ADMIN)
 psql "$DATABASE_URL" -f add-locations-view-permission.sql   # permiso locations.view (solo lectura de ubicaciones, todos los roles)
 psql "$DATABASE_URL" -f add-assistant-permission.sql    # assistant.use (asistente IA, todos los roles)
+psql "$DATABASE_URL" -f add-assistant-ticket-permission.sql   # assistant.tickets.propose (borrador de ticket por IA: RESPONSABLE_AREA, USUARIO_GENERAL)
 psql "$DATABASE_URL" -f restrict-general-user.sql       # USUARIO_GENERAL sin assets.view ni incidents.create (ve "Mis equipos")
 psql "$DATABASE_URL" -f deactivate-system-account.sql   # cuenta técnica "system" inactiva (no inicia sesión)
 psql "$DATABASE_URL" -f seed-locations-demo.sql  # OPCIONAL, solo desarrollo: árbol de ejemplo (Edificio B)
@@ -42,6 +43,7 @@ psql "$DATABASE_URL" -f seed-assistant-demo.sql  # OPCIONAL, solo desarrollo: fa
 | `add-inventory-counts.sql` | Levantamiento físico: `inventory_sessions.location_id`; en `inventory_records` ubicación esperada, revisión y ajuste de conciliación; motivo `AJUSTE_INVENTARIO`; permiso `inventory.manage` (ADMIN, TECNICO) |
 | `add-admin-permissions.sql` | Permisos `users.manage` (editar usuarios, rol, estado, contraseña) e `history.view` (bitácora y línea de tiempo), solo ADMIN |
 | `add-assistant-permission.sql` | Permiso `assistant.use` (asistente IA de solo lectura) para todos los roles; cada herramienta exige además su propio permiso |
+| `add-assistant-ticket-permission.sql` | Permiso `assistant.tickets.propose` (herramienta `proponer_ticket`: borrador que el usuario confirma) para RESPONSABLE_AREA y USUARIO_GENERAL; ADMIN y TECNICO no |
 | `restrict-general-user.sql` | USUARIO_GENERAL solo ve lo suyo: quita `assets.view` e `incidents.create` (reporta por ticket; sus equipos en "Mis equipos") |
 | `seed-assistant-demo.sql` | OPCIONAL, solo desarrollo: fabricantes y modelos de ejemplo para probar el asistente IA y la carga masiva |
 | `seed-dev-admin.sql` | OPCIONAL, solo desarrollo: primer administrador `admin_local` (hash por variable de psql) |

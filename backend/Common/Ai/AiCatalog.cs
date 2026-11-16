@@ -9,8 +9,10 @@ namespace TecnmInventario.Api.Common.Ai;
 /// <summary>
 /// Catálogos que el modelo y las reglas usan: tipos (código, nombre) y ubicaciones con su ruta
 /// ("Edificio B, Planta 1, Laboratorio de redes"). Lo comparten la carga masiva y el asistente.
+/// TicketCategories: para el borrador de ticket del asistente.
 /// </summary>
-public sealed record AiCatalog(IReadOnlyList<(string Code, string Name)> Types, IReadOnlyList<(string Code, string Path)> Locations)
+public sealed record AiCatalog(IReadOnlyList<(string Code, string Name)> Types, IReadOnlyList<(string Code, string Path)> Locations,
+    IReadOnlyList<(long Id, string Code, string Name)>? TicketCategories = null)
 {
     public static async Task<AiCatalog> LoadAsync(TecnmInventarioDbContext context, CancellationToken ct)
     {
@@ -18,6 +20,8 @@ public sealed record AiCatalog(IReadOnlyList<(string Code, string Name)> Types, 
             .Select(t => new { t.Code, t.Name }).ToListAsync(ct);
         var locations = await context.Locations.AsNoTracking().Where(l => !l.IsDeleted)
             .Select(l => new { l.LocationId, l.ParentLocationId, l.Code, l.Name }).ToListAsync(ct);
+        var categories = await context.TicketCategories.AsNoTracking().Where(c => !c.IsDeleted).OrderBy(c => c.Code)
+            .Select(c => new { c.TicketCategoryId, c.Code, c.Name }).ToListAsync(ct);
         var byId = locations.ToDictionary(l => l.LocationId);
         string PathOf(long id)
         {
@@ -28,7 +32,8 @@ public sealed record AiCatalog(IReadOnlyList<(string Code, string Name)> Types, 
         }
         return new AiCatalog(
             types.Select(t => (t.Code, t.Name)).ToList(),
-            locations.OrderBy(l => l.Code).Select(l => (l.Code, PathOf(l.LocationId))).ToList());
+            locations.OrderBy(l => l.Code).Select(l => (l.Code, PathOf(l.LocationId))).ToList(),
+            categories.Select(c => (c.TicketCategoryId, c.Code, c.Name)).ToList());
     }
 
     /// <summary>Texto -> código de ubicación por palabras en común. Fuerte = 2+ palabras, una del nombre propio del lugar.</summary>

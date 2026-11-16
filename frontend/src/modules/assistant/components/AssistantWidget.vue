@@ -2,9 +2,10 @@
 import { computed, nextTick, onMounted, ref, useId } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import { assistantApi } from '../api'
-import type { AssistantStatus, ChatMessage } from '../types'
+import type { AssistantStatus, ChatMessage, TicketDraft } from '../types'
 import AnswerText from './AnswerText.vue'
 import StepEvidence from './StepEvidence.vue'
+import TicketDraftCard from './TicketDraftCard.vue'
 
 // Botón flotante "Pregúntale" + panel de conversación. Solo aparece si el modelo responde
 // (GET /api/assistant/status); el resto de la app no depende de él.
@@ -40,6 +41,12 @@ const suggestions = computed(() => {
   if (tools.has('buscar_manual')) list.push('¿Cómo doy de baja un equipo?')
   return list.slice(0, 4)
 })
+
+// El último borrador válido de proponer_ticket en esa respuesta (si el modelo corrigió, gana el más nuevo).
+function draftOf(message: ChatMessage): TicketDraft | null {
+  const step = message.steps.findLast((s) => s.tool === 'proponer_ticket' && !s.error && s.data?.borrador)
+  return (step?.data?.borrador as TicketDraft | undefined) ?? null
+}
 
 async function scrollToEnd() {
   await nextTick()
@@ -166,6 +173,7 @@ function onKeydown(event: KeyboardEvent) {
             <div :class="message.failed ? 'rounded-md bg-destructive/10 px-3 py-2 text-destructive' : ''">
               <AnswerText :text="message.text" />
             </div>
+            <TicketDraftCard v-if="draftOf(message)" :draft="draftOf(message)!" />
             <StepEvidence :steps="message.steps" />
           </div>
         </article>
