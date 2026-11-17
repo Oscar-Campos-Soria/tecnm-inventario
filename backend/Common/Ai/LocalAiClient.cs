@@ -20,9 +20,10 @@ public sealed record AiToolCall(string Id, string Name, string Arguments);
 /// <summary>
 /// Respuesta de un turno de conversación: texto final o herramientas por ejecutar.
 /// Message es el mensaje del asistente tal cual, para agregarlo al historial antes de los resultados.
+/// Truncated: se acabó max_tokens (el modelo entró en bucle); la respuesta no sirve.
+/// Tokens: prompt + respuesta (usage de llama.cpp), para los logs.
 /// </summary>
-/// <summary>Truncated: se acabó max_tokens (el modelo entró en bucle); la respuesta no sirve.</summary>
-public sealed record AiChatReply(string? Content, IReadOnlyList<AiToolCall> ToolCalls, JsonObject Message, bool Truncated = false);
+public sealed record AiChatReply(string? Content, IReadOnlyList<AiToolCall> ToolCalls, JsonObject Message, bool Truncated = false, int Tokens = 0);
 
 /// <summary>Modelo local (llama.cpp, API compatible con OpenAI). Sin SDK: HttpClient.</summary>
 public interface ILocalAiClient
@@ -146,7 +147,7 @@ public sealed class LocalAiClient : ILocalAiClient
         };
         if (tools is { Count: > 0 }) body["tools"] = tools.DeepClone();
 
-        var (message, truncated) = await SendAsync(body, ct);
+        var (message, truncated, tokens) = await SendAsync(body, ct);
         var calls = (message["tool_calls"] as JsonArray ?? [])
             .OfType<JsonObject>()
             .Select(c => new AiToolCall(
@@ -155,11 +156,11 @@ public sealed class LocalAiClient : ILocalAiClient
                 c["function"]?["arguments"]?.GetValue<string>() ?? "{}"))
             .ToList();
         var content = message["content"]?.GetValue<string>();
-        return new AiChatReply(string.IsNullOrWhiteSpace(content) ? null : content, calls, message, truncated);
+        return new AiChatReply(string.IsNullOrWhiteSpace(content) ? null : content, calls, message, truncated, tokens);
     }
 
     /// <summary>POST a chat/completions; devuelve el mensaje del asistente (choices[0].message).</summary>
-    private async Task<(JsonObject Message, bool Truncated)> SendAsync(JsonObject body, CancellationToken ct)
+    private async Task<(JsonObject Message, bool Truncated, int Tokens)> SendAsync(JsonObject body, CancellationToken ct)
     {
         if (!_configured) throw new AiUnavailableException("El asistente IA no está configurado.");
         HttpResponseMessage response;
@@ -178,7 +179,8 @@ public sealed class LocalAiClient : ILocalAiClient
         var json = await response.Content.ReadFromJsonAsync<JsonNode>(ct);
         var choice = json?["choices"]?[0];
         return (choice?["message"] as JsonObject ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA."),
-            choice?["finish_reason"]?.GetValue<string>() == "length");
+            choice?["finish_reason"]?.GetValue<string>() == "length",
+            json?["usage"]?["total_tokens"]?.GetValue<int>() ?? 0);
     }
 }
 

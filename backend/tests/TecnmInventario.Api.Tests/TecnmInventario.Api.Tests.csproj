@@ -32,6 +32,7 @@
     pueden correr desde bin/ o desde un paquete de resultados).
   -->
   <ItemGroup>
+    <Content Include="Eval\assistant-eval.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\database.sql" Link="Sql\database.sql" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\scripts\seed-database.sql" Link="Sql\seed-database.sql" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\scripts\seed-permissions.sql" Link="Sql\seed-permissions.sql" CopyToOutputDirectory="PreserveNewest" />

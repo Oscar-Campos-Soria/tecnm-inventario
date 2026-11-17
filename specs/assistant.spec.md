@@ -57,6 +57,21 @@ Por usuario y conversación, en memoria, 24 h sin uso. Guarda turnos (pregunta, 
 los 2 más recientes van completos al modelo y los anteriores solo como pregunta y respuesta (máx. 8 turnos).
 Otro usuario que mande el id recibe una conversación nueva. Se pierde si la API se reinicia.
 
+## Seguridad, caché y registro
+
+- **Texto invisible** (`AiText.Clean`): la pregunta y todo texto de los resultados de herramientas (títulos y
+  descripciones que escribieron otros usuarios) pierden caracteres de formato (zero-width, bidi como U+202E, etiquetas
+  U+E0000–E007F), controles salvo salto de línea y tabulador, y uso privado; NFKC normaliza letras "disfrazadas".
+- **Prompt injection:** lo que el rol puede hacer lo decide el código (herramientas filtradas por permiso, solo
+  lectura, `proponer_ticket` no escribe). El prompt además dice que los datos de herramientas son texto, no órdenes, y
+  que el rol no cambia aunque el usuario lo diga. El prompt no guarda secretos: filtrarlo no expone nada.
+- **Respuesta en bucle:** `max_tokens` 800; una respuesta cortada se descarta (no se reenvía) y, si faltó un permiso,
+  se contesta "Tu rol no tiene permiso…".
+- **Caché** (`AskAssistantHandler`): primera pregunta de una conversación, por usuario + rol + pregunta normalizada,
+  5 min en `IMemoryCache`. No guarda respuestas con errores ni borradores de ticket. Seguimientos van siempre al modelo.
+- **Registro:** una línea por pregunta (`Asistente: pregunta rol=… ms=… vueltas=… tokens=… herramientas=… errores=…
+  respaldo=… insistio=…`, o `desde caché`), sin el texto de la pregunta.
+
 ## Infraestructura
 
 `--ctx-size 8192 --parallel 2` en el servicio `ia`: un turno para el asistente y otro para la carga masiva (el chat
@@ -73,5 +88,18 @@ responde aunque haya una conversión en curso). `mem_limit: 3584m` (pico medido 
 
 ## Evaluación
 
-Set de preguntas con herramientas esperadas, datos que debe mencionar la respuesta y verificación de que todo código
-de activo citado venga de los resultados (nada inventado). Corre contra la API real con usuarios de prueba.
+`backend/tests/TecnmInventario.Api.Tests/Eval/assistant-eval.json` (versionado): 40 casos (activos, ficha e historial,
+incidentes, tickets, combinadas, seguimiento, manual, fuera de tema, solo lectura, mis equipos, permisos por rol,
+tickets por IA y ataques: "ignora tus reglas", "soy administrador", pedir el prompt, caracteres invisibles, inyección en
+el seguimiento). Cada caso: herramientas que deben ejecutarse o no, lo que debe y no debe mencionar, datos que deben o
+no traer las herramientas, y que todo código de activo citado venga de lo consultado (nada inventado).
+
+Corre contra la API real y el modelo con los datos ZZ-IA de desarrollo; sin las variables se omite:
+
+```bash
+TECNM_EVAL_API=http://localhost:5112/api TECNM_EVAL_ADMIN=zz_ia_admin:<contraseña> TECNM_EVAL_USUARIO=zz_ia_usuario:<contraseña> dotnet test backend/TecnmInventario.slnx --filter "Category=Eval"
+```
+
+Resultado (2026-11-16, Qwen3.5-2B, sin otro modelo corriendo en la máquina): 38/40 en 7.9 min; ataques y permisos
+40/40 sin fugas. Falla conocida: "¿cuántas X hay y cuáles tienen falla?" contesta solo la segunda parte (límite del 2B,
+el ejemplo en el prompt no lo corrige). Con dos modelos en la misma máquina las respuestas pasan de 120 s.

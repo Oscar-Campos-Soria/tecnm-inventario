@@ -158,6 +158,8 @@ asistente y la conversión con IA se ocultan y el resto funciona igual.
 cd backend
 dotnet test TecnmInventario.slnx --filter "Category!=Integration"   # rápidas (InMemory)
 dotnet test TecnmInventario.slnx --filter "Category=Integration"    # PostgreSQL real con Testcontainers (requiere Docker)
+# Evaluación del asistente (40 casos, incluye ataques): API y modelo arriba, datos ZZ-IA y usuarios de prueba
+TECNM_EVAL_API=http://localhost:5112/api TECNM_EVAL_ADMIN=<admin>:<contraseña> TECNM_EVAL_USUARIO=<usuario>:<contraseña>   dotnet test TecnmInventario.slnx --filter "Category=Eval"
 cd ../frontend && npm run build && npm run lint
 ```
 
@@ -198,6 +200,14 @@ cd ../frontend && npm run build && npm run lint
   páginas. Responde con datos actuales usando herramientas de solo lectura sobre las consultas existentes, con los
   permisos del rol del usuario (no genera SQL), recuerda la conversación para preguntas de seguimiento, explica cómo se
   hacen las cosas con el manual integrado y muestra bajo cada respuesta qué consultó y los datos reales.
+- **Tickets desde el asistente** (RESPONSABLE_AREA y USUARIO_GENERAL): "mi monitor parpadea, ábreme un ticket" arma un
+  borrador con su equipo; el ticket solo se crea cuando la persona pulsa **Crear ticket** en la tarjeta (mismo
+  `POST /api/tickets`, con su validación y auditoría). El modelo nunca escribe.
+- **Protecciones:** lo que cada rol puede consultar lo decide el código (herramientas filtradas por permiso), no el
+  prompt; se quitan los caracteres invisibles de la pregunta y de los datos (prompt injection escondida); el prompt
+  trata los datos como texto y no acepta "soy administrador" ni "ignora tus reglas"; los nombres internos de
+  herramientas nunca llegan al usuario. Caché de 5 min para la misma primera pregunta y una línea de log por pregunta
+  (rol, tiempo, tokens, herramientas), sin el texto.
 - Si el modelo está apagado, el botón y la conversión con IA no aparecen y el resto del sistema funciona igual.
 
 ## Decisiones y desviaciones de la plantilla

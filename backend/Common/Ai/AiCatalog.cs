@@ -61,6 +61,43 @@ public static partial class AiText
         ["pb"] = "planta baja", ["lab"] = "laboratorio", ["of"] = "oficina",
     };
 
+    /// <summary>
+    /// Quita lo que una persona no ve pero el modelo sí lee (vía de prompt injection): caracteres de formato
+    /// (zero-width, bidi como U+202E, etiquetas U+E0000–E007F), controles salvo salto de línea y tabulador, y
+    /// uso privado. NFKC convierte letras "disfrazadas" (ancho completo, ligaduras) a las normales.
+    /// </summary>
+    public static string Clean(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        var builder = new StringBuilder(text.Length);
+        foreach (var rune in text.Normalize(NormalizationForm.FormKC).EnumerateRunes())
+        {
+            var category = Rune.GetUnicodeCategory(rune);
+            if (category is UnicodeCategory.Format or UnicodeCategory.PrivateUse or UnicodeCategory.Surrogate) continue;
+            if (category == UnicodeCategory.Control && rune.Value is not ('\n' or '\t')) continue;
+            builder.Append(rune.ToString());
+        }
+        return builder.ToString();
+    }
+
+    /// <summary>Clean en cada texto de un resultado (títulos y descripciones que escribieron otros usuarios).</summary>
+    public static void CleanAll(System.Text.Json.Nodes.JsonNode? node)
+    {
+        switch (node)
+        {
+            case System.Text.Json.Nodes.JsonObject obj:
+                foreach (var key in obj.Select(p => p.Key).ToList())
+                    if (obj[key] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var s)) obj[key] = Clean(s);
+                    else CleanAll(obj[key]);
+                break;
+            case System.Text.Json.Nodes.JsonArray array:
+                for (var i = 0; i < array.Count; i++)
+                    if (array[i] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<string>(out var s)) array[i] = Clean(s);
+                    else CleanAll(array[i]);
+                break;
+        }
+    }
+
     /// <summary>Minúsculas, sin acentos y solo letras/números: "S/N: 5CD-12" -> "sn5cd12".</summary>
     public static string Norm(string? text) => new(Plain(text).Where(char.IsLetterOrDigit).ToArray());
 
