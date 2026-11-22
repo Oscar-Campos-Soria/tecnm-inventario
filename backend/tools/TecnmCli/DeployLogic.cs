@@ -210,3 +210,43 @@ internal static class Certificates
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 }
+
+/// <summary>Aceleración del asistente IA: con qué tarjeta corre llama.cpp (IA_GPU en .env.prod).</summary>
+internal static class AiAccel
+{
+    public const string Cpu = "cpu";
+    public const string Nvidia = "nvidia";
+    public const string Vulkan = "vulkan";
+    public static readonly string[] Modes = [Cpu, Nvidia, Vulkan];
+
+    /// <summary>Qwen3.5-2B Q4 + mmproj + caché de 2 turnos caben en ~3 GB; con menos, mejor el procesador.</summary>
+    public const long MinVramMiB = 4096;
+
+    private static readonly Regex Offloaded = new(@"offloaded (\d+)/\d+ layers to GPU", RegexOptions.Compiled);
+
+    /// <summary>
+    /// "auto": NVIDIA si nvidia-smi ve memoria suficiente; Vulkan si es Linux con /dev/dri/renderD*; si no, procesador.
+    /// Cualquier otro valor se respeta tal cual (ya validado contra <see cref="Modes"/>).
+    /// </summary>
+    public static string Choose(string requested, long? nvidiaVramMiB, bool linuxRenderNode) => requested switch
+    {
+        "auto" when nvidiaVramMiB >= MinVramMiB => Nvidia,
+        "auto" when linuxRenderNode => Vulkan,
+        "auto" => Cpu,
+        _ => requested,
+    };
+
+    /// <summary>Memoria de la primera tarjeta en la salida de nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits.</summary>
+    public static long? ParseVram(string output) =>
+        long.TryParse(output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim(), out var mib) ? mib : null;
+
+    /// <summary>Capas que llama.cpp cargó en la tarjeta según sus logs (la última carga); 0 si corre en procesador.</summary>
+    public static int OffloadedLayers(string logs) =>
+        Offloaded.Matches(logs).LastOrDefault() is { } m ? int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : 0;
+
+    /// <summary>Archivo de compose que se suma al principal para este modo (null: procesador).</summary>
+    public static string? OverrideFile(string mode) => mode is Nvidia or Vulkan ? $"docker-compose.ia-{mode}.yml" : null;
+
+    /// <summary>Hilos de procesador: la mitad de los lógicos (≈ núcleos físicos), entre 2 y 6.</summary>
+    public static int Threads(int logicalProcessors) => Math.Clamp(logicalProcessors / 2, 2, 6);
+}

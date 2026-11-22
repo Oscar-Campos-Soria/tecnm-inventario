@@ -1,0 +1,12 @@
+# Asistente IA en tarjeta AMD o Intel por Vulkan. Solo Linux: Docker Desktop en Windows no pasa
+# estas tarjetas a los contenedores (ahí se queda en procesador).
+#   tecnm ai install --gpu vulkan     (o --gpu auto: lo elige si existe /dev/dri/renderD*)
+# shortcut: sin ROCm; Vulkan cubre casi todas las AMD sin instalar nada en el host. Si una AMD
+# soportada por ROCm rinde poco, probar ghcr.io/ggml-org/llama.cpp:server-rocm-b11960 con /dev/kfd.
+services:
+  ia:
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b11960
+    environment:
+      LLAMA_ARG_N_GPU_LAYERS: "99"
+    devices:
+      - /dev/dri:/dev/dri

@@ -177,4 +177,29 @@ public class CliDeployLogicTests
         Assert.Equal("web", Assert.Single(fromArray).Service);
         Assert.Empty(Deployment.ParseContainers("no es json"));
     }
+
+    [Theory]
+    [InlineData("auto", 8192L, false, "nvidia")]
+    [InlineData("auto", 2048L, false, "cpu")]    // NVIDIA chica: no cabe, procesador
+    [InlineData("auto", 2048L, true, "vulkan")]  // ...salvo que haya otra tarjeta en Linux
+    [InlineData("auto", null, true, "vulkan")]
+    [InlineData("auto", null, false, "cpu")]     // Windows con AMD/Intel o sin tarjeta
+    [InlineData("cpu", 8192L, true, "cpu")]      // lo pedido gana
+    [InlineData("nvidia", null, false, "nvidia")]
+    public void Aceleracion_de_la_IA_se_elige_segun_la_tarjeta(string requested, long? vram, bool renderNode, string expected) =>
+        Assert.Equal(expected, AiAccel.Choose(requested, vram, renderNode));
+
+    [Fact]
+    public void Lee_memoria_de_nvidia_smi_y_capas_de_los_logs()
+    {
+        Assert.Equal(8192, AiAccel.ParseVram("8192\n4096\n"));
+        Assert.Null(AiAccel.ParseVram("NVIDIA-SMI has failed"));
+        Assert.Equal(25, AiAccel.OffloadedLayers("load_tensors: offloaded 0/25 layers to GPU\nload_tensors: offloaded 25/25 layers to GPU"));
+        Assert.Equal(0, AiAccel.OffloadedLayers("main: server is listening"));
+        Assert.Null(AiAccel.OverrideFile("cpu"));
+        Assert.Equal("docker-compose.ia-nvidia.yml", AiAccel.OverrideFile("nvidia"));
+        Assert.All(AiAccel.Modes.Select(AiAccel.OverrideFile).OfType<string>(), f => Assert.True(File.Exists(RepoFile("database", f)), f));
+        Assert.Equal(6, AiAccel.Threads(12));
+        Assert.Equal(2, AiAccel.Threads(2));
+    }
 }

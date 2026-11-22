@@ -74,7 +74,8 @@ services:
 
   # Modelo local (llama.cpp + Qwen3.5-2B con visión) para la carga masiva. Opcional: lo enciende
   # `tecnm ia instalar` (COMPOSE_PROFILES=ia en .env.prod). Sin puerto publicado y en la
-  # red interna "back", sin internet: solo la API le habla.
+  # red interna "back", sin internet: solo la API le habla. Con tarjeta, el CLI suma
+  # docker-compose.ia-nvidia.yml o docker-compose.ia-vulkan.yml (IA_GPU en .env.prod).
   ia:
     image: ghcr.io/ggml-org/llama.cpp:server-b11960
     profiles: [ia]

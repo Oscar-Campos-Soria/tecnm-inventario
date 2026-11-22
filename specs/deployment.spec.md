@@ -109,7 +109,13 @@ encendido con `COMPOSE_PROFILES=ia` en `.env.prod`.
 - Sin puerto publicado y solo en la red `back` (interna, sin internet): únicamente la API le habla (`http://ia:8080`).
 - `--ctx-size 8192 --parallel 2`: dos turnos de 4096 (el asistente responde aunque una carga masiva esté corriendo).
   `mem_limit: 3584m` (pico medido ~3.15 GB con ambos turnos trabajando y leyendo una imagen), caché KV en 8 bits y `--image-max-tokens 512`
-  (misma precisión, transcribe en 23 s en lugar de 36 s). Las versiones IQ3 del 2B y el 0.8B se probaron: rompen la extracción. Hilos `IA_THREADS` (4 por omisión). Contenedor de solo lectura.
+  (misma precisión, transcribe en 23 s en lugar de 36 s). Las versiones IQ3 del 2B y el 0.8B se probaron: rompen la extracción. Hilos `IA_THREADS` (4 por omisión; `ai install` lo fija en la mitad de los hilos lógicos, entre 2 y 6). Contenedor de solo lectura.
+- Tarjeta de video: `tecnm ai install --gpu auto|cpu|nvidia|vulkan` (auto por omisión) guarda `IA_GPU` en `.env.prod` y el CLI
+  suma `docker-compose.ia-nvidia.yml` (imagen `server-cuda`, reserva de GPU) o `docker-compose.ia-vulkan.yml`
+  (imagen `server-vulkan`, `/dev/dri`) con `LLAMA_ARG_N_GPU_LAYERS=99`. Auto: NVIDIA si `nvidia-smi` ve ≥ 4 GB; Vulkan si es
+  Linux con `/dev/dri/renderD*` (AMD/Intel); si no, procesador. Docker Desktop en Windows solo pasa NVIDIA. Tras arrancar
+  exige "offloaded N/M layers to GPU" con N > 0 en los logs; si la tarjeta falla, vuelve sola a procesador. Sin ROCm.
+  `ai status` muestra la aceleración y las capas en la tarjeta.
 - El modelo vive en `database/models/` (no se versiona). `tecnm ai install` descarga cada archivo a `.part` y solo lo
   acepta si tamaño y SHA256 coinciden; `--from <carpeta>` hace lo mismo con archivos copiados (servidor sin internet).
   Borra los `.gguf` de modelos anteriores.

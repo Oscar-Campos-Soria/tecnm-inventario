@@ -29,14 +29,14 @@ internal sealed class CliException(int exitCode, string code, string message, st
 /// </summary>
 internal sealed class CliArgs
 {
-    private static readonly HashSet<string> ValueOptions = ["host", "tail", "backup", "user", "email", "first", "last", "from"];
+    private static readonly HashSet<string> ValueOptions = ["host", "tail", "backup", "user", "email", "first", "last", "from", "gpu"];
     private static readonly HashSet<string> Flags = ["json", "yes", "password-stdin", "help"];
 
     private static readonly Dictionary<string, string> Aliases = new()
     {
         ["respaldar"] = "backup", ["estado"] = "status", ["iniciar"] = "start", ["detener"] = "stop", ["reiniciar"] = "restart",
         ["ia"] = "ai", ["instalar"] = "install", ["probar"] = "test", ["desactivar"] = "disable", ["actualizar"] = "update",
-        ["restaurar"] = "restore", ["ayuda"] = "help", ["--desde"] = "--from", ["-h"] = "--help", ["--ayuda"] = "--help",
+        ["restaurar"] = "restore", ["ayuda"] = "help", ["--desde"] = "--from", ["--grafica"] = "--gpu", ["-h"] = "--help", ["--ayuda"] = "--help",
     };
 
     public IReadOnlyList<string> Words { get; }

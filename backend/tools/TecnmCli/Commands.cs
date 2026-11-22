@@ -26,7 +26,7 @@ internal static class Commands
         ("cert [status] | cert renew --yes | cert help", "Certificado HTTPS"),
         ("schedule-backup", "Programar el respaldo diario a las 02:00"),
         ("sandbox", "Modo desarrollo en este equipo (Ctrl+C para detener)"),
-        ("ai status | ai install [--from CARPETA] | ai test | ai disable", "Asistente IA local"),
+        ("ai status | ai install [--from CARPETA] [--gpu auto|cpu|nvidia|vulkan] | ai test | ai disable", "Asistente IA local (auto: usa la tarjeta si sirve)"),
         ("help", "Esta ayuda"),
     ];
 
@@ -143,11 +143,15 @@ internal static class Commands
                 switch (args.Sub)
                 {
                     case "status": var ai = d.AiStatus(); return new CommandResult(ai.Healthy || !ai.Enabled, ai, "AI_UNHEALTHY");
-                    case "install": return new CommandResult(d.AiInstall(args.Get("from")));
+                    case "install":
+                        var gpu = args.Get("gpu") ?? "auto";
+                        if (gpu != "auto" && !AiAccel.Modes.Contains(gpu))
+                            throw CliException.Usage($"--gpu: usa auto, {string.Join(", ", AiAccel.Modes)}.");
+                        return new CommandResult(d.AiInstall(args.Get("from"), gpu));
                     case "test": return new CommandResult(d.AiTest());
                     case "disable": return new CommandResult(d.AiDisable());
                 }
-                throw CliException.Usage("ai: usa ai status, ai install [--from CARPETA], ai test o ai disable.");
+                throw CliException.Usage("ai: usa ai status, ai install [--from CARPETA] [--gpu auto|cpu|nvidia|vulkan], ai test o ai disable.");
         }
         throw CliException.Usage($"Comando desconocido: {args.Command}.");
     }

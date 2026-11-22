@@ -34,7 +34,10 @@ internal sealed partial class Deployment(string root)
         return null;
     }
 
-    private string[] Compose(params string[] args) => ["compose", "-f", ComposeFile, "--env-file", EnvFile, .. args];
+    private string[] Compose(params string[] args) =>
+        AiAccel.OverrideFile(Env.GetValueOrDefault("IA_GPU", AiAccel.Cpu)) is { } gpu
+            ? ["compose", "-f", ComposeFile, "-f", Path.Combine(Root, "database", gpu), "--env-file", EnvFile, .. args]
+            : ["compose", "-f", ComposeFile, "--env-file", EnvFile, .. args];
 
     private Dictionary<string, string> Env => File.Exists(EnvFile)
         ? ProdEnv.Parse(File.ReadAllText(EnvFile))
