@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TecnmInventario.Api.Features.Assistant.AskAssistant;
 using TecnmInventario.Api.Features.Assistant.EndConversation;
 using TecnmInventario.Api.Features.Assistant.GetAssistantStatus;
+using TecnmInventario.Api.Features.Assistant.GetCapabilities;
 
 namespace TecnmInventario.Api.Features.Assistant;
 
@@ -22,6 +23,10 @@ public class AssistantController : ControllerBase
     [HttpGet("status")]
     public async Task<ActionResult<GetAssistantStatusResponse>> Status(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetAssistantStatusQuery(), cancellationToken));
+
+    [HttpGet("capabilities")]
+    public async Task<ActionResult<IReadOnlyList<CapabilityResponse>>> Capabilities(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetCapabilitiesQuery(), cancellationToken));
 
     [HttpPost("ask")]
     public async Task<ActionResult<AskAssistantResponse>> Ask(AskAssistantCommand command, CancellationToken cancellationToken)

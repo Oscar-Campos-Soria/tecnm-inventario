@@ -9,6 +9,8 @@ using TecnmInventario.Api.Features.Dashboard.GetSummary;
 using TecnmInventario.Api.Features.History.GetAssetTimeline;
 using TecnmInventario.Api.Features.Incidents.GetIncidents;
 using TecnmInventario.Api.Features.Maintenance.GetUpcomingMaintenance;
+using TecnmInventario.Api.Features.Tickets.GetTicketStats;
+using TecnmInventario.Api.Features.Tickets.GetTicketWorkload;
 using TecnmInventario.Api.Features.Tickets.GetTickets;
 using static TecnmInventario.Api.Features.Assistant.Shared.ToolSchema;
 
@@ -29,8 +31,10 @@ public sealed class SearchAssetsTool : IAssistantTool
         [AssetStatusCodes.Disponible, AssetStatusCodes.Asignado, AssetStatusCodes.EnMantenimiento, AssetStatusCodes.ConFalla, AssetStatusCodes.DadoDeBaja];
 
     public string Name => "buscar_activos";
+    public string Summary => "Inventario de equipos: buscar, listar o contar por tipo, estado (con falla, disponible…), marca o ubicación.";
+    public string Source => "GetAssetsQuery + GetIncidentsQuery";
     public string? Permission => "assets.view";
-    public string Description => "Busca y cuenta equipos (activos) del inventario: por tipo, estado, marca, ubicación, código, serie u hostname. Úsala para 'equipos con falla' (estado CON_FALLA), disponibles, asignados o dados de baja. Devuelve el total y hasta 15 equipos.";
+    public string Description => "Busca y cuenta equipos (activos) del inventario: por tipo, estado, marca, ubicación, código, serie u hostname. Úsala para 'equipos con falla' (estado CON_FALLA), disponibles, asignados o dados de baja. Devuelve el total, el conteo por estado del mismo filtro y hasta 15 equipos.";
 
     public JsonObject Parameters(AiCatalog catalog) => Object(
         ("texto", Text("código de inventario, número de serie o hostname (parcial), ej. ZZ-IA-01, MXL123, sw-core")),
@@ -59,10 +63,23 @@ public sealed class SearchAssetsTool : IAssistantTool
                 faults[group.Key] = string.Join("; ", group.Select(i => i.Title));
         }
 
+        // Preguntas compuestas ("¿cuántas hay y cuáles fallan?"): los conteos por estado del mismo filtro salen de la BD,
+        // así el total y el desglose no dependen de que el modelo haga dos consultas ni de que sume.
+        var byStatus = new JsonObject();
+        foreach (var code in Statuses.Where(c => c != AssetStatusCodes.DadoDeBaja))
+        {
+            var count = code == status ? page.TotalCount : (await ctx.Mediator.Send(new GetAssetsQuery(1, 1, text, code, ctx.TypeId(type),
+                location?.Id, false, maker?.Id), ct)).TotalCount;
+            if (count > 0) byStatus[code] = count;
+        }
+
         var filters = Describe(("texto", text), ("tipo", type), ("estado", status), ("marca", maker?.Name), ("ubicación", location?.Name));
         return new ToolResult($"Activos{filters} → {page.TotalCount}", new JsonObject
         {
             ["total"] = page.TotalCount,
+            // Sin el filtro de estado: el total del tipo/lugar/marca y cuántos hay en cada estado.
+            ["total_sin_filtro_de_estado"] = status is null ? null : byStatus.Sum(p => (int)p.Value!),
+            ["por_estado"] = byStatus,
             ["activos"] = new JsonArray(page.Items.Select(a => (JsonNode)new JsonObject
             {
                 ["codigo"] = a.InventoryCode, ["tipo"] = a.AssetTypeName, ["marca"] = a.ManufacturerName,
@@ -82,6 +99,8 @@ public sealed class SearchAssetsTool : IAssistantTool
 public sealed class AssetDetailTool : IAssistantTool
 {
     public string Name => "detalle_activo";
+    public string Summary => "Ficha de UN equipo por su código: datos, estado, ubicación y a quién está asignado.";
+    public string Source => "GetAssetByIdQuery + GetAssetsQuery + GetAssetAssignmentsQuery";
     public string? Permission => "assets.view";
     public string Description => "Ficha de un activo por su código de inventario: tipo, marca, modelo, serie, estado, ubicación y a quién está asignado.";
 
@@ -115,6 +134,8 @@ public sealed class AssetHistoryTool : IAssistantTool
     };
 
     public string Name => "historial_activo";
+    public string Summary => "Bitácora de cambios de UN equipo por su código: quién hizo qué y cuándo.";
+    public string Source => "GetAssetTimelineQuery + GetAssetAssignmentsQuery";
     public string? Permission => "history.view";
     public string Description => "Historial de cambios de un activo (altas, movimientos, asignaciones, incidentes, mantenimientos), del más reciente al más antiguo.";
 
@@ -153,6 +174,8 @@ public sealed class SearchIncidentsTool : IAssistantTool
         [IncidentPriorityCodes.Baja, IncidentPriorityCodes.Media, IncidentPriorityCodes.Alta, IncidentPriorityCodes.Critica];
 
     public string Name => "buscar_incidentes";
+    public string Summary => "Incidentes: fallas técnicas registradas de un equipo y su diagnóstico o reparación; por equipo, estado, prioridad, fecha, tema o asignados a mí.";
+    public string Source => "GetIncidentsQuery";
     public string? Permission => "incidents.view";
     public string Description => "Incidentes: el registro técnico de cada falla reportada, con título, prioridad y estado. Filtra por un activo, por tipo de equipo, abiertos, estado, prioridad, fecha o palabras del título. Para contar equipos con falla usa buscar_activos con estado CON_FALLA.";
 
@@ -163,22 +186,25 @@ public sealed class SearchIncidentsTool : IAssistantTool
         ("estado", OneOf(Statuses)),
         ("prioridad", OneOf(Priorities)),
         ("desde", Text("reportados desde: hoy, ayer, semana, mes o AAAA-MM-DD")),
-        ("tema", Text("tema o palabra clave de la falla, ej. pantalla, papel, wifi")));
+        ("tema", Text("tema o palabra clave de la falla, ej. pantalla, papel, wifi")),
+        ("asignados_a_mi", Flag("solo los asignados a quien pregunta")));
 
     public async Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext ctx, CancellationToken ct)
     {
         var code = args.Str("codigo_activo");
+        var mine = args.Bool("asignados_a_mi") == true;
         var assetType = args.Enum("tipo_activo", ctx.Catalog.Types.Select(t => t.Code));
         long? assetId = code is null ? null : ctx.AssetId(code);
         var status = args.Enum("estado", Statuses);
         var priority = args.Enum("prioridad", Priorities);
         var open = args.Bool("solo_abiertos");
         var since = args.Str("desde");
-        var page = await ctx.Mediator.Send(new GetIncidentsQuery(1, ToolLimits.Rows, assetId, status, priority, null, null,
+        var page = await ctx.Mediator.Send(new GetIncidentsQuery(1, ToolLimits.Rows, assetId, status, priority, null, mine ? ctx.UserId : null,
             open, args.Str("tema") ?? args.Str("texto"), ctx.Since(since), ctx.TypeId(assetType)), ct);
 
         var filters = SearchAssetsTool.Describe(("activo", code), ("tipo", assetType), ("abiertos", open == true ? "sí" : null),
-            ("estado", status), ("prioridad", priority), ("desde", since), ("tema", args.Str("tema") ?? args.Str("texto")));
+            ("estado", status), ("prioridad", priority), ("desde", since), ("tema", args.Str("tema") ?? args.Str("texto")),
+            ("asignados a", mine ? "mí" : null));
         return new ToolResult($"Incidentes{filters} → {page.TotalCount}", new JsonObject
         {
             ["total"] = page.TotalCount,
@@ -193,14 +219,22 @@ public sealed class SearchIncidentsTool : IAssistantTool
 
 public sealed class SearchTicketsTool : IAssistantTool
 {
+    private static readonly string[] Priorities =
+        [IncidentPriorityCodes.Baja, IncidentPriorityCodes.Media, IncidentPriorityCodes.Alta, IncidentPriorityCodes.Critica];
+
     public string Name => "buscar_tickets";
+    public string Summary => "Tickets: solicitudes, reportes o pedidos de soporte y su seguimiento (estado de la reparación, técnico asignado, prioridad, días abierto, asignados a mí, sin asignar).";
+    public string Source => "GetTicketsQuery";
     public string? Permission => "tickets.create";
-    public string Description => "Tickets de la mesa de ayuda (solicitudes de ayuda). Úsala para \"mis tickets\" o \"mis solicitudes\": un usuario general solo ve los suyos. Si preguntan por un tema (wifi, impresora, internet, proyector), pon esa palabra en tema.";
+    public string Description => "Tickets de la mesa de ayuda (solicitudes de ayuda). Un usuario general solo ve los suyos. Filtra por estado, prioridad, tema, sin asignar, asignados a mí o a un técnico. Trae técnico asignado y días abierto. No hay fecha estimada de entrega ni fecha límite registradas.";
 
     public JsonObject Parameters(AiCatalog catalog) => Object(
         ("solo_abiertos", Flag("solo los no terminados")),
         ("estado", OneOf(TicketStatusCodes.All)),
         ("sin_asignar", Flag("solo los que nadie atiende")),
+        ("prioridad", OneOf(Priorities)),
+        ("asignados_a_mi", Flag("solo los asignados a quien pregunta (técnico: \"lo que tengo pendiente\")")),
+        ("tecnico", Text("usuario o nombre del técnico asignado")),
         ("desde", Text("creados desde: hoy, ayer, semana, mes o AAAA-MM-DD")),
         ("tema", Text("tema o palabra clave del ticket, ej. wifi, impresora, proyector")));
 
@@ -210,11 +244,17 @@ public sealed class SearchTicketsTool : IAssistantTool
         var open = args.Bool("solo_abiertos");
         var unassigned = args.Bool("sin_asignar");
         var since = args.Str("desde");
-        var page = await ctx.Mediator.Send(new GetTicketsQuery(1, ToolLimits.Rows, status, null, null, null,
+        var priority = args.Enum("prioridad", Priorities);
+        var mine = args.Bool("asignados_a_mi") == true;
+        // Sin tickets.manage la query solo devuelve los propios: el filtro por técnico no aplica.
+        var tech = mine ? null : ctx.Can("tickets.manage") ? ctx.User(args.Str("tecnico")) : null;
+        long? assignedTo = mine ? ctx.UserId : tech?.Id;
+        var page = await ctx.Mediator.Send(new GetTicketsQuery(1, ToolLimits.Rows, status, null, priority, assignedTo,
             unassigned, open, args.Str("tema") ?? args.Str("texto"), ctx.Since(since)), ct);
 
         var filters = SearchAssetsTool.Describe(("tema", args.Str("tema") ?? args.Str("texto")), ("abiertos", open == true ? "sí" : null),
-            ("estado", status), ("sin asignar", unassigned == true ? "sí" : null), ("desde", since));
+            ("estado", status), ("prioridad", priority), ("sin asignar", unassigned == true ? "sí" : null),
+            ("asignados a", mine ? "mí" : tech?.Username), ("desde", since));
         return new ToolResult($"Tickets{filters} → {page.TotalCount}", new JsonObject
         {
             ["total"] = page.TotalCount,
@@ -222,7 +262,9 @@ public sealed class SearchTicketsTool : IAssistantTool
             {
                 ["id"] = t.TicketId, ["titulo"] = t.Title, ["estado"] = t.Status, ["prioridad"] = t.PriorityCode,
                 ["solicitante"] = t.RequesterUsername, ["asignado_a"] = t.AssignedToUsername,
-                ["activo"] = t.AssetInventoryCode, ["creado"] = ctx.Local(t.CreatedAt),
+                ["activo"] = t.AssetInventoryCode, ["creado"] = ctx.Local(t.CreatedAt), ["actualizado"] = ctx.Local(t.UpdatedAt),
+                // Antigüedad real; el sistema no tiene fecha límite, así que no es "atraso".
+                ["dias_abierto"] = TicketStatusCodes.Open.Contains(t.Status) ? (int)(ctx.NowUtc - t.CreatedAt).TotalDays : null,
             }).ToArray()),
         });
     }
@@ -231,6 +273,8 @@ public sealed class SearchTicketsTool : IAssistantTool
 public sealed class UpcomingMaintenanceTool : IAssistantTool
 {
     public string Name => "mantenimientos_proximos";
+    public string Summary => "Mantenimientos preventivos vencidos o por vencer (tienen fecha programada real).";
+    public string Source => "GetUpcomingMaintenanceQuery";
     public string? Permission => "maintenance.manage";
     public string Description => "Mantenimientos preventivos que vencen en los próximos días o ya vencidos.";
 
@@ -256,6 +300,8 @@ public sealed class UpcomingMaintenanceTool : IAssistantTool
 public sealed class InventorySummaryTool : IAssistantTool
 {
     public string Name => "resumen_inventario";
+    public string Summary => "Panorama general en números: activos por estado, tipo y ubicación, incidentes abiertos, mantenimientos y licencias.";
+    public string Source => "GetDashboardSummaryQuery";
     public string? Permission => "dashboard.view";
     public string Description => "Panorama general: total de activos por estado, tipo y ubicación, incidentes abiertos por prioridad, mantenimientos y licencias por vencer.";
 
@@ -289,14 +335,21 @@ public sealed class InventorySummaryTool : IAssistantTool
 public sealed class MyAssetsTool : IAssistantTool
 {
     public string Name => "mis_equipos";
+    public string Summary => "Los equipos asignados a quien pregunta (mi computadora, mi monitor), su estado y sus tickets con el técnico que los atiende.";
+    public string Source => "GetMyAssetsQuery + GetTicketsQuery";
     public string? Permission => null;
-    public string Description => "Los equipos asignados al usuario que pregunta (\"mi laptop\", \"mi equipo\", \"qué equipo tengo\"), con su estado y los tickets ligados a cada equipo. Para \"mis tickets\" usa buscar_tickets.";
+    public string Description => "Los equipos asignados al usuario que pregunta (\"mi laptop\", \"mi equipo\", \"qué equipo tengo\"), con su estado y los tickets ligados a cada equipo con su técnico asignado. No hay fecha estimada de entrega registrada.";
 
     public JsonObject Parameters(AiCatalog catalog) => Object();
 
     public async Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext ctx, CancellationToken ct)
     {
         var mine = await ctx.Mediator.Send(new GetMyAssetsQuery(), ct);
+        // Técnico y última actualización de cada ticket ligado.
+        // shortcut: lee hasta 100 tickets (sin manage son solo los suyos); si un usuario tiene más, filtrar por id en la query.
+        var ids = mine.SelectMany(a => a.Tickets).Select(t => t.TicketId).ToHashSet();
+        var detail = ids.Count == 0 ? new Dictionary<long, GetTicketsResponse>() : (await ctx.Mediator.Send(new GetTicketsQuery(1, 100, null, null, null, null, null, null, null), ct))
+            .Items.Where(t => ids.Contains(t.TicketId)).ToDictionary(t => t.TicketId);
         return new ToolResult($"Mis equipos → {mine.Count}", new JsonObject
         {
             ["total"] = mine.Count,
@@ -307,7 +360,9 @@ public sealed class MyAssetsTool : IAssistantTool
                 ["asignado_desde"] = ctx.Local(a.AssignedAt),
                 ["tickets"] = new JsonArray(a.Tickets.Select(t => (JsonNode)new JsonObject
                 {
-                    ["id"] = t.TicketId, ["titulo"] = t.Title, ["estado"] = t.Status,
+                    ["id"] = t.TicketId, ["titulo"] = t.Title, ["estado"] = t.Status, ["creado"] = ctx.Local(t.CreatedAt),
+                    ["asignado_a"] = detail.GetValueOrDefault(t.TicketId)?.AssignedToUsername ?? "sin técnico asignado",
+                    ["actualizado"] = detail.TryGetValue(t.TicketId, out var d) ? ctx.Local(d.UpdatedAt) : null,
                 }).ToArray()),
             }).ToArray()),
         });
@@ -321,6 +376,9 @@ public sealed class MyAssetsTool : IAssistantTool
 public sealed class ProposeTicketTool : IAssistantTool
 {
     public string Name => "proponer_ticket";
+    public string Summary => "Preparar un borrador de solicitud de ayuda cuando el usuario quiere reportar un problema o pedir soporte.";
+    public string Source => "GetMyAssetsQuery (borrador; lo crea POST /api/tickets al confirmar)";
+    public ToolKind Kind => ToolKind.Borrador;
     public string? Permission => "assistant.tickets.propose";
     public string Description => "Prepara un borrador de ticket de ayuda cuando el usuario pide abrir, levantar o reportar un problema (\"no prende mi laptop\", \"ábreme un ticket\"). No crea nada: el usuario lo revisa y confirma en una tarjeta. Si habla de su equipo y no sabes el código, usa antes mis_equipos. Para consultar tickets que ya existen usa buscar_tickets.";
 
@@ -371,6 +429,8 @@ public sealed class ProposeTicketTool : IAssistantTool
 public sealed class NewsTool : IAssistantTool
 {
     public string Name => "novedades";
+    public string Summary => "Qué hay de nuevo: incidentes y tickets creados desde una fecha.";
+    public string Source => "GetIncidentsQuery + GetTicketsQuery";
     public string? Permission => null;
     public string Description => "Qué pasó o qué hay de nuevo: incidentes reportados y tickets creados desde una fecha (hoy si no se indica).";
 
@@ -410,6 +470,8 @@ public sealed class NewsTool : IAssistantTool
 public sealed class SearchManualTool(ManualIndex manual) : IAssistantTool
 {
     public string Name => "buscar_manual";
+    public string Summary => "Manual del sistema: cómo se hace algo, qué significa, reglas, estados, pantallas y permisos por rol.";
+    public string Source => "ManualIndex (BM25 sobre Features/Assistant/Manual)";
     public string? Permission => null;
     public string Description => "Manual del sistema. Úsala SIEMPRE para: cómo se hace algo, qué significa algo, diferencias entre conceptos, qué pasa cuando…, reglas, estados, pantallas y qué puede hacer cada rol. No respondas eso de memoria.";
 
@@ -428,5 +490,68 @@ public sealed class SearchManualTool(ManualIndex manual) : IAssistantTool
                 ["texto"] = f.Text.Length > 900 ? f.Text[..900] + "…" : f.Text,
             }).ToArray()),
         }));
+    }
+}
+
+public sealed class WorkloadTool : IAssistantTool
+{
+    public string Name => "carga_tecnicos";
+    public string Summary => "Carga de trabajo por técnico: tickets e incidentes abiertos de cada uno, críticos, el más antiguo y los sin asignar.";
+    public string Source => "GetTicketWorkloadQuery";
+    public string? Permission => "tickets.manage";
+    public string Description => "Carga de trabajo pendiente de cada persona con algo asignado: tickets abiertos, críticos, incidentes abiertos y días que lleva abierto su ticket más antiguo; más los tickets e incidentes sin asignar. El sistema no tiene fechas límite: la antigüedad no es atraso.";
+
+    public JsonObject Parameters(AiCatalog catalog) => Object();
+
+    public async Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext ctx, CancellationToken ct)
+    {
+        var w = await ctx.Mediator.Send(new GetTicketWorkloadQuery(), ct);
+        return new ToolResult($"Carga de trabajo → {w.Assignees.Count} personas con pendientes", new JsonObject
+        {
+            ["por_persona"] = new JsonArray(w.Assignees.Select(a => (JsonNode)new JsonObject
+            {
+                ["usuario"] = a.Username, ["nombre"] = a.FullName, ["tickets_abiertos"] = a.OpenTickets,
+                ["tickets_criticos"] = a.CriticalOpenTickets, ["incidentes_abiertos"] = a.OpenIncidents,
+                ["dias_ticket_mas_antiguo"] = a.OldestOpenTicketAt is null ? null : (int)(ctx.NowUtc - a.OldestOpenTicketAt.Value).TotalDays,
+            }).ToArray()),
+            ["tickets_sin_asignar"] = w.UnassignedOpenTickets,
+            ["incidentes_sin_asignar"] = w.UnassignedOpenIncidents,
+        });
+    }
+}
+
+public sealed class TicketStatsTool : IAssistantTool
+{
+    public string Name => "estadisticas_tickets";
+    public string Summary => "Estadísticas de solicitudes en un periodo: cuántas se recibieron, resolvieron, cerraron y cuántas siguen pendientes.";
+    public string Source => "GetTicketStatsQuery";
+    public string? Permission => "tickets.create";
+    public string Description => "Movimiento de tickets en un periodo: recibidos (creados), resueltos, cerrados y cancelados en ese lapso, horas promedio de resolución y pendientes ahora, con los recibidos por prioridad y categoría. Un usuario general solo cuenta los suyos.";
+
+    public JsonObject Parameters(AiCatalog catalog) => Object(
+        ("desde", Text("inicio del periodo: hoy, ayer, semana, mes o AAAA-MM-DD (semana si no se indica)")),
+        ("hasta", Text("último día del periodo (incluido): hoy, ayer o AAAA-MM-DD; ahora si no se indica")));
+
+    public async Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext ctx, CancellationToken ct)
+    {
+        var since = args.Str("desde") ?? "semana";
+        var until = args.Str("hasta");
+        var from = ctx.Since(since)!.Value;
+        var to = until is null ? ctx.NowUtc : ctx.Since(until)!.Value.AddDays(1); // "hasta" incluye ese día
+        var s = await ctx.Mediator.Send(new GetTicketStatsQuery(from, to), ct);
+        static JsonObject Counts(IEnumerable<CodeCount> items)
+        {
+            var o = new JsonObject();
+            foreach (var i in items) o[i.Code] = i.Count;
+            return o;
+        }
+        return new ToolResult($"Tickets desde {since}{(until is null ? "" : $" hasta {until}")} → {s.Created} recibidos, {s.Resolved} resueltos", new JsonObject
+        {
+            ["desde"] = ctx.Local(s.From), ["hasta"] = ctx.Local(s.To),
+            ["recibidos"] = s.Created, ["resueltos"] = s.Resolved, ["cerrados"] = s.Closed, ["cancelados"] = s.Cancelled,
+            ["recibidos_que_siguen_abiertos"] = s.CreatedStillOpen, ["horas_promedio_resolucion"] = s.AvgResolutionHours,
+            ["pendientes_ahora"] = s.OpenNow,
+            ["recibidos_por_prioridad"] = Counts(s.CreatedByPriority), ["recibidos_por_categoria"] = Counts(s.CreatedByCategory),
+        });
     }
 }

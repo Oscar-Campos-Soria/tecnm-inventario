@@ -1,3 +1,5 @@
+using TecnmInventario.Api.Features.Tickets.GetTicketStats;
+using TecnmInventario.Api.Features.Tickets.GetTicketWorkload;
 using TecnmInventario.Api.Features.Assets.GetMyAssets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -380,5 +382,53 @@ public class TicketsTests
 
         h.As(TechnicianId, "TECNICO");
         await h.Authorize(DocumentOwnerTypes.Incident, 20, DocumentOperation.Read);
+    }
+
+    [Fact]
+    public async Task Carga_de_trabajo_agrupa_lo_abierto_por_persona_y_solo_la_ve_quien_administra()
+    {
+        var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+        var assigned = await h.Create("Sin red");
+        await h.Create("Proyector");
+        h.As(AdminId, "ADMIN");
+        var ticket = await h.Get(assigned.TicketId);
+        await h.Assign(assigned.TicketId, ticket.Version, TechnicianId);
+
+        var workload = await new GetTicketWorkloadHandler(h.Context, h.User, new FakeRolePermissions())
+            .Handle(new GetTicketWorkloadQuery(), default);
+
+        var tec = Assert.Single(workload.Assignees);
+        Assert.Equal("tec", tec.Username);
+        Assert.Equal(1, tec.OpenTickets);
+        Assert.Equal(1, workload.UnassignedOpenTickets);
+        Assert.Equal(1, workload.UnassignedOpenIncidents); // el incidente 20 no tiene a nadie
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => new GetTicketWorkloadHandler(h.Context, h.As(UserAId, "USUARIO_GENERAL").User,
+            new FakeRolePermissions()).Handle(new GetTicketWorkloadQuery(), default).AsTask());
+    }
+
+    [Fact]
+    public async Task Estadisticas_cuentan_recibidos_y_resueltos_del_periodo_con_la_visibilidad_de_cada_rol()
+    {
+        var h = new Harness().As(UserAId, "USUARIO_GENERAL");
+        var first = await h.Create("Uno");
+        await h.Create("Dos");
+        await h.As(UserBId, "USUARIO_GENERAL").Create("De otro");
+        // created_at lo pone PostgreSQL (DEFAULT now()); InMemory no.
+        foreach (var t in h.Context.Tickets) t.CreatedAt = DateTime.UtcNow.AddHours(-2);
+        h.Context.SaveChanges();
+        h.ForceStatus(first.TicketId, TicketStatusCodes.Resuelto, DateTime.UtcNow);
+        var (from, to) = (DateTime.UtcNow.AddDays(-1), DateTime.UtcNow.AddMinutes(1));
+
+        var all = await new GetTicketStatsHandler(h.Context, h.As(AdminId, "ADMIN").User, new FakeRolePermissions())
+            .Handle(new GetTicketStatsQuery(from, to), default);
+        var own = await new GetTicketStatsHandler(h.Context, h.As(UserAId, "USUARIO_GENERAL").User, new FakeRolePermissions())
+            .Handle(new GetTicketStatsQuery(from, to), default);
+        var before = await new GetTicketStatsHandler(h.Context, h.As(AdminId, "ADMIN").User, new FakeRolePermissions())
+            .Handle(new GetTicketStatsQuery(from.AddDays(-10), from), default);
+
+        Assert.Equal((3, 1, 2), (all.Created, all.Resolved, all.OpenNow));
+        Assert.Equal((2, 1, 1), (own.Created, own.Resolved, own.OpenNow));
+        Assert.Equal((0, 0, 2), (before.Created, before.Resolved, before.OpenNow)); // lo pendiente no depende del periodo
+        Assert.False(new GetTicketStatsValidator().Validate(new GetTicketStatsQuery(to, from)).IsValid);
     }
 }

@@ -53,7 +53,7 @@ public class AssistantTests
         var (answer, steps) = await orchestrator.AskAsync(conversation, "USUARIO_GENERAL", "laptops e incidentes", CancellationToken.None);
 
         Assert.Equal("Hay 3 laptops.", answer);
-        Assert.Equal(["buscar_activos", "buscar_incidentes"], ai.ToolNamesSeen[0]!); // la prohibida va sin parámetros
+        Assert.Equal(["buscar_activos"], ai.ToolNamesSeen[0]!); // la prohibida ni se ofrece
         Assert.Equal(1, assets.Runs);
         Assert.Equal(0, incidents.Runs);
         Assert.Contains("no tiene permiso", steps.Single(s => s.Tool == "buscar_incidentes").Error);
@@ -129,8 +129,8 @@ public class AssistantTests
         Assert.Equal(0, incidents.Runs);
         Assert.Contains("no tiene permiso", steps[1].Error);
         Assert.Equal("Tu rol no puede ver incidentes.", answer);
-        // El modelo ve la prohibida pero sin parámetros.
-        Assert.Equal(["buscar_activos", "buscar_incidentes"], ai.ToolNamesSeen[0]!);
+        // La prohibida no se ofrece; pedirla igual no ejecuta nada.
+        Assert.Equal(["buscar_activos"], ai.ToolNamesSeen[0]!);
     }
 
     [Fact]
@@ -149,42 +149,100 @@ public class AssistantTests
         Assert.Null(new ToolContext(null!, TestDb.Create(), catalog, DateTime.UtcNow, question: "¿cuántas laptops hay?").MentionedLocation());
     }
 
+    private static JsonNode Route(string tipo, string[]? tools = null, string area = "", string reply = "") =>
+        new JsonObject
+        {
+            ["tipo"] = tipo, ["herramientas"] = new JsonArray((tools ?? []).Select(t => (JsonNode)t).ToArray()),
+            ["area"] = area, ["respuesta"] = reply,
+        };
+
     [Fact]
-    public async Task Pregunta_de_como_consulta_el_manual_antes_y_nunca_muestra_tool_call()
+    public async Task Charla_y_aclaracion_se_responden_con_el_router_sin_otra_llamada()
     {
         var db = TestDb.Create();
-        var manual = new CountingTool("buscar_manual", null);
-        var ai = new ScriptedAi(Text("<tool_call><function=buscar_manual><parameter=consulta>x</parameter></function></tool_call>"),
-            Text("<tool_call><function=buscar_manual><parameter=consulta>x</parameter></function></tool_call>"),
-            Text("<tool_call><function=buscar_manual><parameter=consulta>x</parameter></function></tool_call>"),
-            Text("<tool_call><function=buscar_manual><parameter=consulta>x</parameter></function></tool_call>"),
-            Text("<tool_call>sigue</tool_call>"));
-        var orchestrator = new AssistantOrchestrator(ai, [manual], new RolePermissions(), null!, db, TimeProvider.System,
+        var assets = new CountingTool("buscar_activos", null);
+        var ai = new ScriptedAi([Route("charla", reply: "¡Hola! ¿En qué te ayudo?"), Route("aclarar", reply: "¿De qué equipo hablas?")]);
+        var orchestrator = new AssistantOrchestrator(ai, [assets], new RolePermissions(), null!, db, TimeProvider.System,
             NullLogger<AssistantOrchestrator>.Instance);
+        var conversation = new Conversation(1, DateTime.UtcNow);
 
-        var (answer, steps) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "ADMIN", "¿Cómo doy de baja un equipo?", CancellationToken.None);
+        var (hello, steps) = await orchestrator.AskAsync(conversation, "ADMIN", "hola", CancellationToken.None);
+        var (clarify, _) = await orchestrator.AskAsync(conversation, "ADMIN", "no sirve", CancellationToken.None);
 
-        // El manual se consultó antes de la primera vuelta del modelo y su resultado ya iba en los mensajes.
-        Assert.Equal("buscar_manual", steps[0].Tool);
-        Assert.Contains(ai.MessagesSeen[0].OfType<JsonObject>(), m => (string?)m["role"] == "tool");
-        Assert.DoesNotContain("<tool_call>", answer);
-        Assert.StartsWith("No pude completar la respuesta", answer);
+        Assert.Equal("¡Hola! ¿En qué te ayudo?", hello);
+        Assert.Equal("¿De qué equipo hablas?", clarify);
+        Assert.Empty(steps);
+        Assert.Empty(ai.MessagesSeen); // el ejecutor nunca corrió
+        Assert.Contains("Asistente: ¡Hola!", ai.RouterPrompts[1]); // el router ve el turno anterior
     }
 
     [Fact]
-    public async Task Mis_tickets_se_consultan_antes_aunque_el_modelo_elija_otra_herramienta()
+    public async Task Sin_permiso_lo_dice_el_codigo_sin_ejecutar_ni_llamar_al_ejecutor()
     {
-        var tickets = new CountingTool("buscar_tickets", null);
+        var db = TestDb.Create();
+        var assets = new CountingTool("buscar_activos", "assets.view");
         var mine = new CountingTool("mis_equipos", null);
-        var ai = new ScriptedAi(Text("No tienes tickets."));
-        var orchestrator = new AssistantOrchestrator(ai, [tickets, mine], new RolePermissions(), null!, TestDb.Create(),
-            TimeProvider.System, NullLogger<AssistantOrchestrator>.Instance);
+        var ai = new ScriptedAi([Route("sin_permiso", area: "activos")]);
+        var orchestrator = new AssistantOrchestrator(ai, [assets, mine], new RolePermissions(), null!, db, TimeProvider.System,
+            NullLogger<AssistantOrchestrator>.Instance);
 
-        var (_, steps) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "¿Cuáles son mis tickets?", CancellationToken.None);
+        var (answer, steps) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "cuantas impresoras hay", CancellationToken.None);
 
-        Assert.Equal(["buscar_tickets"], steps.Select(s => s.Tool));
-        Assert.Equal(1, tickets.Runs);
-        Assert.Contains(ai.MessagesSeen[0].OfType<JsonObject>(), m => (string?)m["role"] == "tool");
+        Assert.Equal("Tu rol (USUARIO_GENERAL) no tiene permiso para consultar activos.", answer);
+        Assert.Equal(0, assets.Runs);
+        Assert.Empty(steps);
+        Assert.Empty(ai.MessagesSeen);
+        // El router solo puede elegir las permitidas: la prohibida no está en el esquema.
+        Assert.Equal(["mis_equipos"], ai.RouterToolEnums[0]);
+        Assert.Equal(["activos"], ai.RouterAreaEnums[0]);
+    }
+
+    [Fact]
+    public async Task Consulta_ofrece_solo_lo_elegido_y_obliga_a_consultar()
+    {
+        var (_, _, assets, incidents) = Build();
+        var db = TestDb.Create();
+        var ai = new ScriptedAi([Route("consulta", ["buscar_incidentes"])],
+            Tools(Call("buscar_incidentes")), Text("Hay 3 y 3."));
+        var orchestrator = new AssistantOrchestrator(ai, [assets, incidents], new RolePermissions(), null!, db, TimeProvider.System,
+            NullLogger<AssistantOrchestrator>.Instance);
+
+        var (answer, steps) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "ADMIN", "incidentes abiertos y tickets sin asignar", CancellationToken.None);
+
+        Assert.Equal("Hay 3 y 3.", answer);
+        Assert.Equal(["buscar_incidentes"], ai.ToolNamesSeen[0]!);
+        Assert.Equal([true, false], ai.RequireToolSeen);
+        Assert.Equal(["buscar_incidentes"], steps.Select(s => s.Tool));
+    }
+
+    [Fact]
+    public void Router_descarta_herramientas_ajenas_y_tipos_desconocidos()
+    {
+        IAssistantTool[] allowed = [new CountingTool("mis_equipos", null)];
+        var parsed = AssistantRouter.Parse(Route("consulta", ["buscar_activos", "mis_equipos"], area: "inventario"), allowed, ["activos"])!;
+        Assert.Equal(["mis_equipos"], parsed.Tools);
+        Assert.Equal("", parsed.DeniedArea);
+        Assert.Null(AssistantRouter.Parse(Route("borrar_todo"), allowed, []));
+        Assert.Null(AssistantRouter.Parse(JsonNode.Parse("[]"), allowed, []));
+    }
+
+    [Theory]
+    [InlineData("cuantos tickets crtiicos siguen abiertos", "buscar_tickets")]
+    [InlineData("¿qué técnico anda más cargado de trabajo?", "carga_tecnicos")]
+    [InlineData("cuantas impreosras tienen falla", "buscar_activos")]
+    [InlineData("¿cuántas solicitudes recibimos esta semana y cuántas terminamos?", "estadisticas_tickets")]
+    [InlineData("ya quedo mi monitor?", "mis_equipos")]
+    public void Prefiltro_conserva_la_capacidad_aunque_haya_errores_de_dedo(string question, string expected)
+    {
+        IAssistantTool[] tools =
+        [
+            new SearchAssetsTool(), new AssetDetailTool(), new AssetHistoryTool(), new SearchIncidentsTool(), new SearchTicketsTool(),
+            new UpcomingMaintenanceTool(), new InventorySummaryTool(), new MyAssetsTool(), new ProposeTicketTool(), new NewsTool(),
+            new WorkloadTool(), new TicketStatsTool(),
+        ];
+        var kept = ToolPrefilter.Rank(tools, question);
+        Assert.Equal(ToolPrefilter.Keep, kept.Count);
+        Assert.Contains(expected, kept.Select(t => t.Name));
     }
 
     [Fact]
@@ -235,21 +293,6 @@ public class AssistantTests
         Assert.Empty(db.Tickets);
         await Assert.ThrowsAsync<ToolArgumentException>(() => tool.ExecuteAsync(
             new ToolArgs(new JsonObject { ["categoria"] = "NO_EXISTE", ["titulo"] = "x" }), ctx, CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task Si_pide_ticket_y_el_modelo_solo_explica_se_le_insiste_una_vez()
-    {
-        var db = TestDb.Create();
-        var propose = new CountingTool("proponer_ticket", null);
-        var ai = new ScriptedAi(Text("Usa la herramienta proponer_ticket."), Tools(Call("proponer_ticket")), Text("Revisa la tarjeta."));
-        var orchestrator = new AssistantOrchestrator(ai, [propose], new RolePermissions(), null!, db, TimeProvider.System,
-            NullLogger<AssistantOrchestrator>.Instance);
-
-        var (answer, _) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "ábreme un ticket, no hay internet", CancellationToken.None);
-
-        Assert.Equal(1, propose.Runs);
-        Assert.Equal("Revisa la tarjeta.", answer);
     }
 
     [Fact]
@@ -306,23 +349,6 @@ public class AssistantTests
     }
 
     [Fact]
-    public async Task Pregunta_de_inventario_sin_permiso_recibe_sin_permiso_antes_de_responder()
-    {
-        var db = TestDb.Create();
-        var assets = new CountingTool("buscar_activos", "assets.view");
-        var ai = new ScriptedAi(Text("Tu rol no tiene permiso para ver el inventario."), Text("Tienes la ZZ-IA-08."));
-        var orchestrator = new AssistantOrchestrator(ai, [assets], new RolePermissions(), null!, db, TimeProvider.System,
-            NullLogger<AssistantOrchestrator>.Instance);
-
-        var (_, steps) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "¿Cuántas computadoras con falla hay?", CancellationToken.None);
-        var (_, mine) = await orchestrator.AskAsync(new Conversation(1, DateTime.UtcNow), "USUARIO_GENERAL", "¿Qué equipos tengo?", CancellationToken.None);
-
-        Assert.Equal(0, assets.Runs);
-        Assert.Contains("no tiene permiso", Assert.Single(steps).Error);
-        Assert.Empty(mine); // "tengo" es sobre lo suyo: no se le niega nada de antemano.
-    }
-
-    [Fact]
     public void Nombres_de_herramientas_se_cambian_por_la_pantalla()
     {
         Assert.Equal("Puedes usar la pantalla Tickets para crear un borrador.",
@@ -330,21 +356,40 @@ public class AssistantTests
         Assert.Equal("Revisa Mis equipos y las novedades de hoy.", AssistantOrchestrator.HideToolNames("Revisa `mis_equipos` y las novedades de hoy."));
     }
 
-    private sealed class ScriptedAi(params AiChatReply[] replies) : ILocalAiClient
+    /// <summary>Modelo con guion. Sin rutas, el router "falla" y el orquestador sigue sin él (todas las permitidas).</summary>
+    private sealed class ScriptedAi(JsonNode[] routes, params AiChatReply[] replies) : ILocalAiClient
     {
         private int _next;
+        private int _nextRoute;
+        public ScriptedAi(params AiChatReply[] replies) : this([], replies) { }
         public List<JsonArray> MessagesSeen { get; } = [];
         public List<string[]?> ToolNamesSeen { get; } = [];
+        public List<bool> RequireToolSeen { get; } = [];
+        public List<string> RouterPrompts { get; } = [];
+        public List<string[]> RouterToolEnums { get; } = [];
+        public List<string[]> RouterAreaEnums { get; } = [];
 
-        public Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct)
+        public Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct, bool requireTool = false)
         {
             MessagesSeen.Add((JsonArray)messages.DeepClone());
             ToolNamesSeen.Add(tools?.Select(t => (string)t!["function"]!["name"]!).ToArray());
+            RequireToolSeen.Add(requireTool);
             return Task.FromResult(replies[_next++]);
         }
 
         public Task<bool> IsAvailableAsync(CancellationToken ct) => Task.FromResult(true);
-        public Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct, int? maxTokens = null)
+        {
+            if (_nextRoute >= routes.Length) throw new NotSupportedException();
+            RouterPrompts.Add(user);
+            var options = schema["anyOf"]!.AsArray();
+            RouterToolEnums.Add(options.Select(o => o!["properties"]!["herramientas"]?["items"]?["enum"]).OfType<JsonNode>()
+                .SelectMany(e => e.AsArray().Select(n => (string)n!)).ToArray());
+            RouterAreaEnums.Add(options.Select(o => o!["properties"]!["area"]?["enum"]).OfType<JsonNode>()
+                .SelectMany(e => e.AsArray().Select(n => (string)n!)).ToArray());
+            return Task.FromResult(routes[_nextRoute++].DeepClone());
+        }
         public Task<string> TranscribeAsync(byte[] image, string mimeType, CancellationToken ct) => throw new NotSupportedException();
     }
 

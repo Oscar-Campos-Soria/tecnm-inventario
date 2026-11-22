@@ -254,7 +254,7 @@ public class BulkImportAiTests
         public string LastSystem { get; private set; } = "";
         public Task<bool> IsAvailableAsync(CancellationToken ct) => Task.FromResult(true);
 
-        public Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct)
+        public Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct, int? maxTokens = null)
         {
             LastSystem = system;
             return Task.FromResult(JsonNode.Parse(json)!);
@@ -262,7 +262,7 @@ public class BulkImportAiTests
 
         public Task<string> TranscribeAsync(byte[] image, string mimeType, CancellationToken ct) => Task.FromResult("");
 
-        public Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct) =>
+        public Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct, bool requireTool = false) =>
             throw new NotSupportedException("La carga masiva no conversa.");
     }
 

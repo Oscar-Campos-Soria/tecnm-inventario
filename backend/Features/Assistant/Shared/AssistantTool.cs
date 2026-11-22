@@ -18,7 +18,18 @@ public interface IAssistantTool
     string Description { get; }
     JsonObject Parameters(AiCatalog catalog);
     Task<ToolResult> ExecuteAsync(ToolArgs args, ToolContext context, CancellationToken ct);
+
+    /// <summary>Qué capacidad cubre, en una línea: es lo único que ve el router (prompt corto).</summary>
+    string Summary => Description;
+
+    /// <summary>Consulta (lee) o Borrador (prepara algo que el usuario confirma en pantalla; nunca escribe).</summary>
+    ToolKind Kind => ToolKind.Consulta;
+
+    /// <summary>De dónde salen los datos: las queries de Mediator que envía (para el registro y la documentación).</summary>
+    string Source => "";
 }
+
+public enum ToolKind { Consulta, Borrador }
 
 /// <summary>Summary: qué se consultó, en palabras (lo ve el usuario). Data: resultado compacto (lo ve el modelo y la pantalla).</summary>
 public sealed record ToolResult(string Summary, JsonNode Data);
@@ -28,8 +39,22 @@ public sealed class ToolArgumentException(string message) : Exception(message);
 
 /// <summary>Lo que necesitan las herramientas: Mediator, catálogos y traducción de nombres a ids.</summary>
 public sealed class ToolContext(IMediator mediator, TecnmInventarioDbContext db, AiCatalog catalog, DateTime nowUtc,
-    IReadOnlySet<string>? permissions = null, string userText = "", string question = "")
+    IReadOnlySet<string>? permissions = null, string userText = "", string question = "", long userId = 0)
 {
+    /// <summary>Quien pregunta: para "lo mío" (asignados a mí). Las queries vuelven a filtrar por su cuenta.</summary>
+    public long UserId { get; } = userId;
+
+    /// <summary>Usuario por nombre de usuario o nombre (para "los tickets de Juan").</summary>
+    public (long Id, string Username)? User(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var wanted = AiText.Norm(text);
+        var match = db.AppUsers.AsNoTracking().Where(u => !u.IsDeleted)
+            .Select(u => new { u.UserId, u.Username, u.FirstName, u.LastName }).AsEnumerable()
+            .FirstOrDefault(u => AiText.Norm(u.Username) == wanted || AiText.Norm(u.FirstName + u.LastName) == wanted || AiText.Norm(u.FirstName) == wanted);
+        return match is null ? throw new ToolArgumentException($"No encontré al usuario «{text}».") : (match.UserId, match.Username);
+    }
+
     // Palabras con que la gente nombra cada tipo (además del código y el nombre del catálogo).
     private static readonly Dictionary<string, string[]> TypeWords = new()
     {

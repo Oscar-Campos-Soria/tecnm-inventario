@@ -12,6 +12,12 @@ public sealed class AiOptions
 
     /// <summary>llama-server (servicio "ia"). Vacío = asistente apagado.</summary>
     public string BaseUrl { get; set; } = "";
+
+    /// <summary>
+    /// Cómo elige capacidades el asistente: "llm" (router: una llamada corta con JSON antes de consultar),
+    /// "prefiltro" (sin llamada extra: el modelo elige entre las 4 más parecidas al mensaje) o "ninguno" (todas las del rol).
+    /// </summary>
+    public string AssistantRouting { get; set; } = "llm";
 }
 
 /// <summary>Una herramienta que el modelo pidió ejecutar. Arguments es el JSON tal cual lo escribió el modelo.</summary>
@@ -32,7 +38,7 @@ public interface ILocalAiClient
     Task<bool> IsAvailableAsync(CancellationToken ct);
 
     /// <summary>Respuesta JSON forzada por <paramref name="schema"/> (gramática de llama.cpp).</summary>
-    Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct);
+    Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct, int? maxTokens = null);
 
     /// <summary>Texto de una imagen (oficio escaneado, foto).</summary>
     Task<string> TranscribeAsync(byte[] image, string mimeType, CancellationToken ct);
@@ -41,7 +47,8 @@ public interface ILocalAiClient
     /// Un turno de conversación con herramientas (tool calling nativo de llama.cpp con --jinja).
     /// <paramref name="messages"/> en formato OpenAI (system, user, assistant, tool); no se modifica.
     /// </summary>
-    Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct);
+    /// <summary>requireTool: el modelo debe llamar al menos una herramienta (tool_choice "required").</summary>
+    Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct, bool requireTool = false);
 }
 
 public sealed class LocalAiClient : ILocalAiClient
@@ -78,7 +85,7 @@ public sealed class LocalAiClient : ILocalAiClient
         return healthy;
     }
 
-    public async Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct)
+    public async Task<JsonNode> CompleteJsonAsync(string system, string user, JsonObject schema, CancellationToken ct, int? maxTokens = null)
     {
         var body = new JsonObject
         {
@@ -94,6 +101,7 @@ public sealed class LocalAiClient : ILocalAiClient
             ["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false },
             ["temperature"] = 0,
         };
+        if (maxTokens is { } max) body["max_tokens"] = max;
         var content = (await SendAsync(body, ct)).Message["content"]?.GetValue<string>()
             ?? throw new AiUnavailableException("Respuesta inesperada del asistente IA.");
         try
@@ -135,7 +143,7 @@ public sealed class LocalAiClient : ILocalAiClient
 
     public const int MaxChatTokens = 800;
 
-    public async Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct)
+    public async Task<AiChatReply> ChatAsync(JsonArray messages, JsonArray? tools, CancellationToken ct, bool requireTool = false)
     {
         var body = new JsonObject
         {
@@ -145,7 +153,11 @@ public sealed class LocalAiClient : ILocalAiClient
             // Medido: el 2B a veces entra en bucle y llena los 4096 del turno; la siguiente vuelta ya no cabe (400).
             ["max_tokens"] = MaxChatTokens,
         };
-        if (tools is { Count: > 0 }) body["tools"] = tools.DeepClone();
+        if (tools is { Count: > 0 })
+        {
+            body["tools"] = tools.DeepClone();
+            if (requireTool) body["tool_choice"] = "required";
+        }
 
         var (message, truncated, tokens) = await SendAsync(body, ct);
         var calls = (message["tool_calls"] as JsonArray ?? [])
