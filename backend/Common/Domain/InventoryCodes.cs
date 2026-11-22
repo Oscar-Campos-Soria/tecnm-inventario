@@ -42,10 +42,3 @@ public static class InventoryRecordStatusCodes
     public static bool NeedsAdjustment(string status) =>
         status is EnOtroLugar or NoEncontrado or Sobrante;
 }
-
-/// <summary>Códigos de catálogo usados por la conciliación.</summary>
-public static class InventoryCatalogCodes
-{
-    public const string AjusteMovementReason = "AJUSTE_INVENTARIO";
-    public const string NotFoundIncidentType = "ROBO_EXTRAVIO";
-}
