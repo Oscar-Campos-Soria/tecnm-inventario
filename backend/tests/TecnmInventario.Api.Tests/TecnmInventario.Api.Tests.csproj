@@ -33,6 +33,7 @@
   -->
   <ItemGroup>
     <Content Include="Eval\assistant-eval.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Eval\Engine\scenarios.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\database.sql" Link="Sql\database.sql" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\scripts\seed-database.sql" Link="Sql\seed-database.sql" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\scripts\seed-permissions.sql" Link="Sql\seed-permissions.sql" CopyToOutputDirectory="PreserveNewest" />
