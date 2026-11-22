@@ -19,14 +19,17 @@ services:
 
   # IA local para desarrollo (opcional): docker compose --profile ia up -d ia
   # Mismo modelo que producción (database/models/, lo baja `tecnm ia instalar`); solo en 127.0.0.1.
+  # Con tarjeta NVIDIA: docker compose -f docker-compose.yml -f docker-compose.ia-nvidia.yml --profile ia up -d ia
   ia:
     image: ghcr.io/ggml-org/llama.cpp:server-b11960
     profiles: [ia]
     container_name: tecnm_inventario_ia
     restart: unless-stopped
+    # --cache-ram 512: la caché de prompts por omisión (8192 MiB) no cabe en mem_limit; crecía hasta sacar el modelo de
+    # la RAM (de ~55 a ~1900 ms/token). Con tope se conserva el reuso de prefijo sin llegar al límite.
     command: >-
       -m /models/Qwen3.5-2B-Q4_K_M.gguf --mmproj /models/mmproj-F16.gguf --host 0.0.0.0 --port 8080
-      --ctx-size 8192 --parallel 2 --threads 4 --jinja -ctk q8_0 -ctv q8_0 --image-max-tokens 512
+      --ctx-size 8192 --parallel 2 --threads 4 --jinja -ctk q8_0 -ctv q8_0 --image-max-tokens 512 --cache-ram 512
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
