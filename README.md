@@ -25,7 +25,7 @@ Monorrepo: API REST (.NET 10) + SPA (Vue 3 + TypeScript + Vite) + PostgreSQL en 
 | Desarrollo | Docker, Git, [.NET 10 SDK](https://dotnet.microsoft.com/download), Node.js 22+ y npm |
 | Asistente IA (opcional) | ~2 GB de disco para el modelo y ~3.5 GB de RAM libres para su contenedor |
 
-En Windows, la instalación de producción es en **PowerShell**; los comandos de desarrollo de este README son de **Git Bash**.
+En Windows todo se hace en **PowerShell** (5.1 o posterior); en Linux y macOS, en Bash.
 
 ---
 
@@ -98,11 +98,57 @@ Detalles (puertos, seguridad, respaldos, actualizar): [`specs/deployment.spec.md
 
 ## Instalación para desarrollo
 
-Desde la raíz del repo clonado:
+Desde la raíz del repo clonado. Los user-secrets son de tu usuario en ese equipo: si ya los configuraste antes, salta el
+paso 3 (lo reemplazaría).
+
+**Windows (PowerShell)**
+
+```powershell
+# 1. Base de datos (PostgreSQL en el puerto 5433). Pon tu contraseña en POSTGRES_PASSWORD y guarda.
+if (-not (Test-Path database/.env)) { Copy-Item database/.env.example database/.env }
+notepad database/.env | Out-Null
+docker compose -f database/docker-compose.yml --env-file database/.env up -d --wait
+
+# 2. Esquema y scripts, en el orden de scripts/README.md. Se copian al contenedor: por tubería, PowerShell 5.1 daña los acentos.
+docker exec tecnm_inventario_db mkdir -p /tmp/tecnm
+docker cp scripts tecnm_inventario_db:/tmp/tecnm/
+docker cp database.sql tecnm_inventario_db:/tmp/tecnm/
+$db = 'psql -q -U $POSTGRES_USER -d $POSTGRES_DB -v ON_ERROR_STOP=1'
+foreach ($m in Select-String -Path scripts/README.md -Pattern '^psql "\$DATABASE_URL" -f (\S+)') {
+  $file = $m.Matches[0].Groups[1].Value
+  Write-Host "== $file"
+  docker exec -w /tmp/tecnm/scripts tecnm_inventario_db sh -c ($db + " -f $file")
+  if ($LASTEXITCODE -ne 0) { break }
+}
+
+# 3. Secretos de la API (user-secrets: no viven en el repo). La contraseña se lee de database/.env.
+$api = 'backend/TecnmInventario.Api.csproj'
+$pass = (Select-String -Path database/.env -Pattern '^POSTGRES_PASSWORD=(.*)$').Matches[0].Groups[1].Value.Trim()
+$key = New-Object byte[] 64
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($key)
+dotnet user-secrets set 'ConnectionStrings:Default' "Host=localhost;Port=5433;Database=tecnm_inventario;Username=tecnm_dev;Password=$pass" --project $api
+dotnet user-secrets set 'Jwt:Secret' ([Convert]::ToBase64String($key)) --project $api
+dotnet user-secrets set 'Jwt:Issuer' 'tecnm-inventario' --project $api
+dotnet user-secrets set 'Jwt:Audience' 'tecnm-inventario' --project $api
+dotnet user-secrets set 'Storage:LocalPath' "$PWD/backend/storage/documents" --project $api
+
+# 4. Primer administrador (admin_local) con la contraseña que elijas
+$hash = dotnet run --project backend/tools/PasswordHasher -- '<tu-contraseña>' | Select-Object -Last 1
+docker exec -w /tmp/tecnm/scripts tecnm_inventario_db sh -c ($db + " -v hash='$hash' -f seed-dev-admin.sql")
+
+# 5. Pantallas (solo la primera vez) y arranque, en dos terminales
+npm install --prefix frontend
+dotnet run --project backend/TecnmInventario.Api.csproj     # API: http://localhost:5112
+npm run dev --prefix frontend                               # Pantallas: http://localhost:5173
+```
+
+Si `npm` falla con "la ejecución de scripts está deshabilitada", usa `npm.cmd`.
+
+**Linux o macOS (Bash)**
 
 ```bash
 # 1. Base de datos (PostgreSQL en el puerto 5433)
-cp database/.env.example database/.env        # edita POSTGRES_PASSWORD
+[ -f database/.env ] || cp database/.env.example database/.env        # edita POSTGRES_PASSWORD
 docker compose -f database/docker-compose.yml --env-file database/.env up -d
 
 # 2. Esquema y scripts, en el orden de scripts/README.md (se lee de ahí para no duplicarlo).
@@ -135,10 +181,22 @@ Entra a **http://localhost:5173** con `admin_local`. La SPA llama a `/api` y Vit
 las cookies funcionan sin configurar CORS). Atajo: el CLI tiene un modo **sandbox** (menú → `S`) que levanta la BD,
 la API y las pantallas juntas.
 
-Usuarios de prueba de los otros roles (`test_responsable`, `test_usuario`): `scripts/seed-test-users.sql` con el mismo
-`-v hash=...`.
+Usuarios de prueba de los otros roles (`test_responsable`, `test_usuario`): repite el paso 4 con `seed-test-users.sql`.
 
 ### Asistente IA en desarrollo (opcional)
+
+**Windows (PowerShell)** — las huellas deben coincidir con `backend/tools/TecnmCli/AiModel.cs`:
+
+```powershell
+New-Item -ItemType Directory -Force database/models | Out-Null
+foreach ($f in 'Qwen3.5-2B-Q4_K_M.gguf', 'mmproj-F16.gguf') {
+  curl.exe -L -o "database/models/$f" "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/$f"
+}
+Get-FileHash database/models/*.gguf -Algorithm SHA256 | Format-List
+docker compose -f database/docker-compose.yml --env-file database/.env --profile ia up -d ia
+```
+
+**Linux o macOS (Bash)**
 
 ```bash
 mkdir -p database/models && cd database/models
@@ -154,13 +212,27 @@ asistente y la conversión con IA se ocultan y el resto funciona igual.
 
 ### Pruebas
 
+Los mismos comandos en PowerShell y Bash, desde la raíz:
+
+```
+dotnet test backend/TecnmInventario.slnx --filter "Category!=Integration"   # rápidas (InMemory)
+dotnet test backend/TecnmInventario.slnx --filter "Category=Integration"    # PostgreSQL real con Testcontainers (requiere Docker)
+npm run build --prefix frontend
+npm run lint --prefix frontend
+```
+
+Evaluación del asistente (40 casos, incluye ataques): con la API y el modelo arriba, datos ZZ-IA y usuarios de prueba.
+
+```powershell
+$env:TECNM_EVAL_API = 'http://localhost:5112/api'
+$env:TECNM_EVAL_ADMIN = '<admin>:<contraseña>'
+$env:TECNM_EVAL_USUARIO = '<usuario>:<contraseña>'
+dotnet test backend/TecnmInventario.slnx --filter "Category=Eval"
+```
+
 ```bash
-cd backend
-dotnet test TecnmInventario.slnx --filter "Category!=Integration"   # rápidas (InMemory)
-dotnet test TecnmInventario.slnx --filter "Category=Integration"    # PostgreSQL real con Testcontainers (requiere Docker)
-# Evaluación del asistente (40 casos, incluye ataques): API y modelo arriba, datos ZZ-IA y usuarios de prueba
-TECNM_EVAL_API=http://localhost:5112/api TECNM_EVAL_ADMIN=<admin>:<contraseña> TECNM_EVAL_USUARIO=<usuario>:<contraseña>   dotnet test TecnmInventario.slnx --filter "Category=Eval"
-cd ../frontend && npm run build && npm run lint
+TECNM_EVAL_API=http://localhost:5112/api TECNM_EVAL_ADMIN=<admin>:<contraseña> TECNM_EVAL_USUARIO=<usuario>:<contraseña> \
+  dotnet test backend/TecnmInventario.slnx --filter "Category=Eval"
 ```
 
 ---
