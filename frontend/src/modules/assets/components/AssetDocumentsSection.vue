@@ -5,6 +5,7 @@ import { documentsApi, type AssetDocument } from '../../../shared/api/documents'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { downloadFile } from '../../../shared/utils/download'
 import { formatBytes, formatDate } from '../../../shared/utils/format'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 
 // Todos los archivos del equipo, de sus incidentes, mantenimientos, baja,
 // compras y tickets. Solo lectura: se adjuntan y borran en cada registro.
@@ -74,7 +75,7 @@ const buttonClass =
     <p class="mb-3 text-sm text-muted-foreground">Fotos, facturas y actas de este equipo. Se adjuntan desde cada incidente, mantenimiento, compra o ticket.</p>
 
     <p v-if="error" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="items === null && !error" class="text-sm text-muted-foreground">Cargando documentos…</p>
+    <UiLoading v-if="items === null && !error">Cargando documentos…</UiLoading>
     <p v-else-if="items !== null && items.length === 0" class="text-sm text-muted-foreground">Este equipo aún no tiene archivos.</p>
 
     <ul v-if="items !== null && items.length > 0" class="space-y-2">

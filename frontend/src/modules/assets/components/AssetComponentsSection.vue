@@ -3,6 +3,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { assetsApi } from '../api'
@@ -105,7 +106,7 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
       <UiButton v-if="!disposed" @click="openForm(null)">Agregar componente</UiButton>
     </div>
     <p v-if="listError" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ listError }}</p>
-    <p v-if="!items && !listError" class="text-sm text-muted-foreground">Cargando componentes…</p>
+    <UiLoading v-if="!items && !listError">Cargando componentes…</UiLoading>
     <template v-else-if="items">
       <p v-if="current.length === 0" class="text-sm text-muted-foreground">
         Sin componentes registrados. Agrega la memoria, el disco o el procesador para llevar su historial.

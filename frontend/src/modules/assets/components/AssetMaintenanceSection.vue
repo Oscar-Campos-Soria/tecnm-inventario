@@ -4,6 +4,7 @@ import { ApiError } from '../../../shared/api/http'
 import DocumentList from '../../../shared/components/DocumentList.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { assetsApi } from '../api'
@@ -127,14 +128,14 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
     </div>
 
     <p v-if="listError" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ listError }}</p>
-    <p v-if="!history && !listError" class="text-sm text-muted-foreground">Cargando historial…</p>
+    <UiLoading v-if="!history && !listError">Cargando historial…</UiLoading>
     <p v-else-if="history && history.items.length === 0" class="text-sm text-muted-foreground">Sin mantenimientos registrados.</p>
 
     <ul v-else-if="history" class="space-y-2">
       <li v-for="item in history.items" :key="item.maintenanceRecordId" class="rounded-md border border-border px-3 py-2.5 text-sm">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span class="font-medium text-foreground">{{ formatDate(item.performedAt) }}</span>
-          <span :class="['rounded-full px-2 py-0.5 text-xs font-medium', item.typeCode === 'CORRECTIVO' ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent']">
+          <span :class="['chip', item.typeCode === 'CORRECTIVO' ? 'chip-danger' : 'chip-info']">
             {{ item.typeName }}
           </span>
           <span class="text-secondary">{{ item.performedByName ?? '—' }}</span>

@@ -9,11 +9,11 @@ export const RECORD_LABELS: Record<RecordStatus, string> = {
 }
 
 export const RECORD_CLASSES: Record<RecordStatus, string> = {
-  PENDIENTE: 'bg-muted text-secondary',
-  ENCONTRADO: 'bg-success/10 text-success',
-  EN_OTRO_LUGAR: 'bg-priority-high/10 text-priority-high',
-  NO_ENCONTRADO: 'bg-destructive/10 text-destructive',
-  SOBRANTE: 'bg-accent/10 text-accent',
+  PENDIENTE: 'chip-neutral',
+  ENCONTRADO: 'chip-success',
+  EN_OTRO_LUGAR: 'chip-alert',
+  NO_ENCONTRADO: 'chip-danger',
+  SOBRANTE: 'chip-info',
 }
 
 export const SESSION_LABELS: Record<SessionStatus, string> = {

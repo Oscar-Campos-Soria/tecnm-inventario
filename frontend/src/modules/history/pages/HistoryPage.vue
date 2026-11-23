@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import AuditChanges from '../../../shared/components/AuditChanges.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDateTime } from '../../../shared/utils/format'
 import { historyApi } from '../api'
 import type { AuditFilters, AuditLogItem, PagedResult } from '../types'
@@ -43,11 +44,37 @@ function load() {
 watch([filters, page], load, { immediate: true })
 
 const ACTION_CHIP: Record<string, string> = {
-  INSERT: 'bg-success/10 text-success',
-  UPDATE: 'bg-muted text-accent',
-  DELETE: 'bg-destructive/10 text-destructive',
+  INSERT: 'chip-success',
+  UPDATE: 'chip-info',
+  DELETE: 'chip-danger',
 }
 const ACTION_LABEL: Record<string, string> = { INSERT: 'Alta', UPDATE: 'Cambio', DELETE: 'Baja' }
+// Nombre legible de cada tabla de la bitácora; una tabla nueva se muestra con su nombre técnico.
+const TABLE_LABEL: Record<string, string> = {
+  acquisitions: 'Compra',
+  app_users: 'Usuario',
+  asset_assignments: 'Asignación',
+  asset_components: 'Componente',
+  asset_disposals: 'Baja de equipo',
+  asset_movements: 'Movimiento',
+  asset_software: 'Software instalado',
+  asset_warranties: 'Garantía',
+  assets: 'Activo',
+  documents: 'Documento',
+  incidents: 'Incidente',
+  inventory_records: 'Registro de conteo',
+  inventory_sessions: 'Levantamiento',
+  locations: 'Ubicación',
+  maintenance_records: 'Mantenimiento',
+  roles: 'Rol',
+  software: 'Programa',
+  software_license_assignments: 'Asignación de licencia',
+  software_licenses: 'Licencia',
+  suppliers: 'Proveedor',
+  ticket_comments: 'Comentario de ticket',
+  tickets: 'Ticket',
+  user_external_logins: 'Cuenta vinculada',
+}
 const input = 'min-h-[44px] rounded-md border border-border bg-background px-2.5 text-sm text-foreground'
 </script>
 
@@ -59,10 +86,10 @@ const input = 'min-h-[44px] rounded-md border border-border bg-background px-2.5
     </header>
 
     <div class="flex flex-wrap gap-2">
-      <label class="sr-only" for="h-table">Tabla</label>
+      <label class="sr-only" for="h-table">Tipo de registro</label>
       <select id="h-table" v-model="table" :class="[input, 'cursor-pointer']">
-        <option value="">Todas las tablas</option>
-        <option v-for="t in tables" :key="t" :value="t">{{ t }}</option>
+        <option value="">Todos los registros</option>
+        <option v-for="t in tables" :key="t" :value="t">{{ TABLE_LABEL[t] ?? t }}</option>
       </select>
       <label class="sr-only" for="h-record">Id de registro</label>
       <input id="h-record" v-model="recordId" inputmode="numeric" placeholder="Id de registro" :class="[input, 'w-36']" />
@@ -73,14 +100,14 @@ const input = 'min-h-[44px] rounded-md border border-border bg-background px-2.5
     </div>
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando historial…</p>
+    <UiLoading v-if="!result && !error">Cargando historial…</UiLoading>
     <p v-else-if="result && result.items.length === 0" class="text-sm text-muted-foreground">Sin movimientos con esos filtros.</p>
 
     <ol v-else-if="result" class="space-y-2">
       <li v-for="item in result.items" :key="item.auditLogId" class="rounded-lg border border-border bg-card px-4 py-3">
         <div class="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', ACTION_CHIP[item.action]]">{{ ACTION_LABEL[item.action] ?? item.action }}</span>
-          <span class="font-medium text-foreground">{{ item.tableName }} #{{ item.recordId }}</span>
+          <span :class="['chip', ACTION_CHIP[item.action]]">{{ ACTION_LABEL[item.action] ?? item.action }}</span>
+          <span class="font-medium text-foreground">{{ TABLE_LABEL[item.tableName] ?? item.tableName }} {{ item.recordId }}</span>
           <span class="text-muted-foreground">{{ item.performedByUsername ?? 'sistema' }}, {{ formatDateTime(item.performedAt) }}</span>
         </div>
         <AuditChanges :old-data="item.oldData" :new-data="item.newData" />

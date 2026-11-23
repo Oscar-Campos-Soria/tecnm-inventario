@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { softwareApi } from '../api'
 import type { CatalogItem, PagedResult, SoftwareItem } from '../types'
 
@@ -92,7 +93,7 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
       <UiButton variant="primary" @click="openForm(null)">Nuevo programa</UiButton>
     </div>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando programas…</p>
+    <UiLoading v-if="!result && !error">Cargando programas…</UiLoading>
     <div v-else-if="result" class="overflow-x-auto rounded-lg border border-border bg-card">
       <table class="w-full text-left text-sm">
         <thead>

@@ -29,7 +29,7 @@ async function create() {
 
 <template>
   <div class="mt-3 rounded-lg border border-border bg-background p-3" role="group" aria-label="Borrador de ticket">
-    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Borrador de ticket</p>
+    <p class="text-xs font-semibold text-muted-foreground">Borrador de ticket</p>
     <dl class="mt-2 space-y-1 text-sm">
       <div><dt class="inline text-muted-foreground">Tipo: </dt><dd class="inline">{{ draft.categoria }}</dd></div>
       <div><dt class="inline text-muted-foreground">Qué pasa: </dt><dd class="inline font-medium">{{ draft.titulo }}</dd></div>

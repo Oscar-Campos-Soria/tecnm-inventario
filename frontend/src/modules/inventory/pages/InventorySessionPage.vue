@@ -7,6 +7,7 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
 import { inventoryApi } from '../api'
 import CameraScanner from '../components/CameraScanner.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { RECORD_CLASSES, RECORD_LABELS, SESSION_LABELS } from '../labels'
 import type { InventoryCatalogs, InventoryRecord, LocationOption, RecordStatus, SessionDetail } from '../types'
 
@@ -203,7 +204,7 @@ const FILTERS: (RecordStatus | 'TODOS')[] = ['TODOS', 'PENDIENTE', 'ENCONTRADO',
 </script>
 
 <template>
-  <p v-if="state === 'loading'" class="text-sm text-muted-foreground">Cargando conteo…</p>
+  <UiLoading v-if="state === 'loading'">Cargando conteo…</UiLoading>
   <div v-else-if="state === 'not-found'" class="space-y-3">
     <p class="font-medium text-foreground">Conteo no encontrado</p>
     <RouterLink to="/inventory" class="text-sm text-primary underline-offset-2 hover:underline">Volver a levantamiento</RouterLink>
@@ -215,7 +216,7 @@ const FILTERS: (RecordStatus | 'TODOS')[] = ['TODOS', 'PENDIENTE', 'ENCONTRADO',
       <RouterLink to="/inventory" class="text-sm text-secondary underline-offset-2 hover:underline">Levantamiento físico</RouterLink>
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="font-display text-2xl font-semibold text-foreground">{{ session.name }}</h1>
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', isOpen ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground']">
+        <span :class="['chip', isOpen ? 'chip-info' : 'chip-neutral']">
           {{ SESSION_LABELS[session.status] }}
         </span>
       </div>
@@ -308,7 +309,7 @@ const FILTERS: (RecordStatus | 'TODOS')[] = ['TODOS', 'PENDIENTE', 'ENCONTRADO',
             <template v-if="r.assetStatusCode === 'DADO_DE_BAJA'">. Dado de baja: debió retirarse.</template>
           </p>
         </div>
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', RECORD_CLASSES[r.status]]">{{ RECORD_LABELS[r.status] }}</span>
+        <span :class="['chip', RECORD_CLASSES[r.status]]">{{ RECORD_LABELS[r.status] }}</span>
 
         <!-- Acciones mientras el conteo está abierto -->
         <UiButton

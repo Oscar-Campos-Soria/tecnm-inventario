@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
       permission: 'inventory.manage',
       nav: {
         label: 'Levantamiento',
+        group: 'Equipos',
         order: 35,
         permission: 'inventory.manage',
         icon: ['M9 4h6v3H9z', 'M7 5H5v16h14V5h-2', 'M8.5 13l2.5 2.5L16 10.5'],

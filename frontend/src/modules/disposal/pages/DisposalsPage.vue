@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate } from '../../../shared/utils/format'
 import { disposalApi } from '../api'
 import type { CatalogItem, DisposalFilters, DisposalSummary, PagedResult } from '../types'
@@ -78,7 +79,7 @@ watch(
     </div>
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando bajas…</p>
+    <UiLoading v-if="!result && !error">Cargando bajas…</UiLoading>
 
     <div v-else-if="result && result.items.length === 0" class="rounded-lg border border-dashed border-border p-8 text-center">
       <p class="text-sm text-muted-foreground">{{ debouncedSearch || reasonFilter ? 'Ninguna baja coincide.' : 'Aún no hay activos dados de baja.' }}</p>

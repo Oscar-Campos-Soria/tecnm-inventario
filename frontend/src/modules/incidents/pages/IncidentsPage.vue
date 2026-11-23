@@ -7,6 +7,7 @@ import { can } from '../../../shared/utils/permissions'
 import { formatDate } from '../../../shared/utils/format'
 import { incidentsApi } from '../api'
 import StatusChip from '../components/StatusChip.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import type { IncidentCatalogs, IncidentFilters, IncidentSummary, PagedResult, UserItem } from '../types'
 
 const { session } = useAuth()
@@ -106,8 +107,11 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
   </div>
 
   <div v-else class="space-y-4">
-    <header class="flex items-center justify-between">
-      <h1 class="font-display text-2xl font-semibold text-foreground">Incidentes</h1>
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="font-display text-2xl font-semibold text-foreground">Incidentes</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Fallas técnicas registradas sobre un equipo, hasta que quedan resueltas.</p>
+      </div>
       <span v-if="result" role="status" class="text-sm text-muted-foreground">
         {{ result.totalCount }} incidente{{ result.totalCount === 1 ? '' : 's' }}
       </span>
@@ -167,7 +171,7 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
 
-    <p v-if="loading && !result" class="text-sm text-muted-foreground">Cargando incidentes…</p>
+    <UiLoading v-if="loading && !result">Cargando incidentes…</UiLoading>
 
     <div v-if="!loading && !error && result && result.items.length === 0" class="rounded-lg border border-dashed border-border p-8 text-center">
       <p class="font-medium text-foreground">{{ hasFilters ? 'Sin resultados' : 'Sin incidentes' }}</p>

@@ -11,9 +11,11 @@ import AssetMaintenanceSection from '../components/AssetMaintenanceSection.vue'
 import AssetSoftwareSection from '../components/AssetSoftwareSection.vue'
 import AssetTimelineSection from '../components/AssetTimelineSection.vue'
 import AssetWarrantySection from '../components/AssetWarrantySection.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, formatDateTime } from '../../../shared/utils/format'
 import { assetsApi, catalogName } from '../api'
+import { assetStatusView } from '../status'
 import type {
   AssetAssignment,
   AssetDetail,
@@ -141,12 +143,7 @@ onBeforeUnmount(() => clearTimeout(userTimer))
 // Dado de baja es terminal: sin movimientos, asignaciones ni tickets nuevos.
 const isDisposed = computed(() => detail.value?.statusCode === 'DADO_DE_BAJA')
 
-const STATUS_CHIP: Record<string, string> = {
-  DISPONIBLE: 'bg-success/10 text-success',
-  CON_FALLA: 'bg-destructive/10 text-destructive',
-  DADO_DE_BAJA: 'bg-foreground/10 text-foreground',
-}
-const statusChipClass = computed(() => STATUS_CHIP[detail.value?.statusCode ?? ''] ?? 'bg-muted text-secondary')
+const statusView = computed(() => assetStatusView(detail.value?.statusCode ?? ''))
 
 function onDisposalConflict() {
   formError.value = operationError(new ApiError('', 409), '')
@@ -222,7 +219,7 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
 </script>
 
 <template>
-  <p v-if="isValidId && state === 'loading'" class="text-sm text-muted-foreground">Cargando ficha del activo…</p>
+  <UiLoading v-if="isValidId && state === 'loading'">Cargando ficha del activo…</UiLoading>
 
   <div v-else-if="!isValidId || state === 'not-found'" class="space-y-3">
     <p class="font-medium text-foreground">Activo no encontrado</p>
@@ -238,8 +235,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
       <RouterLink to="/assets" class="text-sm text-secondary underline-offset-2 hover:underline">Activos</RouterLink>
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="font-display text-2xl font-semibold text-foreground">{{ detail.inventoryCode }}</h1>
-        <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ assetTypeName }}</span>
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', statusChipClass]">{{ assetStatusName }}</span>
+        <span class="chip chip-plain">{{ assetTypeName }}</span>
+        <span :class="['chip', statusView.chip]">{{ assetStatusName }}</span>
         <!-- Ticket de soporte con este equipo ya elegido (módulo tickets). -->
         <RouterLink
           v-if="hasPermission('tickets.create') && !isDisposed"
@@ -249,6 +246,11 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
           Reportar problema
         </RouterLink>
       </div>
+      <!-- Qué significa el estado y qué se puede hacer: antes solo se sabía al chocar con el error. -->
+      <p v-if="statusView.help" class="flex items-stretch gap-3 pt-2 text-sm text-secondary">
+        <span :class="['w-1 shrink-0 rounded-full', statusView.fill]" aria-hidden="true" />
+        {{ statusView.help }}
+      </p>
     </header>
 
     <p v-if="formError" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -362,8 +364,8 @@ const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border
           <span class="text-muted-foreground">
             {{ formatDate(assignment.assignedAt) }}<template v-if="assignment.returnedAt"> → {{ formatDate(assignment.returnedAt) }}</template>
           </span>
-          <span v-if="assignment.isActive" class="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">Activa</span>
-          <span v-else class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Devuelta</span>
+          <span v-if="assignment.isActive" class="chip chip-success">Activa</span>
+          <span v-else class="chip chip-neutral">Devuelta</span>
           <UiButton
             v-if="assignment.isActive"
             :disabled="busy"

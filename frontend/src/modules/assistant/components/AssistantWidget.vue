@@ -179,7 +179,9 @@ function onKeydown(event: KeyboardEvent) {
         </article>
 
         <p v-if="sending" class="flex items-center gap-2 text-sm text-muted-foreground">
-          <span class="assistant-dot h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+          <span class="flex gap-1" aria-hidden="true">
+            <span v-for="n in 3" :key="n" class="assistant-dot size-2 rounded-full bg-accent" :style="{ animationDelay: `${n * 150}ms` }" />
+          </span>
           Consultando el inventario…
         </p>
       </div>

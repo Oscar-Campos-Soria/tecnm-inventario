@@ -3,6 +3,7 @@ import { ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { procurementApi } from '../api'
 import type { PagedResult, Supplier, SupplierInput } from '../types'
 
@@ -79,7 +80,7 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
   <div class="space-y-3">
     <div class="flex justify-end"><UiButton variant="primary" @click="openForm(null)">Nuevo proveedor</UiButton></div>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando proveedores…</p>
+    <UiLoading v-if="!result && !error">Cargando proveedores…</UiLoading>
     <div v-else-if="result" class="overflow-x-auto rounded-lg border border-border bg-card">
       <table class="w-full text-left text-sm">
         <thead>

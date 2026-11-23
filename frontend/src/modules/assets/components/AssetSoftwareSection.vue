@@ -3,6 +3,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { assetsApi } from '../api'
@@ -98,7 +99,7 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
     <p v-if="notice" role="status" class="mb-3 rounded-md bg-muted px-3 py-2 text-sm text-secondary">
       {{ notice }} <RouterLink to="/software" class="font-medium text-accent hover:underline">Ir a Software</RouterLink>
     </p>
-    <p v-if="!items && !listError" class="text-sm text-muted-foreground">Cargando software…</p>
+    <UiLoading v-if="!items && !listError">Cargando software…</UiLoading>
     <template v-else-if="items">
       <p v-if="current.length === 0" class="text-sm text-muted-foreground">No hay programas registrados en este equipo.</p>
       <ul v-else class="space-y-2">
@@ -106,7 +107,7 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
           <div>
             <p class="font-medium text-foreground">
               {{ i.softwareName }}<template v-if="i.versionInstalled"> {{ i.versionInstalled }}</template>
-              <span :class="['ml-2 rounded-full px-2 py-0.5 text-xs font-medium', i.hasActiveLicense ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground']">
+              <span :class="['ml-2 chip', i.hasActiveLicense ? 'chip-success' : 'chip-neutral']">
                 {{ i.hasActiveLicense ? 'Con licencia' : 'Sin licencia asignada' }}
               </span>
             </p>

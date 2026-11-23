@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Incidentes',
+        group: 'Soporte',
         order: 40,
         permission: 'incidents.view',
         icon: ['M12 4L2.5 20h19L12 4z', 'M12 10v4M12 17v.3'],

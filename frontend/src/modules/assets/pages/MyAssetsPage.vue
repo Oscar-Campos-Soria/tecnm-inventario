@@ -2,20 +2,15 @@
 import { onMounted, ref } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate, formatRelative } from '../../../shared/utils/format'
 import { statusClass, statusLabel } from '../../tickets/labels'
 import { assetsApi } from '../api'
+import { assetStatusView } from '../status'
 import type { MyAsset } from '../types'
 
 // "Mis equipos": lo que el usuario tiene a su cargo (asignaciones vigentes). El servidor
 // devuelve solo lo suyo; desde aquí reporta fallas de su equipo sin ver el inventario completo.
-const STATUS_CHIP: Record<string, string> = {
-  DISPONIBLE: 'bg-success/10 text-success',
-  ASIGNADO: 'bg-accent/10 text-accent',
-  CON_FALLA: 'bg-destructive/10 text-destructive',
-  EN_MANTENIMIENTO: 'bg-priority-high/10 text-priority-high',
-}
-
 const assets = ref<MyAsset[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -44,7 +39,7 @@ function title(asset: MyAsset): string {
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
 
-    <p v-if="loading" class="text-sm text-muted-foreground">Cargando tus equipos…</p>
+    <UiLoading v-if="loading">Cargando tus equipos…</UiLoading>
 
     <div v-else-if="!error && assets.length === 0" class="rounded-lg border border-dashed border-border px-6 py-10 text-center">
       <p class="font-medium text-foreground">No tienes equipos asignados.</p>
@@ -67,7 +62,7 @@ function title(asset: MyAsset): string {
                 {{ asset.inventoryCode }}<template v-if="asset.serialNumber">, serie {{ asset.serialNumber }}</template>
               </p>
             </div>
-            <span :class="['shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CHIP[asset.statusCode] ?? 'bg-muted text-secondary']">
+            <span :class="['shrink-0 chip', assetStatusView(asset.statusCode).chip]">
               {{ asset.statusName }}
             </span>
           </div>
@@ -95,7 +90,7 @@ function title(asset: MyAsset): string {
                   <span class="min-w-0 truncate">{{ ticket.title }}</span>
                   <span class="flex shrink-0 items-center gap-2">
                     <span class="text-xs text-muted-foreground">{{ formatRelative(ticket.createdAt) }}</span>
-                    <span :class="['rounded-full px-2 py-0.5 text-xs font-medium', statusClass(ticket.status)]">{{ statusLabel(ticket.status, true) }}</span>
+                    <span :class="['chip', statusClass(ticket.status)]">{{ statusLabel(ticket.status, true) }}</span>
                   </span>
                 </RouterLink>
               </li>

@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Bajas',
+        group: 'Equipos',
         order: 50,
         // La lista la puede leer assets.view; en el menú solo quien da de baja.
         permission: 'assets.delete',

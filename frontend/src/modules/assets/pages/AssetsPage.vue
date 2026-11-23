@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { downloadFile } from '../../../shared/utils/download'
 import { assetsApi } from '../api'
+import { assetStatusView } from '../status'
 import type { AssetFilters, AssetSummary, GetCatalogsResponse, LocationItem, PagedResult } from '../types'
 
 const result = ref<PagedResult<AssetSummary> | null>(null)
@@ -14,7 +17,8 @@ const error = ref('')
 
 const search = ref('')
 const debouncedSearch = ref('')
-const status = ref('')
+// El panel enlaza con el estado ya elegido (/assets?status=CON_FALLA).
+const status = ref(String(useRoute().query.status ?? ''))
 const typeId = ref('')
 const locationId = ref('')
 const includeDisposed = ref(false)
@@ -69,12 +73,6 @@ function clearFilters() {
   includeDisposed.value = false
 }
 
-const STATUS_CHIP: Record<string, string> = {
-  DISPONIBLE: 'bg-success/10 text-success',
-  CON_FALLA: 'bg-destructive/10 text-destructive',
-  DADO_DE_BAJA: 'bg-foreground/10 text-foreground',
-}
-
 const selectClass = 'min-h-[44px] w-full cursor-pointer rounded-md border border-border bg-background px-2.5 text-sm text-foreground'
 
 // Etiquetas con QR: se eligen equipos (se conservan al cambiar de página) y se imprime la hoja.
@@ -111,9 +109,12 @@ async function printLabels() {
 
 <template>
   <div class="space-y-4">
-    <header class="flex items-center justify-between">
-      <h1 class="font-display text-2xl font-semibold text-foreground">Activos</h1>
-      <span v-if="result" class="text-sm text-muted-foreground">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="font-display text-2xl font-semibold text-foreground">Activos</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Todos los equipos del instituto: en qué estado están y dónde.</p>
+      </div>
+      <span v-if="result" role="status" class="text-sm text-muted-foreground">
         {{ result.totalCount }} activo{{ result.totalCount === 1 ? '' : 's' }}
       </span>
     </header>
@@ -125,8 +126,26 @@ async function printLabels() {
       <p v-if="labelError" role="alert" class="w-full text-destructive">{{ labelError }}</p>
     </div>
 
+    <div role="group" aria-label="Filtrar por estado" class="flex flex-wrap gap-2">
+      <button
+        v-for="s in [{ code: '', name: 'Todos' }, ...(catalogs?.assetStatuses ?? [])]"
+        :key="s.code"
+        type="button"
+        :aria-pressed="status === s.code"
+        :title="s.code ? assetStatusView(s.code).help : undefined"
+        :class="[
+          'flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border px-3.5 text-sm transition-colors duration-150',
+          status === s.code ? 'border-primary bg-primary font-semibold text-on-primary' : 'border-border bg-card text-secondary hover:border-accent hover:text-foreground',
+        ]"
+        @click="status = s.code"
+      >
+        <span v-if="s.code" :class="['size-2.5 rounded-full ring-2 ring-white', assetStatusView(s.code).fill]" aria-hidden="true" />
+        {{ s.name }}
+      </button>
+    </div>
+
     <form role="search" aria-label="Filtros de activos" class="rounded-lg border border-border bg-card p-4" @submit.prevent>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div class="sm:col-span-2 lg:col-span-1">
           <label for="asset-search" class="mb-1 block text-sm font-medium text-foreground">Buscar</label>
           <input
@@ -136,13 +155,6 @@ async function printLabels() {
             placeholder="Código, serie o hostname"
             class="min-h-[44px] w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
           />
-        </div>
-        <div>
-          <label for="asset-status" class="mb-1 block text-sm font-medium text-foreground">Estado</label>
-          <select id="asset-status" v-model="status" :class="selectClass">
-            <option value="">Todos</option>
-            <option v-for="s in catalogs?.assetStatuses ?? []" :key="s.id" :value="s.code">{{ s.name }}</option>
-          </select>
         </div>
         <div>
           <label for="asset-type" class="mb-1 block text-sm font-medium text-foreground">Tipo</label>
@@ -170,7 +182,7 @@ async function printLabels() {
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
 
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando activos…</p>
+    <UiLoading v-if="!result && !error">Cargando activos…</UiLoading>
 
     <div v-if="result && result.items.length === 0" class="rounded-lg border border-dashed border-border p-8 text-center">
       <p class="font-medium text-foreground">{{ hasFilters ? 'Sin resultados' : 'Sin activos' }}</p>
@@ -206,7 +218,7 @@ async function printLabels() {
             </td>
             <td class="px-4 py-3 text-secondary">{{ asset.assetTypeName }}</td>
             <td class="px-4 py-3">
-              <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CHIP[asset.statusCode] ?? 'bg-muted text-secondary']">
+              <span :class="['chip', assetStatusView(asset.statusCode).chip]">
                 {{ asset.statusName }}
               </span>
             </td>

@@ -29,15 +29,15 @@ export function statusLabel(status: TicketStatus, isRequester: boolean): string 
 export function statusClass(status: TicketStatus): string {
   switch (status) {
     case 'ABIERTO':
-      return 'bg-accent/10 text-accent'
+      return 'chip-info'
     case 'ESPERANDO_USUARIO':
-      return 'bg-priority-high/10 text-priority-high'
+      return 'chip-alert'
     case 'RESUELTO':
-      return 'bg-success/10 text-success'
+      return 'chip-success'
     case 'EN_ATENCION':
-      return 'bg-muted text-secondary'
+      return 'chip-warning'
     default:
-      return 'bg-muted text-muted-foreground'
+      return 'chip-neutral'
   }
 }
 

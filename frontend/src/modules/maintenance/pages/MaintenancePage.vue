@@ -5,6 +5,7 @@ import UiButton from '../../../shared/components/UiButton.vue'
 import { formatDate } from '../../../shared/utils/format'
 import { maintenanceApi } from '../api'
 import ScheduledMaintenance from '../components/ScheduledMaintenance.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import type { MaintenanceItem, PagedResult } from '../types'
 
 const days = ref(30)
@@ -75,13 +76,13 @@ function dueLabel(iso: string | null): string {
           </select>
         </label>
       </div>
-      <p v-if="upcoming === null" class="text-sm text-muted-foreground">Cargando…</p>
+      <UiLoading v-if="upcoming === null">Cargando…</UiLoading>
       <p v-else-if="upcoming.length === 0" class="text-sm text-muted-foreground">Ningún preventivo vence en este periodo.</p>
       <ul v-else class="divide-y divide-border">
         <li v-for="item in upcoming" :key="item.maintenanceRecordId" class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
           <RouterLink :to="`/assets/${item.assetId}`" class="font-medium text-primary underline-offset-2 hover:underline">{{ item.assetInventoryCode }}</RouterLink>
           <span class="text-secondary">{{ formatDate(item.nextMaintenanceAt) }}</span>
-          <span :class="['rounded-full px-2.5 py-0.5 text-xs font-semibold', daysUntil(item.nextMaintenanceAt) < 0 ? 'bg-destructive text-on-destructive' : daysUntil(item.nextMaintenanceAt) <= 7 ? 'bg-priority-high/10 text-priority-high' : 'bg-muted text-secondary']">
+          <span :class="['chip', daysUntil(item.nextMaintenanceAt) < 0 ? 'bg-destructive text-on-destructive' : daysUntil(item.nextMaintenanceAt) <= 7 ? 'chip-alert' : 'chip-neutral']">
             {{ dueLabel(item.nextMaintenanceAt) }}
           </span>
           <span class="text-muted-foreground">último: {{ formatDate(item.performedAt) }}</span>

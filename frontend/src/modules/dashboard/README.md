@@ -10,7 +10,9 @@ Inicio por rol y métricas del inventario.
 
 ## Métricas (`components/DashboardMetrics.vue`, `dashboard.view`)
 
-- Total de equipos en servicio y una barra apilada por estado con leyenda (texto + número; el color no es el único dato).
+- Frase resumen (en servicio y detenidos) y banda por estado en orden del ciclo de vida, con lista de número, símbolo y
+  explicación (el color no es el único dato); cada estado abre `/assets?status=CODIGO` si el rol tiene `assets.view`.
+  Los dados de baja van aparte, fuera de la banda.
 - Tres avisos: incidentes abiertos (desglose por prioridad; resaltado si hay ALTA o CRÍTICA), preventivos vencidos
   (y cuántos vencen en 30 días) y licencias por vencer (y cuántas ya vencieron). Cada aviso enlaza a su pantalla
   solo si el rol tiene el permiso (`incidents.view`, `maintenance.manage`, `software.manage`); licencias abre

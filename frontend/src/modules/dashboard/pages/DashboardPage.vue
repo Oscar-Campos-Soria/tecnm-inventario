@@ -70,33 +70,31 @@ const greeting = computed(() => {
 <template>
   <div class="space-y-8">
     <header>
-      <p class="text-sm text-muted-foreground">{{ greeting }},</p>
-      <h1 class="font-display text-3xl font-semibold text-foreground">{{ session?.firstName ?? session?.username ?? 'usuario' }}</h1>
+      <h1 class="font-display text-3xl font-bold text-foreground text-balance">{{ greeting }}, {{ session?.firstName ?? session?.username ?? 'usuario' }}</h1>
       <p class="mt-1 text-sm text-muted-foreground">{{ session?.roleName }}</p>
     </header>
 
-    <nav aria-label="Accesos directos">
-      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <li v-for="(s, i) in shortcuts" :key="s.to">
-          <RouterLink
-            :to="s.to"
-            :class="[
-              'flex h-full gap-4 rounded-xl border p-5 transition-colors duration-150',
-              i === 0 ? 'border-accent bg-accent text-on-accent hover:bg-accent-hover' : 'border-border bg-card hover:border-accent hover:bg-muted',
-            ]"
-          >
-            <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', i === 0 ? 'bg-white/15' : 'bg-muted text-accent']">
-              <NavIcon :paths="s.icon" />
-            </span>
-            <span>
-              <span :class="['block font-display font-semibold', i === 0 ? '' : 'text-foreground']">{{ s.title }}</span>
-              <span :class="['mt-0.5 block text-sm', i === 0 ? 'text-on-accent/85' : 'text-muted-foreground']">{{ s.text }}</span>
-            </span>
-          </RouterLink>
-        </li>
-      </ul>
-    </nav>
-
-    <DashboardMetrics v-if="hasPermission('dashboard.view')" />
+    <component :is="hasPermission('dashboard.view') ? DashboardMetrics : 'div'">
+      <nav aria-labelledby="accesos">
+        <h2 id="accesos" class="font-display text-lg font-semibold text-foreground">¿Qué necesitas hacer?</h2>
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+          <li v-for="(s, i) in shortcuts" :key="s.to">
+            <RouterLink
+              :to="s.to"
+              :class="[
+                'flex h-full items-start gap-3 rounded-lg p-3 transition-colors duration-150',
+                i === 0 ? 'bg-accent text-on-accent hover:bg-accent-hover' : 'bg-card ring-1 ring-border hover:ring-accent',
+              ]"
+            >
+              <span :class="['mt-0.5', i === 0 ? '' : 'text-accent']"><NavIcon :paths="s.icon" /></span>
+              <span>
+                <span :class="['block font-semibold', i === 0 ? '' : 'text-foreground']">{{ s.title }}</span>
+                <span :class="['mt-0.5 block text-sm leading-snug', i === 0 ? 'text-on-accent/90' : 'text-muted-foreground']">{{ s.text }}</span>
+              </span>
+            </RouterLink>
+          </li>
+        </ul>
+      </nav>
+    </component>
   </div>
 </template>

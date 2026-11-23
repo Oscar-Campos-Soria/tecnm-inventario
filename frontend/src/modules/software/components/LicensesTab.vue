@@ -10,6 +10,7 @@ import { EXPIRING_DAYS, expiry } from '../status'
 import type { CatalogItem, LicenseDetail, LicenseSummary, PagedResult, SoftwareItem, SupplierOption } from '../types'
 import LicenseDetailModal from './LicenseDetailModal.vue'
 import UsageBar from './UsageBar.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 
 const { hasPermission } = useAuth()
 const canPickSupplier = computed(() => hasPermission('procurement.manage'))
@@ -161,7 +162,7 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
       <UiButton variant="primary" @click="openForm(null)">Nueva licencia</UiButton>
     </div>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando licencias…</p>
+    <UiLoading v-if="!result && !error">Cargando licencias…</UiLoading>
     <div v-else-if="result" class="overflow-x-auto rounded-lg border border-border bg-card">
       <table class="w-full text-left text-sm">
         <thead>
@@ -191,7 +192,7 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
             <td class="px-4 py-3 text-secondary">{{ l.licenseTypeName }}</td>
             <td class="px-4 py-3"><UsageBar :license="l" /></td>
             <td class="px-4 py-3">
-              <span :class="['rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap', expiry(l).cls]">{{ expiry(l).text }}</span>
+              <span :class="['chip whitespace-nowrap', expiry(l).cls]">{{ expiry(l).text }}</span>
             </td>
             <td class="px-4 py-3">
               <div class="flex justify-end gap-2">

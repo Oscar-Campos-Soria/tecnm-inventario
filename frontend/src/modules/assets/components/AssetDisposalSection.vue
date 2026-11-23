@@ -5,6 +5,7 @@ import DocumentList from '../../../shared/components/DocumentList.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiField from '../../../shared/components/UiField.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { downloadFile } from '../../../shared/utils/download'
 import { formatDate, todayIso } from '../../../shared/utils/format'
@@ -116,7 +117,7 @@ async function downloadAct() {
       <UiButton v-if="disposal" :disabled="downloading" @click="downloadAct">{{ downloading ? 'Generando…' : 'Descargar acta (PDF)' }}</UiButton>
     </div>
     <p v-if="actError" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ actError }}</p>
-    <p v-if="!disposal" class="text-sm text-muted-foreground">Cargando datos de la baja…</p>
+    <UiLoading v-if="!disposal">Cargando datos de la baja…</UiLoading>
     <dl v-else class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
       <UiField label="Folio del acta" :value="disposal.folio" />
       <UiField label="Motivo" :value="disposal.reasonName" />

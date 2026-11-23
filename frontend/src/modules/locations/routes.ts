@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Ubicaciones',
+        group: 'Equipos',
         order: 30,
         // Ver: locations.view (todos los roles). Crear/editar/borrar: locations.manage.
         permission: 'locations.view',

@@ -3,6 +3,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { assetsApi } from '../api'
@@ -96,14 +97,14 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
       <UiButton @click="openForm">Registrar garantía</UiButton>
     </div>
     <p v-if="listError" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ listError }}</p>
-    <p v-if="!items && !listError" class="text-sm text-muted-foreground">Cargando garantías…</p>
+    <UiLoading v-if="!items && !listError">Cargando garantías…</UiLoading>
     <p v-else-if="items && items.length === 0" class="text-sm text-muted-foreground">Sin garantías registradas.</p>
     <ul v-else-if="items" class="space-y-2">
       <li v-for="w in items" :key="w.warrantyId" class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2.5 text-sm">
         <div>
           <p class="font-medium text-foreground">
             {{ w.warrantyNumber ?? 'Sin número' }}<template v-if="supplierName(w.supplierId)">, {{ supplierName(w.supplierId) }}</template>
-            <span :class="['ml-2 rounded-full px-2 py-0.5 text-xs font-medium', isActive(w) ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground']">{{ isActive(w) ? 'Vigente' : 'Vencida' }}</span>
+            <span :class="['ml-2 chip', isActive(w) ? 'chip-success' : 'chip-neutral']">{{ isActive(w) ? 'Vigente' : 'Vencida' }}</span>
           </p>
           <p class="text-xs text-muted-foreground">{{ formatDate(w.startsOn) }} a {{ w.endsOn ? formatDate(w.endsOn) : 'sin fecha de fin' }}<template v-if="w.coverage">, {{ w.coverage }}</template></p>
         </div>

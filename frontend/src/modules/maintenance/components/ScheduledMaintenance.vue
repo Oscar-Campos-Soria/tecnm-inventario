@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref, useId, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { maintenanceApi } from '../api'
 import type { MaintenanceItem } from '../types'
@@ -140,11 +141,11 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
       <UiButton variant="primary" @click="openSchedule">Programar mantenimiento</UiButton>
     </div>
     <p v-if="error" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="items === null && !error" class="text-sm text-muted-foreground">Cargando…</p>
+    <UiLoading v-if="items === null && !error">Cargando…</UiLoading>
     <p v-else-if="items && items.length === 0" class="text-sm text-muted-foreground">Nada programado en los próximos 90 días.</p>
     <ul v-else-if="items" class="divide-y divide-border">
       <li v-for="item in items" :key="item.maintenanceRecordId" class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5 text-sm">
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-semibold', isLate(item.scheduledAt) ? 'bg-destructive text-on-destructive' : 'bg-muted text-secondary']">
+        <span :class="['chip', isLate(item.scheduledAt) ? 'bg-destructive text-on-destructive' : 'chip-neutral']">
           {{ isLate(item.scheduledAt) ? `Atrasado, era el ${formatDate(item.scheduledAt)}` : formatDate(item.scheduledAt) }}
         </span>
         <RouterLink :to="`/assets/${item.assetId}`" class="font-medium text-accent hover:underline">{{ item.assetInventoryCode }}</RouterLink>

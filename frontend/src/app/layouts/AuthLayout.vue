@@ -4,65 +4,57 @@ import BrandMark from '../../shared/components/BrandMark.vue'
 /**
  * Layout para pantallas fuera de la aplicación autenticada (login,
  * recuperación de acceso): panel institucional a la izquierda con la
- * etiqueta de inventario, formulario a la derecha. En móvil solo queda
- * el formulario.
+ * etiqueta de inventario y su historial, formulario a la derecha. En móvil
+ * solo queda el formulario.
  */
 
-// Barras del código de barras: anchos fijos (no aleatorios) para que la
-// etiqueta se vea igual en cada carga.
-const BARS = [2, 1, 3, 1, 1, 2, 4, 1, 2, 1, 1, 3, 2, 1, 4, 1, 1, 2, 3, 1, 2, 2, 1, 1, 3, 1, 2, 4, 1, 1, 2, 1, 3]
+// Vida de un equipo de ejemplo, con los mismos colores de estado que usa la app.
+const HISTORY = [
+  { label: 'Alta en el inventario', date: '12 ene', chip: 'chip-success', status: 'Disponible' },
+  { label: 'Entregada a Redes', date: '20 ene', chip: 'chip-info', status: 'Asignado' },
+  { label: 'No enciende la pantalla', date: '4 mar', chip: 'chip-danger', status: 'Con falla' },
+  { label: 'Cambio de panel', date: '6 mar', chip: 'chip-warning', status: 'En mantenimiento' },
+  { label: 'De vuelta al laboratorio', date: '9 mar', chip: 'chip-info', status: 'Asignado' },
+]
 </script>
 
 <template>
-  <div class="grid min-h-screen bg-card md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-    <aside class="relative hidden overflow-hidden bg-primary text-on-primary md:flex md:flex-col md:justify-between md:p-10 lg:p-14">
+  <div class="grid min-h-screen bg-card md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+    <aside class="relative hidden overflow-hidden bg-sidebar text-on-primary md:flex md:flex-col md:justify-between md:gap-10 md:p-10 lg:p-14">
       <div class="flex items-center gap-3">
         <BrandMark inverted />
-        <span class="font-display text-lg font-semibold">TecNM Inventario</span>
+        <span class="font-display text-lg font-bold">TecNM Inventario</span>
       </div>
 
-      <div class="my-12 flex justify-center">
-        <!-- Etiqueta de inventario impresa: el objeto que lleva cada activo. -->
-        <figure aria-hidden="true" class="asset-tag relative w-full max-w-[22rem] rounded-xl bg-card p-6 text-foreground">
-          <span class="absolute right-5 top-5 h-3.5 w-3.5 rounded-full border-2 border-border bg-primary" />
-          <p class="text-xs font-medium text-muted-foreground">Tecnológico Nacional de México</p>
-          <p class="mt-1 font-display text-3xl font-semibold tracking-tight text-primary">TEC-LAB-0142</p>
+      <!-- Etiqueta de inventario: el objeto que lleva cada activo, imprimiendo su historia. -->
+      <figure aria-hidden="true" class="asset-tag relative mx-auto w-full max-w-[27rem] rounded-lg bg-card p-6 text-foreground lg:p-7">
+        <span class="absolute right-6 top-6 size-4 rounded-full bg-sidebar" />
+        <p class="text-sm text-muted-foreground">Computadora, Laboratorio de redes</p>
+        <p class="mt-1 font-display text-4xl font-bold tracking-tight text-primary">TEC-LAB-0142</p>
+        <ol class="mt-5 border-t-2 border-foreground">
+          <li
+            v-for="(event, i) in HISTORY"
+            :key="i"
+            class="tag-line flex items-center gap-3 border-b border-border py-2.5 text-sm"
+            :style="{ '--i': i }"
+          >
+            <span class="w-12 shrink-0 text-muted-foreground tabular-nums">{{ event.date }}</span>
+            <span class="min-w-0 flex-1 truncate font-medium">{{ event.label }}</span>
+            <span :class="['chip', event.chip]">{{ event.status }}</span>
+          </li>
+        </ol>
+      </figure>
 
-          <dl class="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-            <dt class="text-muted-foreground">Equipo</dt>
-            <dd class="font-medium">Computadora de escritorio</dd>
-            <dt class="text-muted-foreground">Ubicación</dt>
-            <dd class="font-medium">Edificio B, Laboratorio de redes</dd>
-            <dt class="text-muted-foreground">Estado</dt>
-            <dd>
-              <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-accent">Asignado</span>
-            </dd>
-          </dl>
-
-          <div class="mt-6 flex h-12 items-stretch gap-[2px]">
-            <span
-              v-for="(width, index) in BARS"
-              :key="index"
-              :class="index % 2 === 0 ? 'bg-foreground' : 'bg-transparent'"
-              :style="{ width: `${width * 2}px` }"
-            />
-          </div>
-        </figure>
-      </div>
-
-      <div class="max-w-md">
-        <p class="font-display text-2xl font-semibold leading-snug lg:text-3xl">
-          Cada equipo del campus, con su historia completa.
-        </p>
-        <p class="mt-3 text-base leading-relaxed text-on-primary/75">
-          Alta, ubicación, resguardo, incidentes y baja de los activos
-          tecnológicos, en un solo registro auditado.
+      <div class="max-w-xl">
+        <p class="font-display text-3xl font-bold leading-tight text-balance lg:text-4xl">Cada equipo del campus, con su historia completa.</p>
+        <p class="mt-3 max-w-md leading-relaxed text-sidebar-muted">
+          Dónde está, quién lo tiene, qué le pasó y quién lo arregló, en un solo registro auditado.
         </p>
       </div>
     </aside>
 
     <main class="flex items-center justify-center px-4 py-10 sm:px-8">
-      <div class="w-full max-w-sm">
+      <div class="page-enter w-full max-w-sm">
         <slot />
       </div>
     </main>

@@ -9,6 +9,7 @@ import { fetchLocationTypes, locationsApi } from '../api'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue'
 import LocationFormModal from '../components/LocationFormModal.vue'
 import LocationAssets from '../components/LocationAssets.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import type { LocationDetail, LocationItem, LocationTypeItem } from '../types'
 
 type LoadState = 'loading' | 'not-found' | 'error' | 'ready'
@@ -139,7 +140,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <p v-if="isValidId && state === 'loading'" class="text-sm text-muted-foreground">Cargando ubicación…</p>
+  <UiLoading v-if="isValidId && state === 'loading'">Cargando ubicación…</UiLoading>
 
   <div v-else-if="!isValidId || state === 'not-found'" class="space-y-3">
     <p class="font-medium text-foreground">Ubicación no encontrada</p>
@@ -166,7 +167,7 @@ async function handleDelete() {
       </nav>
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="font-display text-2xl font-semibold text-foreground">{{ detail.name }}</h1>
-        <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ typeName }}</span>
+        <span class="chip chip-plain">{{ typeName }}</span>
         <span class="text-sm text-muted-foreground">{{ detail.code }}</span>
         <span v-if="canManage" class="flex gap-2">
           <UiButton :disabled="busy" @click="formOpen = true">Editar</UiButton>

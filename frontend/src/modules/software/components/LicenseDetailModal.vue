@@ -8,6 +8,7 @@ import { softwareApi } from '../api'
 import { expiry, usage } from '../status'
 import type { AssetOption, LicenseAssignment, LicenseDetail } from '../types'
 import UsageBar from './UsageBar.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 
 // Detalle de una licencia: en qué equipos está, asignarla a otro y liberarla.
 const props = defineProps<{ licenseId: number | null }>()
@@ -108,11 +109,11 @@ async function release(a: LicenseAssignment) {
 
 <template>
   <UiModal :open="licenseId !== null" :title="license ? `Licencia de ${license.softwareName}` : 'Licencia'" @close="emit('close')">
-    <p v-if="!license && !error" class="text-sm text-muted-foreground">Cargando licencia…</p>
+    <UiLoading v-if="!license && !error">Cargando licencia…</UiLoading>
     <div v-if="license" class="space-y-4 text-sm">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <UsageBar :license="license" />
-        <span :class="['rounded-full px-2 py-0.5 text-xs font-medium', expiry(license).cls]">{{ expiry(license).text }}</span>
+        <span :class="['chip', expiry(license).cls]">{{ expiry(license).text }}</span>
       </div>
       <dl class="grid grid-cols-2 gap-x-4 gap-y-1.5">
         <dt class="text-muted-foreground">Tipo</dt><dd class="text-foreground">{{ license.licenseTypeName }}</dd>

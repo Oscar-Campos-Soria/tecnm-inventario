@@ -2,6 +2,7 @@
 import { ref, useId } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate } from '../../../shared/utils/format'
 import { profileApi } from '../api'
 import type { ExternalLoginItem, Profile } from '../types'
@@ -72,7 +73,7 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
     </header>
 
     <p v-if="loadError" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ loadError }}</p>
-    <p v-else-if="!profile" class="text-sm text-muted-foreground">Cargando perfil…</p>
+    <UiLoading v-else-if="!profile">Cargando perfil…</UiLoading>
 
     <template v-else>
       <section aria-labelledby="cuenta" class="rounded-lg border border-border bg-card p-5">

@@ -1,48 +1,88 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..115,400..800&display=swap');
 @import "tailwindcss";
 
 /*
- * Tokens de diseño: blanco con azul institucional (TecNM).
- * Navy tinta #0F2747 para el menú lateral; navy #1B396A para marca y
- * enlaces; azul de acción #1D5FD6 solo para lo que se puede hacer
- * (botones principales, foco). Flat, sin sombras: la jerarquía la dan
- * los tintes cielo y los bordes.
+ * Tokens de diseño: cobalto institucional (TecNM) y un color por estado del equipo.
+ * El color vivo pertenece a los estados (state-*) y a lo que se puede hacer (accent);
+ * todo lo demás es blanco y tinta. Los state-* son rellenos (barras, puntos, franjas);
+ * para texto se usan success, warning, destructive y accent, que cumplen 4.5:1.
+ * Paleta de estados validada para daltonismo; el ámbar no llega a 3:1 sobre blanco:
+ * siempre va con texto o símbolo.
  */
 @theme {
-  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
 
-  --color-primary: #1b396a;
+  --color-primary: #15349b;
   --color-on-primary: #ffffff;
-  --color-secondary: #2a4a80;
-  --color-accent: #1d5fd6;
-  --color-accent-hover: #164bb0;
+  --color-secondary: #2e3f78;
+  --color-accent: #2457ff;
+  --color-accent-hover: #1741d6;
   --color-on-accent: #ffffff;
-  --color-success: #1e7b4f;
-  --color-background: #f4f8fd;
-  --color-foreground: #0f2747;
+  --color-success: #007a5c;
+  --color-warning: #855000;
+  --color-background: #f4f6fc;
+  --color-foreground: #0c1a47;
   --color-card: #ffffff;
-  --color-card-foreground: #0f2747;
-  --color-muted: #eaf2fd;
-  --color-muted-foreground: #4a5b76;
-  --color-border: #d3e0f0;
+  --color-card-foreground: #0c1a47;
+  --color-muted: #e9eefc;
+  --color-muted-foreground: #4b587a;
+  --color-border: #d3dbef;
 
-  /* Menú lateral navy: el único bloque oscuro de la app. */
-  --color-sidebar: #0f2747;
+  /* Menú lateral cobalto: el único bloque oscuro de la app. */
+  --color-sidebar: #0f2e8c;
   --color-sidebar-foreground: #ffffff;
-  --color-sidebar-muted: #a9bddb;
-  --color-sidebar-hover: #1b396a;
-  --color-destructive: #c62828;
+  --color-sidebar-muted: #c6d3fa;
+  --color-sidebar-hover: #1d43b5;
+  --color-destructive: #cf1740;
   /* Prioridad Alta de tickets: naranja rojizo, un escalón debajo del rojo de Crítica. */
-  --color-priority-high: #c2410c;
+  --color-priority-high: #c03f00;
   --color-on-destructive: #ffffff;
-  --color-ring: #1d5fd6;
+  --color-ring: #2457ff;
+
+  --color-state-available: #00a07a;
+  --color-state-assigned: #2457ff;
+  --color-state-maintenance: #f0a000;
+  --color-state-fault: #e0244e;
+  --color-state-disposed: #8490ad;
+
+  --ease-firm: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --default-border-color: var(--color-border);
 }
 
-body {
-  @apply bg-background font-sans text-foreground antialiased;
+@layer base {
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  input:not([type='checkbox'], [type='radio']),
+  select,
+  textarea {
+    transition:
+      border-color 150ms,
+      box-shadow 150ms;
+  }
+
+  input:not([type='checkbox'], [type='radio']):focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--color-accent);
+  }
+
+  tbody tr {
+    transition: background-color 120ms;
+  }
+
+  tbody tr:hover {
+    background-color: color-mix(in srgb, var(--color-muted) 60%, transparent);
+  }
 }
 
 /* Anillo de enfoque siempre visible para navegación por teclado */
@@ -51,46 +91,229 @@ body {
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+@layer components {
+  /* Archivo es variable en ancho: los títulos van más anchos que el texto, con la misma familia. */
+  .font-display {
+    font-stretch: 112%;
+    letter-spacing: -0.01em;
+  }
+
+  /* Estado o etiqueta corta. El símbolo (::before) distingue el tono sin depender del color. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 0.375rem;
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+  }
+
+  :is(.chip-success, .chip-info, .chip-warning, .chip-danger, .chip-alert, .chip-neutral)::before {
+    content: '';
+    flex: none;
+    width: 0.75rem;
+    height: 0.75rem;
+    background-color: var(--chip-mark);
+    mask: var(--chip-shape) center / contain no-repeat;
+  }
+
+  .chip-success {
+    --chip-mark: var(--color-state-available);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M6 0a6 6 0 100 12A6 6 0 006 0zm3.4 4.6L5.4 8.8 2.7 6.2l1-1 1.7 1.6 3-3.2z'/%3E%3C/svg%3E");
+    background-color: color-mix(in srgb, var(--color-state-available) 13%, white);
+    color: color-mix(in srgb, var(--color-success) 85%, black);
+  }
+
+  .chip-info {
+    --chip-mark: var(--color-state-assigned);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='5'/%3E%3C/svg%3E");
+    background-color: color-mix(in srgb, var(--color-state-assigned) 11%, white);
+    color: var(--color-accent-hover);
+  }
+
+  .chip-warning {
+    --chip-mark: var(--color-state-maintenance);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 1a5 5 0 010 10z'/%3E%3Cpath fill-rule='evenodd' d='M6 0a6 6 0 100 12A6 6 0 006 0zm0 1.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9z'/%3E%3C/svg%3E");
+    background-color: color-mix(in srgb, var(--color-state-maintenance) 20%, white);
+    color: color-mix(in srgb, var(--color-warning) 88%, black);
+  }
+
+  .chip-danger {
+    --chip-mark: var(--color-state-fault);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M6 .5l6 11H0zM5.3 4.4v3.4h1.4V4.4zm0 4.3v1.4h1.4V8.7z'/%3E%3C/svg%3E");
+    background-color: color-mix(in srgb, var(--color-state-fault) 11%, white);
+    color: color-mix(in srgb, var(--color-destructive) 90%, black);
+  }
+
+  .chip-alert {
+    --chip-mark: var(--color-priority-high);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0l6 6-6 6-6-6z'/%3E%3C/svg%3E");
+    background-color: color-mix(in srgb, var(--color-priority-high) 11%, white);
+    color: color-mix(in srgb, var(--color-priority-high) 90%, black);
+  }
+
+  .chip-neutral {
+    --chip-mark: var(--color-state-disposed);
+    --chip-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill-rule='evenodd' d='M6 1a5 5 0 100 10A5 5 0 006 1zm0 1.8a3.2 3.2 0 110 6.4 3.2 3.2 0 010-6.4z'/%3E%3C/svg%3E");
+    background-color: var(--color-muted);
+    color: var(--color-muted-foreground);
+  }
+
+  /* Dato (tipo, prioridad), no estado: sin símbolo. */
+  .chip-plain {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card);
+    color: var(--color-secondary);
+  }
+
+  .skeleton-line {
+    background: linear-gradient(
+        100deg,
+        var(--color-muted) 35%,
+        color-mix(in srgb, var(--color-accent) 16%, white) 50%,
+        var(--color-muted) 65%
+      )
+      0 0 / 300% 100%;
+    animation: skeleton-sweep 1.3s linear infinite;
+  }
+
+  /* Barras de datos: crecen desde su base. Retraso por renglón con --i. */
+  .bar-grow {
+    transform-origin: left;
+    animation: bar-grow 700ms var(--ease-firm) calc(var(--i, 0) * 60ms) backwards;
+  }
+
+  /* Banda del inventario: se descubre de izquierda a derecha, en el orden del ciclo de vida. */
+  .band-reveal {
+    animation: band-reveal 900ms var(--ease-firm) backwards;
+  }
+
+  .page-enter {
+    animation: fade-in 220ms ease-out;
   }
 }
 
-/* Diálogo nativo del UI kit (UiModal): sin estilos UA por defecto,
-   borde y fondo con los tokens del tema */
+@keyframes skeleton-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes band-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Diálogo nativo del UI kit (UiModal): abre y cierra con transición; sin soporte, aparece directo. */
 dialog.ui-modal {
-  border: 1px solid var(--color-border);
-  border-top: 4px solid var(--color-accent);
-  border-radius: 0.75rem;
+  border: 0;
+  border-radius: 0.875rem;
   background-color: var(--color-card);
   color: var(--color-foreground);
   padding: 1.5rem;
   width: min(34rem, calc(100% - 2rem));
   max-height: calc(100dvh - 2rem);
   margin: auto;
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--color-sidebar) 35%, transparent);
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transition:
+    opacity 180ms,
+    transform 220ms var(--ease-firm),
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+}
+
+dialog.ui-modal[open] {
+  opacity: 1;
+  transform: none;
 }
 
 dialog.ui-modal::backdrop {
-  background-color: color-mix(in srgb, var(--color-sidebar) 60%, transparent);
+  background-color: color-mix(in srgb, var(--color-sidebar) 55%, transparent);
+  opacity: 0;
+  transition:
+    opacity 180ms,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
 }
 
-/* Única animación de entrada: la etiqueta de inventario del login. */
+dialog.ui-modal[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  dialog.ui-modal[open] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  dialog.ui-modal[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Login: la etiqueta cae en su lugar y su historial se imprime renglón por renglón, una sola vez. */
 @keyframes tag-settle {
   from {
     opacity: 0;
-    transform: translateY(16px) rotate(-1deg);
+    transform: translateY(16px) rotate(1deg);
   }
   to {
     opacity: 1;
-    transform: translateY(0) rotate(-4deg);
+    transform: rotate(-2.5deg);
+  }
+}
+
+@keyframes print-line {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
   }
 }
 
 .asset-tag {
-  transform: rotate(-4deg);
-  animation: tag-settle 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform: rotate(-2.5deg);
+  animation: tag-settle 600ms var(--ease-firm) both;
+}
+
+.tag-line {
+  animation: print-line 420ms ease-out calc(600ms + var(--i) * 520ms) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::backdrop {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

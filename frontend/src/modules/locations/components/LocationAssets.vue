@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { locationsApi } from '../api'
 import type { LocationAssetItem, PagedResult } from '../types'
 
@@ -35,7 +36,7 @@ watch(
       <span v-if="result" class="text-sm text-muted-foreground">{{ result.totalCount }} (incluye sub-ubicaciones)</span>
     </div>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-else-if="!result" class="text-sm text-muted-foreground">Cargando…</p>
+    <UiLoading v-else-if="!result">Cargando…</UiLoading>
     <p v-else-if="result.items.length === 0" class="text-sm text-muted-foreground">No hay activos registrados en esta ubicación.</p>
     <ul v-else class="divide-y divide-border">
       <li v-for="a in result.items" :key="a.assetId" class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm">

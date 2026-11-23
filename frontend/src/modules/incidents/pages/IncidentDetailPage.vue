@@ -8,6 +8,7 @@ import UiField from '../../../shared/components/UiField.vue'
 import { formatDateTime } from '../../../shared/utils/format'
 import { incidentsApi } from '../api'
 import StatusChip from '../components/StatusChip.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import type { IncidentDetail } from '../types'
 
 type LoadState = 'loading' | 'not-found' | 'error' | 'ready'
@@ -27,14 +28,15 @@ const ASSET_STATUS_LABELS: Record<string, string> = {
 function assetStatusClass(statusCode: string): string {
   switch (statusCode) {
     case 'CON_FALLA':
-      return 'bg-destructive/10 text-destructive'
+      return 'chip-danger'
     case 'DISPONIBLE':
-      return 'bg-success/10 text-success'
+      return 'chip-success'
     case 'EN_MANTENIMIENTO':
+      return 'chip-warning'
     case 'ASIGNADO':
-      return 'bg-muted text-secondary'
+      return 'chip-info'
     default:
-      return 'bg-muted text-muted-foreground'
+      return 'chip-neutral'
   }
 }
 
@@ -94,7 +96,7 @@ const assetNote = computed(() => {
 </script>
 
 <template>
-  <p v-if="isValidId && state === 'loading'" class="text-sm text-muted-foreground">Cargando incidente…</p>
+  <UiLoading v-if="isValidId && state === 'loading'">Cargando incidente…</UiLoading>
 
   <div v-else-if="!isValidId || state === 'not-found'" class="space-y-3">
     <p class="font-medium text-foreground">Incidente no encontrado</p>
@@ -109,8 +111,8 @@ const assetNote = computed(() => {
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="font-display text-2xl font-semibold text-foreground">{{ detail.title }}</h1>
         <StatusChip :status-code="detail.statusCode" :status-name="detail.statusName" />
-        <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ detail.priorityName }}</span>
-        <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ detail.typeName }}</span>
+        <span class="chip chip-plain">Prioridad {{ detail.priorityName.toLowerCase() }}</span>
+        <span class="chip chip-plain">{{ detail.typeName }}</span>
       </div>
     </header>
 
@@ -123,7 +125,7 @@ const assetNote = computed(() => {
         <RouterLink :to="`/assets/${detail.assetId}`" class="font-medium text-primary underline-offset-2 hover:underline">
           {{ detail.assetInventoryCode }}
         </RouterLink>
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', assetStatusClass(detail.assetStatusCode)]">
+        <span :class="['chip', assetStatusClass(detail.assetStatusCode)]">
           {{ ASSET_STATUS_LABELS[detail.assetStatusCode] ?? detail.assetStatusCode }}
         </span>
       </div>

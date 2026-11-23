@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Tickets',
+        group: 'Soporte',
         // Lo usan todos los roles: segundo en el menú, después del panel.
         order: 15,
         permission: 'tickets.create',

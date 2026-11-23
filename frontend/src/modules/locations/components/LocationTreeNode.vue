@@ -61,7 +61,7 @@ const typeName = computed(() => props.typeNameByCode.get(props.item.locationType
         {{ item.name }}
       </RouterLink>
       <span class="text-muted-foreground">{{ item.code }}</span>
-      <span class="ml-auto rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">{{ typeName }}</span>
+      <span class="ml-auto chip chip-plain">{{ typeName }}</span>
       <button
         v-if="canManage"
         type="button"

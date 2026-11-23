@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
       permission: 'history.view',
       nav: {
         label: 'Historial',
+        group: 'Sistema',
         order: 90,
         permission: 'history.view',
         icon: ['M12 21a9 9 0 110-18 9 9 0 010 18z', 'M12 7v5l3 2'],

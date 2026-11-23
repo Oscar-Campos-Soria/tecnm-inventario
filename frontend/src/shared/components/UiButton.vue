@@ -15,7 +15,7 @@ const variantClasses: Record<UiButtonVariant, string> = {
   secondary:
     'border border-border bg-card text-primary hover:border-accent hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50',
   danger:
-    'bg-destructive font-semibold text-on-destructive hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50',
+    'border border-destructive/40 bg-card font-semibold text-destructive hover:bg-destructive hover:text-on-destructive disabled:cursor-not-allowed disabled:opacity-50',
 }
 </script>
 
@@ -23,7 +23,7 @@ const variantClasses: Record<UiButtonVariant, string> = {
 <template>
   <button
     :type="type"
-    :class="['min-h-[44px] cursor-pointer rounded-md px-4 text-sm transition-colors duration-150', variantClasses[variant]]"
+    :class="['min-h-[44px] cursor-pointer rounded-lg px-4 text-sm transition duration-150 enabled:active:scale-[0.97]', variantClasses[variant]]"
   >
     <slot />
   </button>

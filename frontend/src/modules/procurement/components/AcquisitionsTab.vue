@@ -4,6 +4,7 @@ import { ApiError } from '../../../shared/api/http'
 import DocumentList from '../../../shared/components/DocumentList.vue'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate, todayIso } from '../../../shared/utils/format'
 import { procurementApi } from '../api'
 import type { AcquisitionDetail, AcquisitionSummary, AssetOption, PagedResult, Supplier } from '../types'
@@ -138,7 +139,7 @@ const label = 'mb-1 block text-sm font-medium text-foreground'
   <div class="space-y-3">
     <div class="flex justify-end"><UiButton variant="primary" @click="openForm">Nueva compra</UiButton></div>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando compras…</p>
+    <UiLoading v-if="!result && !error">Cargando compras…</UiLoading>
     <div v-else-if="result" class="overflow-x-auto rounded-lg border border-border bg-card">
       <table class="w-full text-left text-sm">
         <thead>

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 // Chip de estado del incidente: rojo = falla activa (ABIERTO), verde =
-// resuelto, azul tenue = en proceso (diagnóstico/reparación) o cerrado.
+// resuelto, ámbar = en proceso (diagnóstico/reparación), gris = cerrado.
 const props = defineProps<{
   statusCode: string
   statusName?: string
@@ -11,19 +11,19 @@ const props = defineProps<{
 const chipClass = computed(() => {
   switch (props.statusCode) {
     case 'ABIERTO':
-      return 'bg-destructive/10 text-destructive'
+      return 'chip-danger'
     case 'RESUELTO':
-      return 'bg-success/10 text-success'
+      return 'chip-success'
     case 'CERRADO':
-      return 'bg-muted text-muted-foreground'
+      return 'chip-neutral'
     default:
-      return 'bg-muted text-secondary'
+      return 'chip-warning'
   }
 })
 </script>
 
 <template>
-  <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', chipClass]">
+  <span :class="['chip', chipClass]">
     {{ statusName ?? statusCode }}
   </span>
 </template>

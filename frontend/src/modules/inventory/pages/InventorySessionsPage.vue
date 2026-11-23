@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../../../shared/api/http'
 import UiButton from '../../../shared/components/UiButton.vue'
 import UiModal from '../../../shared/components/UiModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { formatDate } from '../../../shared/utils/format'
 import { inventoryApi } from '../api'
 import { SESSION_LABELS } from '../labels'
@@ -76,7 +77,7 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
     </header>
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando…</p>
+    <UiLoading v-if="!result && !error">Cargando…</UiLoading>
     <div v-else-if="result && result.items.length === 0" class="rounded-lg border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
       Aún no hay conteos. Abre uno para empezar a revisar un edificio o laboratorio.
     </div>
@@ -89,7 +90,7 @@ const fieldClass = 'min-h-[44px] w-full rounded-md border border-border bg-backg
             <p class="text-xs text-muted-foreground">{{ s.locationName ?? '—' }}, {{ formatDate(s.startedAt) }}<template v-if="s.createdByUsername">, {{ s.createdByUsername }}</template></p>
           </div>
           <span class="text-sm text-secondary">{{ s.checkedRecords }} de {{ s.totalRecords }} revisados</span>
-          <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', s.status === 'abierta' ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground']">
+          <span :class="['chip', s.status === 'abierta' ? 'chip-info' : 'chip-neutral']">
             {{ SESSION_LABELS[s.status] }}
           </span>
         </RouterLink>

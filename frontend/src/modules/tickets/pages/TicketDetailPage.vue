@@ -12,6 +12,7 @@ import { ticketsApi } from '../api'
 import PriorityBadge from '../components/PriorityBadge.vue'
 import TicketStaffPanel from '../components/TicketStaffPanel.vue'
 import TicketThread from '../components/TicketThread.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { OPEN_STATUSES, TERMINAL_STATUSES, categoryIcon, statusClass, statusLabel, ticketNumber } from '../labels'
 import type { TicketCatalogs, TicketDetail, TicketStatus } from '../types'
 
@@ -103,7 +104,7 @@ function cancelTicket() {
 </script>
 
 <template>
-  <p v-if="isValidId && state === 'loading'" class="text-sm text-muted-foreground">Cargando ticket…</p>
+  <UiLoading v-if="isValidId && state === 'loading'">Cargando ticket…</UiLoading>
 
   <div v-else-if="!isValidId || state === 'not-found'" class="space-y-3">
     <p class="font-medium text-foreground">Ticket no encontrado</p>
@@ -120,7 +121,7 @@ function cancelTicket() {
       <h1 class="font-display text-2xl font-semibold text-foreground">{{ ticket.title }}</h1>
       <div class="flex flex-wrap items-center gap-2 text-sm">
         <span class="font-medium text-muted-foreground">{{ ticketNumber(ticket.ticketId) }}</span>
-        <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', statusClass(ticket.status)]">
+        <span :class="['chip', statusClass(ticket.status)]">
           {{ statusLabel(ticket.status, isRequester) }}
         </span>
         <PriorityBadge :priority="ticket.priorityCode" :name="ticket.priorityName" />

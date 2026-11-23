@@ -9,6 +9,7 @@ import { formatRelative } from '../../../shared/utils/format'
 import { ticketsApi } from '../api'
 import NewTicketModal from '../components/NewTicketModal.vue'
 import PriorityBadge from '../components/PriorityBadge.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { categoryIcon, priorityStripe, statusClass, statusLabel, ticketNumber } from '../labels'
 import type { PagedResult, TicketCatalogs, TicketFilters, TicketSummary } from '../types'
 
@@ -175,7 +176,7 @@ const emptyText = computed(() => {
 
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
 
-    <p v-if="loading && !result" class="text-sm text-muted-foreground">Cargando tickets…</p>
+    <UiLoading v-if="loading && !result">Cargando tickets…</UiLoading>
 
     <div v-else-if="result && result.items.length === 0" class="rounded-lg border border-dashed border-border px-6 py-10 text-center">
       <p class="text-sm text-muted-foreground">{{ emptyText }}</p>
@@ -207,7 +208,7 @@ const emptyText = computed(() => {
           </div>
           <div class="flex flex-wrap items-center gap-2 pl-8 sm:justify-end sm:pl-0">
             <PriorityBadge v-if="ticket.priorityCode === 'CRITICA' || ticket.priorityCode === 'ALTA'" :priority="ticket.priorityCode" :name="ticket.priorityName" />
-            <span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', statusClass(ticket.status)]">
+            <span :class="['chip', statusClass(ticket.status)]">
               {{ statusLabel(ticket.status, !isStaff) }}
             </span>
           </div>

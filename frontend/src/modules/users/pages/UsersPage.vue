@@ -7,6 +7,7 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { formatDate } from '../../../shared/utils/format'
 import { usersApi } from '../api'
 import UserFormModal from '../components/UserFormModal.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import type { ManagedUser, PagedResult, RoleOption, UserFilters, UserStatus } from '../types'
 
 const { session } = useAuth()
@@ -116,9 +117,9 @@ async function savePassword() {
 }
 
 const STATUS_CHIP: Record<UserStatus, string> = {
-  activo: 'bg-success/10 text-success',
-  inactivo: 'bg-muted text-muted-foreground',
-  suspendido: 'bg-priority-high/10 text-priority-high',
+  activo: 'chip-success',
+  inactivo: 'chip-neutral',
+  suspendido: 'chip-alert',
 }
 const select = 'min-h-[44px] cursor-pointer rounded-md border border-border bg-background px-2.5 text-sm text-foreground'
 </script>
@@ -152,7 +153,7 @@ const select = 'min-h-[44px] cursor-pointer rounded-md border border-border bg-b
 
     <p v-if="notice" role="status" class="rounded-md bg-success/10 px-3 py-2 text-sm text-success">{{ notice }}</p>
     <p v-if="error" role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
-    <p v-if="!result && !error" class="text-sm text-muted-foreground">Cargando usuarios…</p>
+    <UiLoading v-if="!result && !error">Cargando usuarios…</UiLoading>
 
     <div v-else-if="result" class="overflow-x-auto rounded-lg border border-border bg-card">
       <table class="w-full min-w-[52rem] text-left text-sm">
@@ -175,7 +176,7 @@ const select = 'min-h-[44px] cursor-pointer rounded-md border border-border bg-b
               <p class="text-xs text-muted-foreground">{{ u.username }}, {{ u.email }}</p>
             </td>
             <td class="px-4 py-3 text-secondary">{{ u.roleName }}</td>
-            <td class="px-4 py-3"><span :class="['rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CHIP[u.status]]">{{ u.status }}</span></td>
+            <td class="px-4 py-3"><span :class="['chip capitalize', STATUS_CHIP[u.status]]">{{ u.status }}</span></td>
             <td class="px-4 py-3 text-secondary">{{ formatDate(u.createdAt) }}</td>
             <td class="px-4 py-3">
               <div class="flex flex-wrap justify-end gap-2">

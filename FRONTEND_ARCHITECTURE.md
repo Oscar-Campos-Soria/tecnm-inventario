@@ -26,7 +26,7 @@ frontend/
 │   │   └── README.md            # Especificación del slice (rutas, permisos, endpoints, reglas)
 │   └── shared/                  # Transversal, sin conocer el dominio
 │       ├── api/                 # http.ts (fetch + cookies + CSRF + refresh), auth.ts, documents.ts
-│       ├── components/          # UI kit: UiButton, UiModal, UiField, NavIcon, BrandMark, DocumentList
+│       ├── components/          # UI kit: UiButton, UiModal, UiField, UiLoading, NavIcon, BrandMark, DocumentList
 │       ├── hooks/               # Composables: useAuth (sesión compartida)
 │       ├── styles/              # Tailwind (CSS-first, @theme)
 │       └── utils/               # format, permissions, redirect
@@ -42,7 +42,7 @@ Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`,
 
 1. **`modules/` es soberano:** cada módulo contiene sus páginas, componentes, tipos, llamadas a API y rutas. No importa de otro módulo ni de `app/`; lo compartido vive en `shared/`. Para enlazar a otro módulo se usa una ruta (`RouterLink to="/tickets?nuevo=1&assetId=5"`), no un import.
 2. **Rutas descentralizadas:** cada módulo exporta `routes.ts` (default `RouteRecordRaw[]`). `app/router` las recoge con `import.meta.glob('../../modules/*/routes.ts')`; un módulo nuevo no requiere tocar `app/`. Las páginas se cargan con `() => import(...)` (un chunk por página).
-3. **Menú desde las rutas:** la ruta principal de un módulo declara `meta.nav` (`label`, `icon`, `order`, `permission`); `MainLayout` arma el menú con `router.getRoutes()` y filtra por permisos efectivos de `/api/auth/me` (solo UX; la API valida).
+3. **Menú desde las rutas:** la ruta principal de un módulo declara `meta.nav` (`label`, `group`, `icon`, `order`, `permission`); `group` es el área del menú (`NAV_GROUPS` en `app/router/route-meta.ts`: Soporte, Equipos, Gestión, Sistema) y `order` la posición dentro de ella; `MainLayout` arma el menú con `router.getRoutes()` y filtra por permisos efectivos de `/api/auth/me` (solo UX; la API valida).
 4. **Spec por slice:** `modules/<modulo>/README.md` describe rutas, permisos, endpoints y reglas del slice. La especificación funcional completa sigue en `specs/<modulo>.spec.md`.
 5. **`shared/` no conoce el dominio:** UI kit, cliente HTTP, composables genéricos y utilidades. `documents.ts` / `DocumentList.vue` viven aquí porque Documentos es transversal en el backend (`Features/Documents`, cualquier `ownerType`).
 6. **`app/` orquesta:** layouts, router y bootstrap.
@@ -56,7 +56,10 @@ Módulos con pantallas: `auth`, `dashboard`, `assets`, `locations`, `inventory`,
 ## Estilo y configuración
 
 - **Tailwind CSS v4** CSS-first (`@import "tailwindcss"` y `@theme` en `src/shared/styles/index.css`). Sin `tailwind.config.js`.
-- Tokens blanco/azul institucional: menú lateral navy (`--color-sidebar` `#0f2747`, sección activa como pestaña del color del contenido), navy `#1b396a` para marca y enlaces, azul de acción `#1d5fd6` (`--color-accent`) solo para botones principales y foco, tinte cielo `#eaf2fd` (`--color-muted`). `--color-priority-high` (`#c2410c`) para prioridad Alta de tickets. Lexend (display) + Source Sans 3 (texto). Plano, con bordes en vez de sombras.
+- Tokens: menú lateral cobalto (`--color-sidebar` `#0f2e8c`, sección activa como pestaña que se desliza), `#15349b` (`--color-primary`) para marca y enlaces, azul de acción `#2457ff` (`--color-accent`) para botones principales y foco. Archivo, variable en ancho: `font-display` va más ancha que el texto. Bordes en vez de sombras.
+- **El color vivo pertenece al estado del equipo** (`--color-state-available|assigned|maintenance|fault|disposed`): son rellenos (barras, puntos, franjas). Para texto se usan `success`, `warning`, `destructive` y `accent`, que cumplen 4.5:1.
+- Estados en pantalla: clases `chip` + `chip-success|info|warning|danger|alert|neutral` (cada tono trae su símbolo, no depende del color) y `chip-plain` para datos que no son estado. El color, símbolo y explicación de cada estado del activo viven en `modules/assets/status.ts`.
+- Carga: `UiLoading` (esqueleto; su texto es para lectores de pantalla). Movimiento: pestaña del menú, `page-enter`, `bar-grow`, `band-reveal`, `UiModal` y la etiqueta del login; todo se anula con `prefers-reduced-motion`.
 - En componentes del UI kit, `class` del llamador se **suma** a la del componente (Vue): no pasar utilidades que choquen (p. ej. `px-5` sobre `UiButton`); para tamaños hay props (`BrandMark size`).
 - ESLint: `@eslint/js` + `typescript-eslint` + `eslint-plugin-vue` (`flat/recommended`). TypeScript estricto; `vue-tsc -b` revisa tipos dentro de `.vue`.
 

@@ -23,6 +23,24 @@ const ids = { code: useId(), name: useId(), desc: useId() }
 
 const selected = computed(() => roles.value.find((r) => r.roleId === selectedId.value) ?? null)
 
+const MODULE_LABEL: Record<string, string> = {
+  assets: 'Activos',
+  assistant: 'Asistente',
+  components: 'Componentes',
+  dashboard: 'Panel',
+  documents: 'Documentos',
+  history: 'Historial',
+  incidents: 'Incidentes',
+  inventory: 'Levantamiento',
+  locations: 'Ubicaciones',
+  maintenance: 'Mantenimiento',
+  procurement: 'Adquisiciones',
+  reports: 'Reportes',
+  roles: 'Roles',
+  software: 'Software',
+  tickets: 'Tickets',
+  users: 'Usuarios',
+}
 const groups = computed(() => {
   const map = new Map<string, Permission[]>()
   for (const p of permissions.value) map.set(p.module, [...(map.get(p.module) ?? []), p])
@@ -148,7 +166,7 @@ const field = 'min-h-[44px] w-full rounded-md border border-border bg-background
         </div>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <fieldset v-for="[module, items] in groups" :key="module" class="rounded-md border border-border p-3">
-            <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ module }}</legend>
+            <legend class="px-1 text-sm font-semibold text-foreground">{{ MODULE_LABEL[module] ?? module }}</legend>
             <label v-for="p in items" :key="p.code" :class="['flex min-h-[40px] items-start gap-2 py-1 text-sm', isLocked(p.code) ? 'cursor-not-allowed' : 'cursor-pointer']">
               <input type="checkbox" class="mt-0.5 size-4 accent-accent" :checked="checked.has(p.code)" :disabled="isLocked(p.code)" @change="toggle(p.code)" />
               <span>

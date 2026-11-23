@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Activos',
+        group: 'Equipos',
         order: 20,
         permission: 'assets.view',
         icon: ['M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z', 'M12 12l8-4.5M12 12v9M12 12L4 7.5'],
@@ -22,6 +23,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       nav: {
         label: 'Mis equipos',
+        group: 'Equipos',
         order: 20,
         hideWithPermission: 'assets.view',
         icon: ['M4 5h16v10H4z', 'M8 19h8', 'M12 15v4'],

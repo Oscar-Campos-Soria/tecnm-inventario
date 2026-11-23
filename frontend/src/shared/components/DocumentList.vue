@@ -6,6 +6,7 @@ import type { DocumentOwnerType, StoredDocument } from '../api/documents'
 import { formatBytes, formatDate } from '../utils/format'
 import { useAuth } from '../hooks/useAuth'
 import UiModal from './UiModal.vue'
+import UiLoading from './UiLoading.vue'
 
 // Lista de adjuntos de un registro (evidencias de incidente, fotos de ticket).
 const props = withDefaults(
@@ -160,7 +161,7 @@ const buttonClass =
 
     <p v-if="error" role="alert" class="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{{ error }}</p>
 
-    <p v-if="items === null && !error" class="text-sm text-muted-foreground">Cargando archivos…</p>
+    <UiLoading v-if="items === null && !error">Cargando archivos…</UiLoading>
     <p v-else-if="items !== null && items.length === 0" class="text-sm text-muted-foreground">{{ emptyText }}</p>
 
     <ul v-if="items !== null && items.length > 0" class="space-y-2">

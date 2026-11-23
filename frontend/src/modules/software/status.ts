@@ -11,13 +11,13 @@ function daysUntil(iso: string): number {
 export const EXPIRING_DAYS = 30
 
 export function expiry(l: Pick<LicenseSummary, 'validUntil' | 'isExpired'>): { text: string; cls: string } {
-  if (!l.validUntil) return { text: 'Sin vencimiento', cls: 'bg-muted text-muted-foreground' }
-  if (l.isExpired) return { text: `Venció el ${formatDate(l.validUntil)}`, cls: 'bg-destructive/10 text-destructive' }
+  if (!l.validUntil) return { text: 'Sin vencimiento', cls: 'chip-neutral' }
+  if (l.isExpired) return { text: `Venció el ${formatDate(l.validUntil)}`, cls: 'chip-danger' }
   const days = daysUntil(l.validUntil)
   if (days <= EXPIRING_DAYS) {
-    return { text: days === 0 ? 'Vence hoy' : `Vence en ${days} ${days === 1 ? 'día' : 'días'}`, cls: 'bg-priority-high/10 text-priority-high' }
+    return { text: days === 0 ? 'Vence hoy' : `Vence en ${days} ${days === 1 ? 'día' : 'días'}`, cls: 'chip-alert' }
   }
-  return { text: `Hasta ${formatDate(l.validUntil)}`, cls: 'bg-success/10 text-success' }
+  return { text: `Hasta ${formatDate(l.validUntil)}`, cls: 'chip-success' }
 }
 
 export function usage(l: Pick<LicenseSummary, 'inUse' | 'quantityPurchased'>): { text: string; percent: number | null; full: boolean } {

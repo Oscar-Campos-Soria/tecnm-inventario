@@ -4,6 +4,7 @@ import UiButton from '../../../shared/components/UiButton.vue'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import LocationFormModal from '../components/LocationFormModal.vue'
 import LocationTreeNode from '../components/LocationTreeNode.vue'
+import UiLoading from '../../../shared/components/UiLoading.vue'
 import { fetchLocationTypes, locationsApi } from '../api'
 import type { LocationItem, LocationTypeItem } from '../types'
 
@@ -136,7 +137,7 @@ function toggle(locationId: number) {
       No se pudieron cargar las ubicaciones.
     </p>
 
-    <p v-if="state === 'loading'" class="text-sm text-muted-foreground">Cargando ubicaciones…</p>
+    <UiLoading v-if="state === 'loading'">Cargando ubicaciones…</UiLoading>
 
     <div v-if="state === 'ready' && locations.length === 0" class="rounded-lg border border-dashed border-border p-8 text-center">
       <p class="font-medium text-foreground">Sin ubicaciones</p>
